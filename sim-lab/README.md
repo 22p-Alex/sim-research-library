@@ -66,4 +66,4 @@ npm run preview  # 仅本机可访问的 HTTP 预览，默认端口 8765
 
 页面本身不需要安装 npm 依赖。检查命令使用本机现有的 Node、Python 和 Playwright；在其他电脑运行浏览器检查时，可通过 `SIM_PLAYWRIGHT_DIR` 与 `SIM_BROWSER_EXECUTABLE` 指定已安装的工具路径。
 
-本轮整理前的原文件快照位于 `tmp/sim-structure-before/`，保留原目录结构。WorkBuddy 来源副本未修改；日常修改与预览使用本地项目根目录的 HTML。
+本轮整理前的原文件快照曾放在 `tmp/sim-structure-before/`，该目录已于 2026-10-06 清理；需要回看时从 git 基线提交 `a3b0c29` 取回。WorkBuddy 来源副本未修改；日常修改与预览使用本地项目根目录的 HTML。
