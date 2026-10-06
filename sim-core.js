@@ -40,19 +40,6 @@
     return { at, ex, exPeriod, kc, fs, fi, kx, ky, dx, dy, hd, hs, hi,
       diff: Math.hypot(dx, dy), maxGain: ex.mean && ex.m > 0 ? 1 + fi/kc : 1 };
   }
-  // Separate 1D teaching example, derived from sum/product trig identities.
-  // The nonnegative product uses I0=m=1 and has not passed through an OTF.
-  function beatExample(delta, phase=0) {
-    const carrier=.1,f1=carrier+delta/2,f2=carrier-delta/2;
-    function at(x) {
-      const a=TAU*f1*x,b=TAU*f2*x+phase;
-      const slow=Math.cos((a-b)/2),fast=Math.cos((a+b)/2);
-      return {sum:Math.cos(a)+Math.cos(b),amplitude:2*Math.abs(slow),
-        product:.5*(1+Math.cos(a))*(1+Math.cos(b)),
-        upper:.5*(1+Math.abs(slow))**2,difference:.25*Math.cos(a-b),slow,fast};
-    }
-    return {f1,f2,at,beatPeriod:delta?1/Math.abs(delta):Infinity};
-  }
   function fft1(re, im, inverse) {
     const n = re.length;
     for (let i=1,j=0;i<n;i++) {
@@ -262,7 +249,7 @@
       condition:maxCondition,angles:modulated?angles:[],bands,system,denominator:den};
   }
   function rmse(a,b) { let v=0;for(let i=0;i<a.length;i++)v+=(a[i]-b[i])**2;return Math.sqrt(v/a.length); }
-  const api={TAU,otf,excitation,scene,beatExample,fft2,forward,makeSample,acquire,phaseSystem,
+  const api={TAU,otf,excitation,scene,fft2,forward,makeSample,acquire,phaseSystem,
     uniqueAngles,inSupport,radialSupport,reconstruct,rmse,gaussianNoise};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   else root.SIMCore=api;

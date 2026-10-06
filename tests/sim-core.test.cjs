@@ -10,33 +10,6 @@ function target() {return Float64Array.from({length:n*n},(_,i)=>.5+.3*Math.cos(C
 const exact={eps:0,apodize:false};
 const sceneParams={samplePeriod:7.5,illumPeriod:13,angle:0,m:.9,phase:.4,mode:'sim',cutoffPeriod:12};
 
-test('beat envelope contains the sum and the derived upper bound contains the full product',()=>{
-  for(const delta of [0,.001,.02,.04])for(const phase of [0,.7,Math.PI,2*Math.PI]) {
-    const example=C.beatExample(delta,phase);
-    for(let i=0;i<=1200;i++) {
-      const v=example.at(i/10);
-      near(v.sum,2*v.slow*v.fast);
-      near(v.product,.5*(v.slow+v.fast)**2);
-      assert.ok(Math.abs(v.sum)<=v.amplitude+1e-12);
-      assert.ok(v.product>=0&&v.product<=v.upper+1e-12);
-    }
-  }
-});
-test('equal-frequency opposite phases cancel the sum but not the fluorescent product',()=>{
-  const example=C.beatExample(0,Math.PI);
-  for(const x of [0,1,2.5,7.5,28.3]) {
-    const v=example.at(x);
-    near(v.sum,0);near(v.amplitude,0);near(v.upper,.5);near(v.difference,-.25);
-    near(v.product,.5*Math.sin(C.TAU*.1*x)**2);
-  }
-  near(example.at(2.5).product,.5);
-});
-test('absolute beat amplitude repeats after the inverse frequency difference',()=>{
-  const example=C.beatExample(.02,.4);
-  near(example.beatPeriod,50);
-  for(const x of [0,3,12,37])near(example.at(x).amplitude,example.at(x+50).amplitude);
-});
-
 test('FFT round trip preserves complex phase and amplitude',()=>{
   const re=Float64Array.from({length:64},(_,i)=>Math.sin(i*.3)),im=Float64Array.from({length:64},(_,i)=>Math.cos(i*.2));
   const r=re.slice(),z=im.slice();C.fft2(re,im,8);C.fft2(re,im,8,true);
