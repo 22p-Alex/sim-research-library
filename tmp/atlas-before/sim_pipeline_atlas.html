@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>2D-SIM · 全流程图版：从九帧原始图到拼接频谱</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="sim-atlas.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="sim_pipeline_atlas.html"><span class="brand-mark">∑</span> SIM / 全流程图版</a>
+  <nav aria-label="相关学习页面">
+    <a href="sim_interactive_demo.html" target="_blank">模拟台 ↗</a>
+    <a href="sim_story.html" target="_blank">原理叙事 ↗</a>
+    <a href="hifi_sim_learning.html" target="_blank">HiFi-SIM ↗</a>
+  </nav>
+</header>
+
+<section class="hero">
+  <p class="eyebrow">2D structured illumination · full pipeline atlas</p>
+  <h1>一屏看完整条流水线：<br>九帧原始图如何变成一张拼接频谱。</h1>
+  <p class="intro">样品是西门子星加三对亚分辨点：局部周期随半径连续变化，于是同一张图上同时存在
+    <b>宽场可见</b>、<b>仅 SIM 可达</b>、<b>超出 SIM 极限</b> 三个区域。每一步的中间产物都参与本次计算，
+    频谱上的任意一点都可以点开查看它混着哪三个样品频率。</p>
+  <div class="zone-legend" id="zones"></div>
+</section>
+
+<div class="console" role="group" aria-label="实验条件">
+  <label>样品<select id="c-sample">
+    <option value="star-points">西门子星 + 点对（默认）</option>
+    <option value="star">仅西门子星</option>
+    <option value="points">仅点对</option>
+    <option value="gratings">三方向细条纹（旧对照）</option>
+  </select></label>
+  <label>采集方向<select id="c-dir"><option value="3">3 方向 × 3 相位</option><option value="1">1 方向 × 3 相位</option></select></label>
+  <label>照明真值 m <output id="o-m">0.8</output><input id="c-m" type="range" min="0" max="1" step="0.1" value="0.8"></label>
+  <label>计数噪声<select id="c-noise"><option value="none">关闭全部噪声</option><option value="high">高计数 Q=5000</option><option value="low">低计数 Q=150</option></select></label>
+  <label>调制度来源<select id="c-msrc"><option value="known">已知真值（教学对照）</option><option value="estimated">从 raw 估计</option></select></label>
+  <label>正则 ε <output id="o-eps">0</output><input id="c-eps" type="range" min="0" max="0.15" step="0.005" value="0"></label>
+  <details>
+    <summary>注入参数失配（只改重建，不重新采集）</summary>
+    <div class="mismatch-grid">
+      <label>失配作用范围<select id="c-scope"><option value="both">估计器与重建同时失配</option><option value="recon">仅重建失配</option></select></label>
+      <label>公共相位偏差 <output id="o-phase">0°</output><input id="c-phase" type="range" min="0" max="45" step="5" value="0"></label>
+      <label>角度偏差 <output id="o-angle">0°</output><input id="c-angle" type="range" min="0" max="5" step="1" value="0"></label>
+      <label>采用 m 偏差 <output id="o-merr">0%</output><input id="c-merr" type="range" min="-40" max="40" step="10" value="0"></label>
+      <label>检测截止偏差 <output id="o-otf">0%</output><input id="c-otf" type="range" min="-20" max="20" step="5" value="0"></label>
+    </div>
+  </details>
+</div>
+<p class="statusline" id="status" aria-live="polite"></p>
+
+<section class="band" id="b1">
+  <div class="band-head"><span class="no">STAGE 1</span><h2>样品与它的频谱</h2><span class="aside">分辨率的三个区域画在同一张图上</span></div>
+  <p class="lede">西门子星的局部周期随半径连续变化。蓝圆是检测截止 <b>k<sub>c</sub></b>，青圆是融合支撑极限
+    <b>k<sub>c</sub>+|k<sub>i</sub>|</b>，三个十字是照明波矢。环带内的结构落在哪个圆之间，决定它能否被恢复。</p>
+  <div class="strip" id="s1"></div>
+  <div class="callout" id="c1"></div>
+</section>
+
+<section class="band" id="b2">
+  <div class="band-head"><span class="no">STAGE 2</span><h2>照明与摩尔纹</h2><span class="aside">空域乘积，尚未经过 OTF</span></div>
+  <p class="lede">第一行是三个方向的照明强度 <b>1 + m·cos</b>；第二行是样品与照明的乘积，即进入物镜前的发射光。
+    样品细条纹与照明条纹相乘产生差频包络——这就是被搬进通带的那份信息。</p>
+  <div class="strip" id="s2a"></div>
+  <div class="strip" id="s2b"></div>
+</section>
+
+<section class="band" id="b3">
+  <div class="band-head"><span class="no">STAGE 3</span><h2>采集帧与它们的频谱</h2><span class="aside">3 方向 × 3 相位 = 9 帧</span></div>
+  <p class="lede">相机记录的是空域强度。每帧的频谱里，0 级与 ±1 级<b>重叠在同一张图上</b>：中心圆盘是零级，
+    沿照明方向伸出的两瓣是搬进来的高频副本。相位只改变两瓣的复权重，不改变它们的位置。</p>
+  <div class="strip" id="s3a"></div>
+  <div class="strip" id="s3b"></div>
+</section>
+
+<section class="band" id="b4">
+  <div class="band-head"><span class="no">STAGE 4</span><h2>混叠：一个检测点装着三个样品频率</h2><span class="aside">点击频谱任意一点</span></div>
+  <p class="lede">在检测频率 <b>k</b> 处混合着 <b>S(k)</b>、<b>S(k−k<sub>i</sub>)</b>、<b>S(k+k<sub>i</sub>)</b> 三个未知量。
+    点击左图任意位置，右侧面板给出该点的三个观测值、解混系数，以及每个级次搬回后落在哪个样品频率。</p>
+  <div class="probe-wrap">
+    <div class="strip" id="s4"></div>
+    <div class="probe-panel" id="probe"></div>
+  </div>
+</section>
+
+<section class="band" id="b5">
+  <div class="band-head"><span class="no">STAGE 5</span><h2>解混：分离 0 / +1 / −1 级</h2><span class="aside">逐频率点解 3×3 复线性系统</span></div>
+  <p class="lede">三个相位给出三个方程。第一行是分离后三个级次的<b>幅度</b>，第二行是<b>相位</b>。
+    零级是实函数（相位只有 0/π），±1 级是复函数——它们的相位携带着结构的位置信息。</p>
+  <div class="strip" id="s5a"></div>
+  <div class="strip" id="s5b"></div>
+  <div class="callout" id="c5"></div>
+</section>
+
+<section class="band" id="b6">
+  <div class="band-head"><span class="no">STAGE 6</span><h2>搬移：把副本送回真实频率</h2><span class="aside">±1 级沿 ∓k<sub>i</sub> 平移</span></div>
+  <p class="lede">第一行是解混结果在<b>检测坐标</b>下的位置（两瓣贴着中心）；第二行是搬回<b>样品坐标</b>后
+    （两瓣移到 ±k<sub>i</sub>）。搬移同时把该频带的等效 OTF 换成 <b>H(k ± k<sub>i</sub>)</b>。</p>
+  <div class="strip" id="s6a"></div>
+  <div class="strip" id="s6b"></div>
+</section>
+
+<section class="band" id="b7">
+  <div class="band-head"><span class="no">STAGE 7</span><h2>拼接：三个方向的频带与支撑域</h2><span class="aside">六瓣花第一次完整可见</span></div>
+  <p class="lede">左图是<b>单个方向</b>的三个频带（零级紫灰、+1 红、−1 绿），看清一个方向贡献哪两瓣；
+    中图把三个方向的理论支撑域按红/绿/蓝叠起来，<b>重叠处混色</b>——六瓣花与频带重叠区第一次完整可见；
+    右图是融合权重和 <b>Σ w|T|²</b>（Wiener 分母去掉 ε），红线是融合支撑的真实边界。</p>
+  <div class="strip" id="s7"></div>
+</section>
+
+<section class="band" id="b8">
+  <div class="band-head"><span class="no">STAGE 8</span><h2>融合：Wiener 分子、分母与等效传递</h2><span class="aside">分辨率与噪声的折中</span></div>
+  <p class="lede">分子是各频带按 <b>T*</b> 匹配滤波后的加权和，分母是 <b>Σ w|T|² + ε²</b>。
+    分母小的地方反演不稳定，ε 在那里起决定作用。右图是沿 0° 方向的等效传递剖面。</p>
+  <div class="strip" id="s8"></div>
+</section>
+
+<section class="band" id="b9">
+  <div class="band-head"><span class="no">STAGE 9</span><h2>结果与对照</h2><span class="aside">宽场 / SIM / 真值 / 误差</span></div>
+  <p class="lede">最后一行是径向对比度剖面：宽场是一条<b>渐变衰减</b>曲线（OTF 的形状），
+    SIM 是一条<b>平台</b>（拼接与加权融合的后果），两条曲线的分界就是各自的分辨率边界。</p>
+  <div class="strip" id="s9"></div>
+  <div class="strip" id="s9c"></div>
+  <div class="callout" id="c9"></div>
+</section>
+
+<details class="sources" id="sources">
+  <summary>公式依据、符号约定与模型边界</summary>
+  <div class="body">
+    <p>本页是标准线性 2D-SIM 的教学重建图版，不是 HiFi-SIM 原算法复现。成像在二维、线性、移不变、周期边界模型中计算；
+      频谱使用负指数傅里叶约定，显示的复数值除以 N² 便于阅读，融合使用未缩放 FFT。</p>
+    <div class="formula" data-tex="D_j(\mathbf f)=H(\mathbf f)\left[S(\mathbf f)+\tfrac m2 e^{i\phi_j}S(\mathbf f-\mathbf k)+\tfrac m2 e^{-i\phi_j}S(\mathbf f+\mathbf k)\right]+N_j(\mathbf f)"></div>
+    <div class="formula" data-tex="C_\ell(\mathbf q)=A_\ell(\mathbf q+\ell\mathbf k),\quad T_\ell(\mathbf q)=a_\ell H(\mathbf q+\ell\mathbf k),\quad a_0=1,\ a_{\pm1}=m/2"></div>
+    <div class="formula" data-tex="\widehat S(\mathbf q)=\frac{\sum_b w_b T_b^*(\mathbf q)C_b(\mathbf q)}{\sum_b w_b|T_b(\mathbf q)|^2+\varepsilon^2}"></div>
+    <p>照明波矢取整数 DFT 格 <code>(8,0)</code>、<code>(4,7)</code>、<code>(−4,7)</code>（约 0°/60.3°/119.7°），
+      使正确搬移时不需要非整数插值。检测截止 <code>KC=10</code> 格（周期 12.8 px），融合支撑 18 格（周期 7.11 px）。
+      西门子星 16 辐条，局部周期 = 2πr/16，因此 r&lt;18 超出 SIM 极限、18&lt;r&lt;32 仅 SIM 可达、r&gt;32 宽场部分可见。</p>
+    <p>分离后的频带保留 m/2，由融合传递函数 T 显式处理，避免 m=0 时除零。权重 w 按方向平均噪声与解混权重方差设置；
+      融合忽略跨频带噪声相关与空间异方差，没有额外切趾窗，不是完整 GLS。分母过小处不反演。</p>
+    <p>「失配作用范围」控制注入的角度/相位/OTF 偏差是否同时进入调制度估计器：同时进入时估计器可能因可靠性筛查
+      弃用一级频带，重建退化为零级——那是估计器的自我保护，不是失配伪影本身。仅重建失配时才能直接看到频带错位。</p>
+    <p>来源：Chen et al., <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a> (2023)，式 (1)–(9)。
+      <a href="SIM综述/Superresolution%20structured%20illumination%20microscopy%20reconstruction%20algorithms.pdf" target="_blank">本地原文</a> ·
+      <a href="知识库/02-统一成像模型与SIM分类预览.html" target="_blank">相移矩阵</a> ·
+      <a href="知识库/03-传统重建与参数估计预览.html" target="_blank">重建与参数估计</a>。</p>
+  </div>
+</details>
+<footer>独立学习页 · 可离线运行 · 所有真值只用于数据生成与结果评价，不进入重建</footer>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="sim-core.js"></script>
+<script src="sim-experiment.js"></script>
+<script src="sim-atlas-core.js"></script>
+<script src="sim-atlas.js"></script>
+</body>
+</html>

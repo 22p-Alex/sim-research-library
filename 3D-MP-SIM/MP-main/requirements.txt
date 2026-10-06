@@ -1,0 +1,18 @@
+# 3D-MP-SIM reconstruction dependencies
+# Python: 3.9.20 (recommended in README; tested layout)
+#
+# 1) 标注 [used] 的包为重构后代码实际 import 的依赖（必需）
+# 2) 标注 [README] 的包为 README 声明但重构代码未直接 import（环境一致性，可选）
+#    - pyotf: 原 DataProcess.py 有 `from pyotf.otf import HanserPSF` 但从未调用，
+#             重构时已移除该未使用 import；若你仍用旧脚本生成 OTF 则需保留。
+
+numpy==1.26.4            # [used]  注意: 必须 < 2.0
+torch==2.5.1             # [used]  CPU 版: conda install pytorch cpuonly -c pytorch
+tifffile==2023.7.18      # [used]  imread/imwrite/TiffWriter
+opencv-python==4.8.0.74  # [used]  cv2.erode/dilate (形态学)
+EMD-signal==1.4.0        # [used]  PyEMD.EMD (参数估计的相位直方图拟合)
+matplotlib               # [used]  Para_Estimate.draw_c_fai / plt2np 诊断图
+Pillow                   # [used]  PIL.Image (plt2np 中 RGBA->RGB)
+
+scikit-image==0.22.0     # [README]
+pyotf==0.0.3             # [README] 重构后非必需, 仅旧 OTF 生成脚本使用

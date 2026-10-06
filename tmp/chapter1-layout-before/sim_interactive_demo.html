@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SIM 核心原理交互演示台：从摩尔纹到超分辨</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<link rel="stylesheet" href="sim-wave-lab.css">
+<style>
+:root {
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --bg-page: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-sub: #F1F5F9;
+  --border-light: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --text-dim: #94A3B8;
+  --blue: #2563EB;
+  --blue-light: #EFF6FF;
+  --blue-border: #BFDBFE;
+  --cyan: #0284C7;
+  --green: #059669;
+  --green-light: #ECFDF5;
+  --amber: #D97706;
+  --amber-light: #FFFBEB;
+  --danger: #DC2626;
+  --danger-light: #FEF2F2;
+}
+
+/* 数学公式与物理量符号排版 (原生支持离线与无网环境) */
+.math-expr {
+  font-family: "KaTeX_Math", "Cambria Math", "Latin Modern Math", "STIX Two Math", "Times New Roman", serif;
+  font-size: 1.05em;
+  letter-spacing: 0.3px;
+  color: var(--text-main);
+  display: inline-block;
+  vertical-align: baseline;
+  line-height: 1;
+}
+.math-expr i {
+  font-style: italic;
+  font-family: "KaTeX_Math", "Cambria Math", "Latin Modern Math", "Times New Roman", serif;
+}
+.math-expr sub {
+  font-size: 0.72em;
+  bottom: -0.22em;
+  font-style: normal;
+  font-family: var(--font-sans);
+}
+.math-expr sup {
+  font-size: 0.72em;
+  top: -0.35em;
+  font-style: normal;
+}
+
+body {
+  margin: 0;
+  padding: 24px 20px 60px;
+  background: var(--bg-page);
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* 现代精致 Tab 导航 */
+.tabs {
+  display: inline-flex;
+  background: #E2E8F0;
+  padding: 4px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  gap: 2px;
+}
+.tab-btn {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 7px 18px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.tab-btn:hover {
+  color: var(--text-main);
+}
+.tab-btn.active {
+  background: #FFFFFF;
+  color: var(--blue);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+/* 主面板容器 */
+.panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* 精密视窗 2x2 外壳 */
+.viewport-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.viewport-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.viewport-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+.viewport-card.highlight {
+  border-color: #93C5FD;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+}
+.viewport-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #F8FAFC;
+  border-bottom: 1px solid var(--border-light);
+  min-height: 40px;
+  box-sizing: border-box;
+}
+.viewport-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-main);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.viewport-body {
+  position: relative;
+  background: #090D16;
+  width: 100%;
+}
+.viewport-body canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  background: #090D16;
+}
+.viewport-grid .viewport-body canvas {
+  width: 100%;
+  aspect-ratio: 600 / 240;
+  height: auto;
+  display: block;
+}
+.viewport-footer {
+  padding: 7px 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #FFFFFF;
+  border-top: 1px solid var(--border-light);
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+/* 状态药丸胶囊 */
+.pill-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
+}
+.pill-badge::before {
+  content: "";
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.pill-green { background: var(--green-light); color: var(--green); border: 0.5px solid #A7F3D0; }
+.pill-amber { background: var(--amber-light); color: var(--amber); border: 0.5px solid #FDE68A; }
+.pill-red { background: var(--danger-light); color: var(--danger); border: 0.5px solid #FECACA; }
+.pill-blue { background: var(--blue-light); color: var(--blue); border: 0.5px solid #BFDBFE; }
+.pill-gray { background: #F1F5F9; color: var(--text-dim); border: 0.5px solid #CBD5E1; }
+
+/* 现代精密滑动条 */
+.slider-group {
+  display: flex;
+  flex-direction: column;
+}
+.slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.slider-title {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.slider-val {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+}
+input[type=range] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 5px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  margin: 6px 0 2px;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 5px;
+  border-radius: 3px;
+  background: #E2E8F0;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  width: 15px;
+  height: 15px;
+  margin-top: -5px; /* (track height - thumb height) / 2 */
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid var(--blue);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+input[type=range]::-moz-range-track {
+  height: 5px;
+  border-radius: 3px;
+  background: #E2E8F0;
+}
+input[type=range]::-moz-range-thumb {
+  box-sizing: border-box;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid var(--blue);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  cursor: pointer;
+}
+
+/* 按钮微组件 */
+.btn-action {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: #FFFFFF;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-action:hover {
+  background: #F8FAFC;
+  color: var(--text-main);
+  border-color: var(--border-strong);
+}
+.btn-action.active-green {
+  background: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
+  font-weight: 600;
+}
+.btn-action.active-blue {
+  background: #EFF6FF;
+  color: #2563EB;
+  border-color: #BFDBFE;
+  font-weight: 600;
+}
+
+/* 预设分段按钮组 */
+.seg-group {
+  display: inline-flex;
+  background: #F1F5F9;
+  padding: 2px;
+  border-radius: 6px;
+  gap: 2px;
+}
+.seg-btn {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.seg-btn:hover {
+  color: var(--text-main);
+}
+.seg-btn.active {
+  background: #FFFFFF;
+  color: var(--blue);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+/* 数据卡片 Dashboard */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 16px;
+}
+.metric-box {
+  background: #FFFFFF;
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+.metric-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.metric-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-main);
+  letter-spacing: -0.5px;
+}
+.metric-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* Tab 2 专属与对齐增强样式 */
+.viewport-row-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.viewport-row-4 .viewport-card {
+  display: flex;
+  flex-direction: column;
+}
+.viewport-row-4 .viewport-header {
+  height: 40px;
+  min-height: 40px;
+  max-height: 40px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  gap: 6px;
+}
+.viewport-row-4 .viewport-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.viewport-row-4 .viewport-body canvas {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  display: block;
+}
+.viewport-row-4 .viewport-footer {
+  height: 32px;
+  min-height: 32px;
+  max-height: 32px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.sim-control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.sim-acquisition-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+.sim-control-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.sim-control-col input[type=range] {
+  width: 100%;
+  margin: 6px 0 2px;
+}
+.sim-control-grid label.sim-dir-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  user-select: none;
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 4px 10px;
+  margin: 0 0 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #fff;
+  transition: all .12s;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.sim-control-grid label.sim-dir-toggle:hover {
+  border-color: var(--border-strong);
+  color: var(--text-main);
+}
+.sim-control-grid label.sim-dir-toggle.active {
+  background: var(--blue-light);
+  color: var(--blue);
+  border-color: var(--blue-border);
+  font-weight: 600;
+}
+.sim-control-grid label.sim-dir-toggle span {
+  font-weight: 700;
+  color: inherit;
+  font-family: var(--font-mono);
+}
+.sim-error-card {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-card-sub);
+  border: 1px solid var(--border-light);
+  border-radius: 8px;
+  padding: 9px 12px;
+}
+.sim-error-card summary {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.sim-error-card summary span {
+  float: right;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.sim-error-card[open] summary {
+  margin-bottom: 8px;
+  color: var(--text-main);
+}
+input[type=range].sim-off {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+@media (max-width: 820px) {
+  .viewport-row-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  .sim-main-grid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 640px) {
+  .viewport-grid { grid-template-columns: 1fr; }
+  .viewport-row-4 { grid-template-columns: 1fr !important; }
+  .metrics-row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.page-head{margin:0 0 18px}.page-head h1{font-size:23px;margin:0 0 7px}.note{font-size:12px;color:var(--text-muted);line-height:1.7;margin:8px 0}
+h2{font-size:16px;margin:0 0 10px}h3{font-size:14px;margin:0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:12px}
+.controls{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin-top:16px}
+.control-label{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--text-muted);margin-bottom:7px}
+.control-label output{font-family:var(--font-mono);font-weight:600;color:var(--text-main)}
+.viewport-header{flex-wrap:wrap;gap:5px;min-height:44px}.viewport-footer{line-height:1.6}
+.viewport-row-4 .viewport-header{height:auto;max-height:none;min-height:48px;padding:8px 10px}
+.viewport-row-4 .viewport-footer{height:auto;max-height:none;min-height:40px;padding:6px 8px;white-space:normal}
+.viewport-title{font-size:12px}.badge{font-size:10px;white-space:normal}
+.tabs{display:flex;flex-wrap:wrap}.tab-btn{flex:1;padding:9px}.sim-dir-toggle{cursor:pointer;border:1px solid var(--border-strong);border-radius:6px;padding:5px 8px;background:white;font:inherit;font-size:11px}
+.sim-dir-toggle.active{background:var(--blue-light);border-color:var(--blue-border);color:var(--blue)}
+.metrics-row{gap:10px}.metric-value{font-size:21px}.theory{font-size:13px;line-height:1.8}.theory summary{cursor:pointer;font-weight:600}.formula{overflow-x:auto;margin:12px 0}
+.legend{font-size:11px;color:var(--text-muted);line-height:1.7}.status{padding:10px 12px;border-radius:8px;background:var(--bg-card-sub);font-size:12px;line-height:1.7}
+.note [data-tex],.theory p [data-tex]{display:inline-block;max-width:100%;overflow-x:auto;vertical-align:middle}
+/* Keep absolutely positioned accessible MathML inside its formula's scroll area. */
+.katex{position:relative}
+.result-extra{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--text-muted)}
+.experiment-select{font:inherit;font-size:12px;padding:7px;max-width:100%;border:1px solid var(--border-strong);border-radius:6px;background:white;color:var(--text-main)}
+.estimate-scroll{overflow-x:auto;margin-top:14px}.estimate-table{width:100%;min-width:820px;border-collapse:collapse;font-size:12px;text-align:left;font-variant-numeric:tabular-nums}.estimate-table th,.estimate-table td{padding:9px 8px;border-bottom:1px solid var(--border-light);vertical-align:top}.estimate-table th{font-weight:600;background:var(--bg-card-sub)}.estimate-table small{display:block;color:var(--text-muted);line-height:1.6}.estimate-table .unreliable{color:#a16207}
+#wAme{font-size:17px;line-height:1.6}#wAquality{font-size:18px}.katex{font-size:1.06em}.metric-label .katex{font-size:1em}.control-label{align-items:center}.control-label>span{min-width:0}.control-label output{flex-shrink:0}.formula .katex-display{margin:.6em 0}.calibration-note{border-left:3px solid var(--blue);padding-left:10px}.preset-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:12px 0}
+#t1_waves{min-width:520px}.wave-scroll{overflow-x:auto;background:#090D16;border-radius:8px}
+.comparison-lab{margin:16px 0;padding:18px;border:1px solid var(--blue-border);border-radius:10px;background:#f8fbff}.comparison-lab h3{margin:0 0 8px}.comparison-images{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.comparison-images figure{margin:0;min-width:0;padding:10px;border:1px solid var(--border-light);border-radius:8px;background:white}.comparison-images canvas{display:block;width:100%;max-width:230px;height:auto;margin:10px auto;background:#101827}.comparison-images figcaption{font-size:12px;line-height:1.7}.comparison-images strong{display:block}.comparison-metrics{font-size:12px;line-height:1.8;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}.comparison-lab .status{margin:10px 0}.comparison-changes{font-size:12px;line-height:1.8;overflow-wrap:anywhere}.comparison-lab [hidden]{display:none}
+:focus-visible{outline:3px solid #93c5fd;outline-offset:3px}
+.comparison-images figcaption{min-height:42px}
+@media(max-width:640px){.comparison-lab{padding:12px}.comparison-images{grid-template-columns:1fr 1fr}.comparison-images figcaption{min-height:64px}.comparison-images figure:last-child{grid-column:1/-1}.comparison-lab .preset-row>*{max-width:100%}}
+@media(max-width:640px){body{padding:14px 10px}.panel{padding:16px 12px}.controls{grid-template-columns:1fr 1fr}.page-head h1{font-size:19px}.sim-control-grid{gap:8px}.viewport-row-4{grid-template-columns:repeat(2,minmax(0,1fr))!important}.viewport-title{font-size:11px}}
+/* 二维卷积 / OTF 实验室（页面独占模块 sim-conv-otf.js） */
+.conv-lab .conv-row-title{font-size:12px;font-weight:600;margin:16px 0 0;color:var(--text-main)}
+.conv-grid{display:grid;grid-template-columns:1fr 26px 1fr 26px 1fr;gap:10px;align-items:center;margin-top:10px}
+.conv-cell{min-width:0;padding:9px;border:1px solid var(--border-light);border-radius:8px;background:#fff}
+.conv-cell canvas{display:block;width:100%;height:auto;background:#090D16;border-radius:6px}
+.conv-cell figcaption{font-size:11px;line-height:1.6;color:var(--text-muted);margin-top:6px}
+.conv-op{text-align:center;font-size:19px;color:var(--text-dim)}
+.conv-chart-wrap{margin-top:14px;padding:8px;border:1px solid var(--border-light);border-radius:10px;background:#fff}
+.conv-chart-wrap canvas{display:block;width:100%;height:auto}
+.conv-lab .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.conv-lab .legend span{margin-right:14px;white-space:nowrap}
+@media(max-width:640px){.conv-grid{grid-template-columns:1fr;gap:6px}.conv-op{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="page-head"><h1>SIM：从摩尔纹到超分辨重建</h1><p class="note">可检验的教学模型 · 空间频率以 cycles/px 表示，px 为样品平面归一化采样单位。</p><p class="note"><a href="sim_pipeline_atlas.html" style="color:#087f83;text-underline-offset:3px">俯瞰重建流水线的全部中间产物：2D-SIM 全流程图谱 →</a> · <a href="知识库/03-传统重建与参数估计预览.html#s1-2" style="color:#087f83;text-underline-offset:3px">HiFi-SIM 的旁瓣、PSF 与两步频谱优化：知识库专题 03 §1.2 →</a> · <a href="sim_real_optical_path.html" style="color:#087f83;text-underline-offset:3px">真实光路硬件示意（SLM/二向色镜/BFP） →</a></p></header>
+  <div class="tabs" role="tablist" aria-label="演示章节">
+    <button class="tab-btn active" id="tab1Btn" role="tab" aria-selected="true" aria-controls="tab1Content">① 摩尔纹与成像模型</button>
+    <button class="tab-btn" id="tab2Btn" role="tab" aria-selected="false" aria-controls="tab2Content">② 采集与频域重建</button>
+  </div>
+  <div id="tab1Content" role="tabpanel" aria-labelledby="tab1Btn">
+    <section class="panel">
+      <div class="toolbar"><h2>① 两层旋转光栅</h2><button class="btn-action" id="t1_btn_studio_anim">▶ 光栅相移动画</button></div>
+      <p class="note">两层正弦透射光栅相乘，产生和频与差频。这里两层周期相同；夹角越小，差频条纹越宽。同周期同向时差频成为直流，平均透射亮度仍可随相位变化。不同周期的平行光栅也能产生摩尔纹。</p>
+      <canvas id="t1_cv_studio" width="660" height="180" style="width:100%;height:auto;border-radius:8px" aria-label="相乘后的双光栅"></canvas>
+      <div class="controls" style="grid-template-columns:1fr 1fr">
+        <div><label class="control-label" for="t1_studio_ang"><span>两层夹角 θ</span><output id="t1_studio_ang_out" for="t1_studio_ang">8°</output></label><input id="t1_studio_ang" type="range" min="-30" max="30" step="0.5" value="8"></div>
+        <div><label class="control-label" for="t1_studio_p"><span>共同周期 P₀</span><output id="t1_studio_p_out" for="t1_studio_p">10 px</output></label><input id="t1_studio_p" type="range" min="6" max="20" step="0.5" value="10"></div>
+      </div>
+      <p class="status" id="t1_studio_vmo"></p>
+    </section>
+    <section class="panel">
+      <div class="toolbar"><h2>② 从激发光到相机信号</h2><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn-action" id="t1_btn_laser_toggle" aria-pressed="true">切换为均匀宽场</button><button class="btn-action" id="t1_btn_sim_anim">▶ 相移动画</button><button class="btn-action" id="t1_reset">恢复默认</button></div></div>
+      <p class="note">理想点光束、无噪声的解析教学；调制度独立设置。有限光斑、计数噪声与调制度估计见第二章。</p>
+      <details class="sim-error-card"><summary>本章的光路假设</summary>
+        <p class="note">超出入瞳后两束光均被阻断。检测与激发截止按同一物镜联动，假设 <span data-tex="\lambda_{\mathrm{ex}}/\lambda_{\mathrm{em}}=0.75"></span>。增大 <span data-tex="d_c"></span> 表示减小 NA，入瞳两侧边缘向内收缩；减小 <span data-tex="P_i"></span> 则使两束光向外分开。</p>
+      </details>
+      <div class="viewport-grid">
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="t1_cv_illum_lens_title">① 激发光路示意</span><span class="pill-badge badge" id="t1_txt_ex_badge"></span></div><div class="viewport-body"><canvas id="t1_cv_illum_lens" width="600" height="240" aria-label="① 激发光路示意"></canvas></div><div class="viewport-footer" id="t1_cv_illum_lens_footer"></div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="t1_cv_sample_title">② 样品荧光分布 <span data-tex="s"></span></span></div><div class="viewport-body"><canvas id="t1_cv_sample" width="600" height="240" aria-label="样品荧光分布"></canvas></div><div class="viewport-footer" id="t1_cv_sample_footer">正弦样品；固定灰度标尺 0–2。</div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="t1_cv_mod_title">③ 样品发射 <span data-tex="sI"></span></span></div><div class="viewport-body"><canvas id="t1_cv_mod" width="600" height="240" aria-label="样品与照明相乘"></canvas></div><div class="viewport-footer" id="t1_cv_mod_footer">实际相乘；固定灰度标尺 0–2。</div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="t1_cv_camera_title">④ 相机信号 <span data-tex="(sI)*h"></span></span><span class="pill-badge badge" id="t1_txt_det_badge"></span></div><div class="viewport-body"><canvas id="t1_cv_camera" width="600" height="240" aria-label="发射信号经过检测 PSF 卷积"></canvas></div><div class="viewport-footer" id="t1_cv_camera_footer">全部频率项经过同一 OTF；固定灰度标尺 0–2。</div></div>
+      </div>
+      <div class="controls">
+        <div><label class="control-label" for="t1_cutoff_range"><span>检测截止周期 <span data-tex="d_c"></span></span><output id="t1_cutoff_range_out" for="t1_cutoff_range">12 px</output></label><input id="t1_cutoff_range" type="range" min="4" max="24" step="0.5" value="12"></div>
+        <div><label class="control-label" for="t1_ss"><span>样品周期 <span data-tex="P_s"></span></span><output id="t1_ss_out" for="t1_ss">7.5 px</output></label><input id="t1_ss" type="range" min="4" max="24" step="0.5" value="7.5"></div>
+        <div><label class="control-label" for="t1_si"><span>照明周期 <span data-tex="P_i"></span></span><output id="t1_si_out" for="t1_si">13 px</output></label><input id="t1_si" type="range" min="6" max="30" step="0.5" value="13"></div>
+        <div><label class="control-label" for="t1_sa"><span>照明频率与样品频率夹角</span><output id="t1_sa_out" for="t1_sa">0°</output></label><input id="t1_sa" type="range" min="0" max="90" step="1" value="0"></div>
+        <div><label class="control-label" for="t1_m"><span>照明真值 <span data-tex="m"></span></span><output id="t1_m_out" for="t1_m">0.9</output></label><input id="t1_m" type="range" min="0" max="1" step="0.05" value="0.9"></div>
+        <div><label class="control-label" for="t1_phi"><span>照明相位 <span data-tex="\phi"></span></span><output id="t1_phi_out" for="t1_phi">0</output></label><input id="t1_phi" type="range" min="0" max="2" step="0.016666666666666666" value="0"></div>
+      </div>
+      <p class="status" id="t1_cam_status" aria-live="polite"></p>
+      <p class="note" id="t1_cutoff_explain"></p>
+    </section>
+    <section class="panel">
+      <div class="toolbar"><h2>③ 同一水平截线上的四个信号</h2><div><a class="wave-link" href="#ch4-lab">单独看 CH4 ↓</a> · <a class="wave-link" href="#envelope-lab">包络动画 ↓</a></div></div>
+      <p class="note">沿同一条水平线读取亮度：CH1 样品 × CH2 照明 = CH3 发射；CH3 经过镜头的模糊作用，得到 CH4 相机信号。先看每行的一条主线，再到下方单独拆解 CH4。均取 y = 120 px、x = 0–120 px，强度刻度统一为 0–2。</p>
+      <div class="wave-scroll"><svg id="t1_waves" viewBox="0 0 660 390" style="width:100%;display:block" role="img" aria-label="样品、照明、发射与相机的同一截线对照"></svg></div>
+      <div class="metrics-row">
+        <div class="metric-box"><div class="metric-label">几何差频周期</div><div class="metric-value" id="t1_cP">—</div><div class="metric-hint">有照明且 <span data-tex="m>0"></span> 时产生差频项</div></div>
+        <div class="metric-box"><div class="metric-label">差频 OTF 值</div><div class="metric-value" id="t1_cH">—</div><div class="metric-hint"><span data-tex="H(0)=1"></span>；表示对比度传递</div></div>
+        <div class="metric-box"><div class="metric-label">理想照明真值</div><div class="metric-value" id="t1_cM">—</div><div class="metric-hint">非估计值，且本章不随 <span data-tex="P_i"></span> 衰减</div></div>
+        <div class="metric-box"><div class="metric-label">沿照明方向带宽上限</div><div class="metric-value" id="t1_cG">—</div><div class="metric-hint">几何上限，不代表实测分辨率；推高它要付出调制度与光子数代价</div></div>
+      </div>
+    </section>
+    <section class="panel wave-lab" id="ch4-lab" aria-labelledby="ch4-title">
+      <div class="toolbar"><h2 id="ch4-title"><span class="wave-tag">CH4</span> 镜头之后，究竟剩下什么？</h2><div><a class="wave-link" href="#conv-otf-lab">换到二维全景 ↓</a> · <a class="wave-link" href="#envelope-lab">接着看动态包络 ↓</a></div></div>
+      <p class="note">可以把镜头想成一把“软筛子”：宽条纹容易通过，越细的条纹衰减越多。下面使用上方的同一组参数；绿色始终代表相机真正记录的总信号。</p>
+      <div class="wave-mode" role="group" aria-label="CH4 读图方式">
+        <button class="btn-action" data-ch4-view="compare" aria-pressed="true">① 看前后变化</button>
+        <button class="btn-action" data-ch4-view="components" aria-pressed="false">② 拆开相机信号</button>
+        <button class="btn-action" data-ch4-view="removed" aria-pressed="false">③ 看滤掉的部分</button>
+      </div>
+      <p class="wave-guide" id="t1_ch4_guide"></p>
+      <div class="wave-scroll"><svg id="t1_ch4_plot" viewBox="0 0 660 300" role="img" aria-label="CH4 放大图：发射与相机信号对照"></svg></div>
+      <div class="wave-readout" id="t1_ch4_readout"></div>
+      <div class="wave-controls">
+        <div><label class="control-label" for="t1_ch4_probe"><span>读数位置 x</span><output id="t1_ch4_probe_out" for="t1_ch4_probe">30 px</output></label><input id="t1_ch4_probe" type="range" min="0" max="120" step="0.5" value="30"></div>
+        <div><label class="control-label" for="t1_ch4_phi"><span>照明相位 φ · 与上方同步</span><output id="t1_ch4_phi_out" for="t1_ch4_phi">0π</output></label><input id="t1_ch4_phi" type="range" min="0" max="2" step="0.016666666666666666" value="0"></div>
+      </div>
+      <div class="preset-row"><button class="btn-action" id="t1_ch4_play" aria-pressed="false">▶ 播放相移</button><button class="btn-action" id="t1_ch4_step">相移 +120°</button><button class="btn-action" id="t1_ch4_preset">载入“只剩差频”示例</button></div>
+      <p class="note" id="t1_ch4_verdict"></p>
+      <details class="wave-details"><summary>各频率通过了多少？展开看数值与推导</summary>
+        <p class="note">OTF 值是该频率振幅的保留比例。相移改变条纹位置，不改变这些比例；五项相加才是 CH4。即使一项为负，也只表示它把总亮度往下拉。</p>
+        <div class="wave-table-scroll"><table class="wave-table"><thead><tr><th>分量</th><th>频率模长 / px⁻¹</th><th>输入振幅</th><th>OTF 保留比例</th><th>输出振幅</th></tr></thead><tbody id="t1_ch4_bands"></tbody></table></div>
+        <p class="note">令 <span data-tex="a=2\pi f_sx"></span>、<span data-tex="b=2\pi(f_{ix}x+f_{iy}y)+\phi"></span>。本页样品为 <span data-tex="s=(1+\cos a)/2"></span>，照明为 <span data-tex="I=I_0(1+m\cos b)"></span>。直接展开乘积：</p>
+        <div class="formula" data-tex="e=sI=I_0\left[\frac12+\frac12\cos a+\frac m2\cos b+\frac m4\cos(a-b)+\frac m4\cos(a+b)\right]"></div>
+        <p class="note">每个余弦乘以其<strong>二维频率模长</strong>对应的 OTF，得到相机信号 <span data-tex="d=e*h"></span>。本章使用三角教学 OTF：</p>
+        <div class="formula" data-tex="H(\mathbf f)=\max\left(0,1-\frac{\|\mathbf f\|}{f_c}\right),\qquad D(\mathbf f)=H(\mathbf f)E(\mathbf f)"></div>
+        <p class="note">“滤掉的部分”定义为 <span data-tex="r=e-d"></span>，因此 <span data-tex="e=d+r"></span>。它是计算出的有符号残差，不是另一张光子强度图。以上为线性成像与三角恒等式的推导；模型依据见 <a href="#theory">公式、假设与论文来源</a>。</p>
+      </details>
+    </section>
+    <section class="panel conv-lab" id="conv-otf-lab" aria-labelledby="conv-otf-title">
+      <div class="toolbar"><h2 id="conv-otf-title"><span class="wave-tag">2D</span> 二维全景：PSF 与 OTF 是一对傅里叶变换</h2><span class="pill-badge pill-blue">与 CH4 同源的二维例子</span></div>
+      <p class="note">CH4 用一条截线回答“镜头之后剩下什么”。这里换成二维全景，同一件事的两面并排：上排是实空间——每个点被抹成一坨 PSF，再逐点叠加（卷积）；下排是频域账本——每种条纹各乘各的 <span data-tex="H"></span>。两排由同一套共享层 FFT 实时算出（下排乘完再做逆变换，就是上排右图）；灰色虚线是共享层的圆形瞳解析模型，仅在无像差时绘制，用来对照。</p>
+      <p class="note"><strong>这也是摩尔纹存在的理由：</strong>周期比截止 <span data-tex="d_c"></span> 更细的条纹在 <span data-tex="H"></span> 里恒等于 0——它们不是“变模糊”，而是被彻底抹掉，任何后续线性处理都拿不回来。只有先用照明把它们搬进通带（摩尔纹），才有机会恢复。切到“条纹组”，把 <span data-tex="d_c"></span> 从 4 px 拖到 8 px，观察 4.5 px 那组条纹如何整组消失。</p>
+      <p class="conv-row-title">① 实空间：滑动 × 相乘 → 累加（卷积）</p>
+      <div class="conv-grid">
+        <figure class="conv-cell"><canvas id="t1_conv_sample" width="256" height="256" aria-label="样品"></canvas><figcaption>样品 <span data-tex="s(x)"></span></figcaption></figure>
+        <div class="conv-op">⊗</div>
+        <figure class="conv-cell"><canvas id="t1_conv_psf" width="256" height="256" aria-label="点扩散函数"></canvas><figcaption>PSF：一个点的像</figcaption></figure>
+        <div class="conv-op">=</div>
+        <figure class="conv-cell"><canvas id="t1_conv_cam" width="256" height="256" aria-label="卷积结果"></canvas><figcaption>相机信号 <span data-tex="s*h"></span></figcaption></figure>
+      </div>
+      <p class="conv-row-title">② 频域账本：每种条纹各乘各的 <span data-tex="H(f)"></span></p>
+      <div class="conv-grid">
+        <figure class="conv-cell"><canvas id="t1_conv_f_sample" width="256" height="256" aria-label="样品频谱"></canvas><figcaption>样品账本 <span data-tex="|S(f)|"></span></figcaption></figure>
+        <div class="conv-op">×</div>
+        <figure class="conv-cell"><canvas id="t1_conv_f_otf" width="256" height="256" aria-label="光学传递函数"></canvas><figcaption><span data-tex="|H(f)|"></span> 圆形支撑</figcaption></figure>
+        <div class="conv-op">=</div>
+        <figure class="conv-cell"><canvas id="t1_conv_f_cam" width="256" height="256" aria-label="相乘后的频谱"></canvas><figcaption><span data-tex="|S H|"></span> 只剩通带内</figcaption></figure>
+      </div>
+      <div class="controls">
+        <div><label class="control-label" for="t1_conv_dc"><span>检测截止周期 <span data-tex="d_c"></span></span><output id="t1_conv_dc_out" for="t1_conv_dc">4 px</output></label><input id="t1_conv_dc" type="range" min="3" max="12" step="0.25" value="4"></div>
+        <div><label class="control-label" for="t1_conv_W"><span>离焦：瞳边缘相位（波长）</span><output id="t1_conv_W_out" for="t1_conv_W">0</output></label><input id="t1_conv_W" type="range" min="0" max="2" step="0.05" value="0"></div>
+        <div><label class="control-label" for="t1_conv_coma"><span>非对称像差（教学简化项）</span><output id="t1_conv_coma_out" for="t1_conv_coma">0</output></label><input id="t1_conv_coma" type="range" min="0" max="1" step="0.05" value="0"></div>
+      </div>
+      <div class="preset-row"><span class="legend">样品</span><button class="btn-action active-blue" data-conv-kind="dots" aria-pressed="true">双点</button><button class="btn-action" data-conv-kind="stripes" aria-pressed="false">条纹组（32 / 10 / 4.5 px）</button><button class="btn-action" data-conv-kind="disc" aria-pressed="false">锐边圆盘</button></div>
+      <p class="status" id="t1_conv_status" aria-live="polite"></p>
+      <div class="conv-chart-wrap"><canvas id="t1_conv_chart" width="900" height="200" aria-label="OTF 一维剖面：过中心切一刀"></canvas></div>
+      <p class="legend"><span><i style="background:#2563EB"></i>算得的 <span data-tex="H"></span> 为正值</span><span><i style="background:#DC2626"></i>H 为负值（对比度反转）</span><span><i style="background:#059669"></i>截止 ±<span data-tex="d_c"></span></span><span><i style="background:#94A3B8"></i>共享层圆形瞳模型（仅无像差时绘制）</span></p>
+      <details class="wave-details"><summary>这个二维例子的模型与假设</summary>
+        <p class="note">光瞳是理想圆盘（<span data-tex="|r|\le R"></span>），强度 PSF 取 <span data-tex="|\mathcal{F}\{P\}|^2"></span>，OTF 取 PSF 的傅里叶变换；这是理想非相干成像，不是实测物镜标定。离焦项为瞳边缘相位 <span data-tex="2\pi W(r/R)^2"></span>，非对称项是演示用的简化相位，只用于展示 <span data-tex="H"></span> 变为复数、出现负值之后的后果。无像差时算得的中心行与共享层 circular 模型一致（偏差数值写在状态行）。四张图各自做了幅度归一化显示，不代表光子数。</p>
+      </details>
+      <p class="note">CH4 的一维截线仍在上面：<a class="wave-link" href="#ch4-lab">回到 CH4 ↑</a> · 接着看 <a class="wave-link" href="#envelope-lab">包络动画 ↓</a></p>
+    </section>
+    <section class="panel wave-lab envelope-lab" id="envelope-lab" aria-labelledby="envelope-title">
+      <div class="toolbar"><h2 id="envelope-title"><span class="wave-tag purple">包络</span> 给细波形描一条“外轮廓”</h2><span class="pill-badge pill-blue">独立的一维教学例子</span></div>
+      <p class="note">细波在快速起伏，它的振幅却可以慢慢变大、变小。紫色边界把这种变化描出来，就是这里的包络。点击播放，观察外轮廓如何移动；把频差调小，观察每个“大鼓包”如何变宽。</p>
+      <div class="wave-mode" role="group" aria-label="包络教学模式">
+        <button class="btn-action" data-envelope-view="sum" aria-pressed="true">① 两个余弦相加：认识包络</button>
+        <button class="btn-action" data-envelope-view="product" aria-pressed="false">② 样品 × 照明：联系 SIM</button>
+      </div>
+      <p class="wave-guide" id="t1_envelope_guide"></p>
+      <div class="wave-scroll"><svg id="t1_envelope_plot" viewBox="0 0 660 330" role="img" aria-label="动态包络：快速波形与紫色上下边界"></svg></div>
+      <div class="wave-controls">
+        <div><label class="control-label" for="t1_envelope_delta"><span>频差 Δf</span><output id="t1_envelope_delta_out" for="t1_envelope_delta">0.02 cycles/px</output></label><input id="t1_envelope_delta" type="range" min="0" max="0.04" step="0.001" value="0.02"></div>
+        <div><label class="control-label" for="t1_envelope_phi"><span>第二个余弦的相位 φ</span><output id="t1_envelope_phi_out" for="t1_envelope_phi">0π</output></label><input id="t1_envelope_phi" type="range" min="0" max="2" step="0.016666666666666666" value="0"></div>
+      </div>
+      <div class="preset-row"><button class="btn-action" id="t1_envelope_play" aria-pressed="false">▶ 播放包络移动</button><button class="btn-action" id="t1_envelope_step">相移 +120°</button><button class="btn-action" id="t1_envelope_reset">重置包络示例</button><label class="wave-check"><input type="checkbox" id="t1_envelope_show" checked> 在细波形上显示包络</label></div>
+      <p class="status" id="t1_envelope_status"></p>
+      <div class="wave-explanation" id="t1_envelope_sum_text">
+        <p class="note">设 <span data-tex="a=2\pi f_1x"></span>、<span data-tex="b=2\pi f_2x+\phi"></span>。两条余弦相加，恰好等于“慢系数 × 快载波”：</p>
+        <div class="formula" data-tex="u=\cos a+\cos b=\underbrace{2\cos\frac{a-b}{2}}_{\text{慢变化系数}}\underbrace{\cos\frac{a+b}{2}}_{\text{快速载波}}"></div>
+        <div class="formula" data-tex="A(x)=2\left|\cos\frac{a-b}{2}\right|,\qquad -A(x)\le u(x)\le A(x)"></div>
+        <p class="note">紫色画的是 <span data-tex="+A"></span> 与 <span data-tex="-A"></span>。有符号慢系数的频率为 <span data-tex="\Delta f/2"></span>；取绝对值后，相邻鼓包间距为 <span data-tex="1/\Delta f"></span>。这是三角恒等式的精确结果。<strong>把两个高频余弦相加，再做线性低通，并不会自动得到这条包络。</strong></p>
+      </div>
+      <div class="wave-explanation" id="t1_envelope_product_text" hidden>
+        <p class="note">此例固定 <span data-tex="I_0=m=1"></span>，两条频率接近、方向相同的条纹相乘；未经过 OTF，与上方可调参数的 CH3 分开。令 <span data-tex="q=\cos((a-b)/2)"></span>、<span data-tex="c=\cos((a+b)/2)"></span>，则：</p>
+        <div class="formula" data-tex="e=\frac12(1+\cos a)(1+\cos b)=\frac12(c+q)^2,\qquad 0\le e\le U=\frac12(1+|q|)^2"></div>
+        <p class="note">紫线是这个特例的慢变上边界 <span data-tex="U"></span>。它约束快速波峰，但不要求每个波峰都碰到边界。橙线则来自乘积展开中的<strong>独立差频项</strong>：</p>
+        <div class="formula" data-tex="e=\frac12+\frac12\cos a+\frac12\cos b+\underbrace{\frac14\cos(a-b)}_{\text{差频项}}+\frac14\cos(a+b)"></div>
+        <p class="note">CH4 的宽条纹来自 OTF 保留的低频差频分量；相机执行线性模糊，不执行描边或取绝对值。<a href="#ch4-lab">回到 CH4 对照 ↑</a></p>
+      </div>
+      <p class="note wave-source">来源：上述和差化积、积化和差恒等式及其界限推导；SIM 成像关系见 Chen et al. (2023)，<a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">式 (1)–(9)</a>。本例载波频率固定为 0.1 cycles/px；相移播放速度仅为便于观察。</p>
+    </section>
+  </div>
+  <div id="tab2Content" role="tabpanel" aria-labelledby="tab2Btn" hidden>
+    <section class="panel">
+      <div class="toolbar"><h2>从模拟光电子计数到调制度估计</h2><button class="btn-action" id="t2_reset">恢复默认</button></div>
+      <p class="note calibration-note">默认仅从原始帧估计各方向 <span data-tex="\widehat m_{\mathrm{eff},\theta}"></span>；其余校准量视为已知，真值不进入估计器。</p>
+      <details class="sim-error-card"><summary>估计隔离与标尺约定</summary>
+        <p class="note">频率、相位、平均照明、计数尺度及检测背景视为完全已校准；样品和调制度真值不进入估计器。这是隔离调制度估计的教学实验，实际 SIM 还需估计或标定其他参数。重建先扣背景、再按照明归一化。所有图固定标尺 0–1；原始帧不能与重建直接比较亮度。</p>
+      </details>
+      <section class="comparison-lab" id="compare" aria-labelledby="compareTitle">
+        <h3 id="compareTitle">先做一组 A / B 对照</h3>
+        <p class="note">① 选择问题 → ② 点击“载入 A / B” → ③ 对照图像、调制度和 RMSE。载入后，下方控制台对应 B；A 固定保留。继续拖动一个参数，就能看到它带来的变化。</p>
+        <div class="preset-row"><label for="wAexperiment">对照问题</label><select class="experiment-select" id="wAexperiment" aria-label="选择对照实验"></select><button class="btn-action" id="wAloadPair">载入 A / B</button><button class="btn-action" id="wAsaveA">将当前结果保存为 A</button><button class="btn-action" id="wAclearA" disabled>清除 A</button></div>
+        <p class="note" id="wApairGuide"></p>
+        <div id="wApairResults" hidden>
+          <p class="status" id="wApairRelation" aria-live="polite"></p>
+          <div class="comparison-changes" id="wApairChanges"></div>
+          <div class="comparison-images">
+            <figure><figcaption><strong>A · 固定基准</strong><span id="wApairALabel"></span></figcaption><canvas id="wApairA" width="128" height="128" aria-label="A 固定基准重建"></canvas><div class="comparison-metrics" id="wApairAMetrics"></div></figure>
+            <figure><figcaption><strong>B · 当前控制台</strong><span id="wApairBLabel"></span></figcaption><canvas id="wApairB" width="128" height="128" aria-label="B 当前重建"></canvas><div class="comparison-metrics" id="wApairBMetrics"></div></figure>
+            <figure><figcaption><strong>两次重建的绝对差</strong><span>固定标尺 0–0.25；白色表示差 ≥ 0.25</span></figcaption><canvas id="wApairDiff" width="128" height="128" aria-label="A B 重建绝对差"></canvas><div class="comparison-metrics" id="wApairDelta"></div></figure>
+          </div>
+          <p class="note">A / B 重建图共用 0–1 显示标尺。RMSE 对未截断结果与样品真值计算，越小表示本样品整体误差越小；它不是分辨率。单次噪声对照不代表统计结论。“重新采集”只更新 B 的噪声实现；“恢复默认”清除 A。</p>
+        </div>
+      </section>
+      <div class="preset-row"><label for="wAreconMode">重建使用</label><select class="experiment-select" id="wAreconMode"><option value="estimated">数据估计的调制度</option><option value="known">已知调制度真值（对照）</option></select><button class="btn-action" id="wAideal">理想无噪声对照</button><button class="btn-action" id="wAresample">重新采集</button></div>
+      <div class="viewport-row-4">
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="wAc0_title">① 样品真值</span></div><div class="viewport-body"><canvas id="wAc0" width="128" height="128" aria-label="① 样品真值"></canvas></div><div class="viewport-footer" id="wAc0_footer">三组 7.5 px 条纹与有限包络。</div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="wAc1_title">② 无噪声宽场参考</span></div><div class="viewport-body"><canvas id="wAc1" width="128" height="128" aria-label="无噪声宽场光学参考"></canvas></div><div class="viewport-footer" id="wAc1_footer">圆瞳 OTF，截止周期 12 px；仅光学参考，不代表相同光子预算的实验对照。</div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="wAc2_title">③ 原始采集帧</span><button class="btn-action" id="wAc2h" style="font-size:10px;padding:3px 6px">查看采集帧</button></div><div class="viewport-body"><canvas id="wAc2" width="128" height="128" aria-label="③ 原始采集帧"></canvas></div><div class="viewport-footer" id="wAc2_footer"></div></div>
+        <div class="viewport-card"><div class="viewport-header"><span class="viewport-title" id="wAc3_title">④ 重建结果</span><span class="pill-badge badge" id="wAc3b"></span></div><div class="viewport-body"><canvas id="wAc3" width="128" height="128" aria-label="④ 重建结果"></canvas></div><div class="viewport-footer" id="wAc3_footer"></div></div>
+      </div>
+      <div class="result-extra"><span id="wArmse"></span><span id="wAcondition"></span><span id="wAclip"></span></div>
+      <div class="sim-main-grid" style="display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:18px;margin-top:20px">
+        <div class="panel" style="margin:0;padding:14px"><h3>频谱支持域</h3><svg id="wAmap" viewBox="0 0 240 240" style="width:100%;display:block" role="img" aria-label="检测 OTF 及移位副本的并集"></svg><p class="legend">蓝实线：检测带宽；蓝虚线：可解混的平移副本；红线：圆盘并集外边界。点表示样品条纹中心频率，绿色仅表示在几何支持域内。</p><p class="note" id="wAext"></p></div>
+        <div class="panel sim-acquisition-controls" style="margin:0;padding:16px">
+          <div><label class="control-label" for="wAp"><span>标称周期 <span data-tex="P_i"></span>（点光束极限 9 px）</span><output id="wAp_out" for="wAp">13 px</output></label><input id="wAp" type="range" min="6" max="30" step="0.5" value="13"></div>
+          <p class="note">有限光斑截光后，用透过部分的质心差近似有效载频；下表列出已校准的有效周期。即使标称周期小于 9 px，仍可能有部分光通过，但不会产生超出激发上限的有效载频。</p>
+          <p class="note">点击方向或相位标签可启停采集。角度指频率向量方向，与条纹走向垂直。</p>
+          <div class="sim-control-grid">
+            <div><button class="sim-dir-toggle active" id="wAdir1" aria-pressed="true">方向 1</button><div><label class="control-label" for="wAang1"><span>频率角度</span><output id="wAang1_out" for="wAang1">0°</output></label><input id="wAang1" type="range" min="0" max="175" step="5" value="0"></div></div>
+<div><button class="sim-dir-toggle active" id="wAdir2" aria-pressed="true">方向 2</button><div><label class="control-label" for="wAang2"><span>频率角度</span><output id="wAang2_out" for="wAang2">60°</output></label><input id="wAang2" type="range" min="0" max="175" step="5" value="60"></div></div>
+<div><button class="sim-dir-toggle active" id="wAdir3" aria-pressed="true">方向 3</button><div><label class="control-label" for="wAang3"><span>频率角度</span><output id="wAang3_out" for="wAang3">120°</output></label><input id="wAang3" type="range" min="0" max="175" step="5" value="120"></div></div>
+          </div>
+          <div class="sim-control-grid" style="margin-top:16px">
+            <div><button class="sim-dir-toggle active" id="wAphiL1" aria-pressed="true">相位 1</button><div><label class="control-label" for="wAphi1"><span>相位（单位 π/12）</span><output id="wAphi1_out" for="wAphi1">0</output></label><input id="wAphi1" type="range" min="0" max="24" step="1" value="0"></div></div>
+<div><button class="sim-dir-toggle active" id="wAphiL2" aria-pressed="true">相位 2</button><div><label class="control-label" for="wAphi2"><span>相位（单位 π/12）</span><output id="wAphi2_out" for="wAphi2">8</output></label><input id="wAphi2" type="range" min="0" max="24" step="1" value="8"></div></div>
+<div><button class="sim-dir-toggle active" id="wAphiL3" aria-pressed="true">相位 3</button><div><label class="control-label" for="wAphi3"><span>相位（单位 π/12）</span><output id="wAphi3_out" for="wAphi3">16</output></label><input id="wAphi3" type="range" min="0" max="24" step="1" value="16"></div></div>
+          </div>
+          <div style="margin-top:16px"><div><label class="control-label" for="wAm"><span>相干与偏振综合系数 <span data-tex="v"></span></span><output id="wAm_out" for="wAm">0.9</output></label><input id="wAm" type="range" min="0" max="1" step="0.05" value="0.9"></div></div>
+        </div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-box"><div class="metric-label">数据估计 <span data-tex="\widehat m_{\mathrm{eff},\theta}"></span></div><div class="metric-value" id="wAme">—</div><div class="metric-hint">依次为方向 1 / 2 / 3；— 表示不可靠或未采集</div></div>
+        <div class="metric-box"><div class="metric-label">平均信号光电子数</div><div class="metric-value" id="wAphotons">—</div><div class="metric-hint">每像素每帧，按 raw 扣除标定背景估计</div></div>
+        <div class="metric-box"><div class="metric-label">可用调制度估计</div><div class="metric-value" id="wAquality">—</div><div class="metric-hint">可靠性筛查，不是置信概率</div></div>
+        <div class="metric-box"><div class="metric-label">最大几何带宽倍数</div><div class="metric-value" id="wAk3">—</div><div class="metric-hint">仅统计当前重建采用的一级频带</div></div>
+      </div>
+      <div class="estimate-scroll"><table class="estimate-table"><caption style="text-align:left;padding:8px 0">同一批采集帧：光路真值、数据估计与重建采用值</caption><thead><tr><th>方向</th><th>有效周期 / px</th><th>照明标定 <span data-tex="\bar I"></span></th><th>真值 <span data-tex="m_{\mathrm{eff}}"></span></th><th>估计 <span data-tex="\widehat m_{\mathrm{eff}}"></span></th><th>重建采用</th><th>拟合与可靠性</th></tr></thead><tbody id="wAestimates"></tbody></table></div>
+      <p class="note">相关系数与相对残差来自观测频谱；可靠性阈值是可检查的教学数值判据，不是统计置信区间。低可靠性方向仅保留零级，可能损失该方向的超分辨信息。</p>
+      <p class="note">采用频带的最大频率比：<span id="wAk1">—</span>；沿最佳方向的最细几何周期：<span id="wAk2">—</span>。几何支持不等于实测分辨率。</p>
+      <p class="status" id="wAst" aria-live="polite"></p>
+      <details class="sim-error-card" style="margin-top:16px"><summary>光路、光电子计数与背景</summary>
+        <p class="note">以下是可调仿真假设，非仪器标定。圆形均匀光斑在单位圆瞳上积分透过功率；相干与偏振用一个标量描述。保留平均功率和代表载频，忽略完整衍射包络与频谱展宽。对称截光且无非调制照明时，调制度可以不变，但光子数减少；要让调制度随条纹变密而下降，需显式开启「可见度边缘衰减」。它代表 <span data-tex="v"></span> 中随光束张角变化的偏振重叠部分，记 <span data-tex="u=f_i/f_{\mathrm{ex},\max}"></span>：曲线形状由几何推出，绝对值仍待实测标定。</p>
+        <label for="wAoptics">光路模型</label> <select class="experiment-select" id="wAoptics"><option value="finite">有限光斑：有效参数近似</option><option value="ideal">理想点光束：硬入瞳</option></select>
+        <label for="wArollOff">可见度边缘衰减 <span data-tex="v(u)"></span></label> <select class="experiment-select" id="wArollOff"><option value="none">关闭：v 为常数（默认）</option><option value="pol">偏振重叠：v × (1 − u²/2)²</option><option value="linear">线性示意：v × (1 − u)</option></select>
+        <div class="controls">
+          <div><label class="control-label" for="wAspot"><span>光斑半径 / 瞳半径</span><output id="wAspot_out"></output></label><input id="wAspot" type="range" min="0.04" max="0.24" step="0.01" value="0.12"></div>
+          <div><label class="control-label" for="wAdecenter"><span>共同横向偏心 / 瞳半径</span><output id="wAdecenter_out"></output></label><input id="wAdecenter" type="range" min="0" max="0.12" step="0.01" value="0.04"></div>
+          <div><label class="control-label" for="wAbalance"><span>入射功率比 <span data-tex="I_{2,\mathrm{in}}/I_{1,\mathrm{in}}"></span></span><output id="wAbalance_out"></output></label><input id="wAbalance" type="range" min="0" max="1" step="0.05" value="1"></div>
+          <div><label class="control-label" for="wAillumBg"><span>非调制照明 <span data-tex="I_u"></span></span><output id="wAillumBg_out"></output></label><input id="wAillumBg" type="range" min="0" max="0.3" step="0.01" value="0.05"></div>
+          <div><label class="control-label" for="wAcounts"><span>单位信号计数尺度 <span data-tex="Q"></span> / e⁻</span><output id="wAcounts_out"></output></label><input id="wAcounts" type="range" min="1" max="5" step="0.25" value="3.25"></div>
+          <div><label class="control-label" for="wAbg"><span>光子型检测背景 <span data-tex="B"></span> / e⁻·像素⁻¹·帧⁻¹</span><output id="wAbg_out"></output></label><input id="wAbg" type="range" min="0" max="50" step="1" value="4"></div>
+          <div><label class="control-label" for="wAnoise"><span>读出噪声标准差 <span data-tex="\sigma_r"></span> / e⁻</span><output id="wAnoise_out"></output></label><input id="wAnoise" type="range" min="0" max="10" step="0.5" value="2"></div>
+          <label class="control-label" style="justify-content:flex-start"><input id="wAshot" type="checkbox" checked>启用 Poisson 光子噪声</label>
+        </div>
+        <p class="note" id="wAopticsEcho" hidden></p>
+        <p class="note">非调制照明仍会激发当前样品，改变照明调制度；检测背景是空间均匀、与样品无关的光子型背景，在检测端相加，不改变照明调制度。它不包含结构化离焦背景或相机电子偏置。启用 Poisson 噪声时，扣除已知背景只去除均值，无法去除背景散粒噪声。</p>
+        <p class="note"><span data-tex="Q"></span> 是归一化信号为 1 时每像素每帧的期望信号光电子数，不是整幅图的总光子数，也不是相机电子增益；量子效率已折入此计数尺度。拖动 Q 时 B 保持不变，因此不等同于把真实曝光时间整体缩放。实际平均信号计数见上方指标。</p>
+      </details>
+      <details class="sim-error-card" style="margin-top:16px"><summary>校准失配与重建正则化</summary>
+        <p class="note">以下扰动只改变参数估计与重建，不重新生成 raw。调制度相对偏差施加在本次估计值（或已知对照值）之后；即使偏差为零，也不表示数据估计完全准确。</p>
+        <label for="wAerrScope">失配作用范围</label> <select class="experiment-select" id="wAerrScope"><option value="both">角度 / 相位 / OTF 偏差同时进入估计器与重建（真实软件行为）</option><option value="recon">仅进入重建，估计器使用正确标定（单独展示失配伪影）</option></select>
+        <div class="controls">
+          <div><label class="control-label" for="wAangle"><span>角度校准偏差 <span data-tex="\Delta\alpha"></span></span><output id="wAangle_out" for="wAangle">0°</output></label><input id="wAangle" type="range" min="0" max="12" step="1" value="0"></div>
+          <div><label class="control-label" for="wAphase"><span>公共相位原点偏差 <span data-tex="\Delta\phi"></span></span><output id="wAphase_out" for="wAphase">0</output></label><input id="wAphase" type="range" min="0" max="6" step="1" value="0"></div>
+          <div><label class="control-label" for="wAmerr"><span>采用调制度的相对偏差</span><output id="wAmerr_out" for="wAmerr">0%</output></label><input id="wAmerr" type="range" min="-40" max="40" step="5" value="0"></div>
+          <div><label class="control-label" for="wAotf"><span>检测截止频率估计偏差</span><output id="wAotf_out" for="wAotf">0%</output></label><input id="wAotf" type="range" min="0" max="20" step="5" value="0"></div>
+          <div><label class="control-label" for="wAepsr"><span>正则强度 <span data-tex="\varepsilon"></span></span><output id="wAepsr_out" for="wAepsr">0.02</output></label><input id="wAepsr" type="range" min="0.005" max="0.15" step="0.005" value="0.02"></div>
+        </div>
+        <p class="note">相位偏差给所有重建相位加同一个偏移，保留相位间隔；它不模拟逐帧相移步长误差。角度偏差给各方向统一加偏移。OTF 偏差只缩放理想圆瞳模型的截止频率，不模拟像差、离焦或任意 OTF 形变。此处均为故意采用错误参数，区别于上方改变实际照明后重新采集。</p>
+        <p class="note">选「同时进入估计器」时，错误的载频方向与相位会让 0 级与一级频带的重叠区对不上：拟合相关系数下降、相对残差上升，调制度估计因此未通过可靠性筛查，该方向被整体降级为零级。多个方向同时被拒时重建退化为宽场，此时拖动滑块图像与 RMSE 几乎不变——这展示的是估计器的自我保护，不是失配伪影本身。选「仅进入重建」则让估计器使用正确标定，<span data-tex="m"></span> 估准后一级频带得以保留，错误参数才会直接表现为频带错位、泄漏、重影与方向性条纹。把上方「重建使用」切到已知调制度真值有同样的隔离效果。</p>
+      </details>
+    </section>
+  </div>
+  <details class="panel theory" id="theory"><summary>公式、假设与论文来源</summary>
+    <p>线性荧光响应、移不变成像。统一采用傅里叶变换的负指数约定；第一章平均照明为 <span data-tex="I_0"></span>，第二章使用经过光路后的标定量 <span data-tex="\bar I"></span>。</p>
+    <div class="formula" data-tex="d_{\theta,\phi}(\mathbf r)=[s(\mathbf r)I_{\theta,\phi}(\mathbf r)]*h(\mathbf r)+n(\mathbf r)"></div>
+    <div class="formula" data-tex="I_{\theta,\phi}=I_0[1+m\cos(2\pi\mathbf f_\theta\cdot\mathbf r+\phi)]"></div>
+    <div class="formula" data-tex="D_\phi(\mathbf f)=I_0H(\mathbf f)\left[S(\mathbf f)+\frac m2e^{i\phi}S(\mathbf f-\mathbf f_\theta)+\frac m2e^{-i\phi}S(\mathbf f+\mathbf f_\theta)\right]+N(\mathbf f)"></div>
+    <h3>有效光路、真实调制度与计数</h3>
+    <p>从电场叠加得下式。<span data-tex="v=|\gamma_{12}|\,|\mathbf e_1^*\cdot\mathbf e_2|"></span> 是可控的相干与偏振综合系数，并不预设随频率下降。</p>
+    <div class="formula" data-tex="\bar I=I_1+I_2+I_u,\qquad m_{\mathrm{eff}}=\frac{2v\sqrt{I_1I_2}}{I_1+I_2+I_u}"></div>
+    <div class="formula" data-tex="f_{\mathrm{ex,max}}=\frac{2\mathrm{NA}}{\lambda_{\mathrm{ex}}},\qquad f_c=\frac{2\mathrm{NA}}{\lambda_{\mathrm{em}}}"></div>
+    <p>第一章固定波长和物镜焦距，以有效孔径改变 NA。由上述截止关系可得 <span data-tex="d_c=1/f_c=\lambda_{\mathrm{em}}/(2\mathrm{NA})"></span>；瞳面半径 <span data-tex="R\propto\mathrm{NA}\propto1/d_c"></span>。对称双束的瞳面径向位置 <span data-tex="r\propto f_i=1/P_i"></span>，因此 <span data-tex="r/R=f_i/f_{\mathrm{ex,max}}=0.75d_c/P_i"></span>。图中孔径和光束位置共用固定标尺：改变截止周期只移动孔径边缘，改变照明周期只移动入射光束。若只调整检测支路的孔径，激发孔径不应随之改变；这里采用的是共用物镜孔径的假设。</p>
+    <p>第二章的均匀圆光斑与圆瞳交叠面积给出功率透过率，透过部分质心给出代表载频。将结果压缩为平均功率与单一正弦，是有效参数近似；没有传播完整瞳面复电场，不含真实照明包络和谱展宽。第一章仍是理想点光束模型。两章频域坐标都固定，本征检测带宽不随照明周期改变。</p>
+    <div class="formula" data-tex="T_b=\frac{\int_{\Omega_b\cap\Omega_P}d^2u}{\pi a^2},\quad \bar{\mathbf u}_b=\frac{\int_{\Omega_b\cap\Omega_P}\mathbf u\,d^2u}{\int_{\Omega_b\cap\Omega_P}d^2u},\quad \mathbf f_{\mathrm{eff}}=\frac{f_{\mathrm{ex,max}}}{2}(\bar{\mathbf u}_+-\bar{\mathbf u}_-)"></div>
+    <div class="formula" data-tex="K_j\sim\operatorname{Poisson}(Q[sI_j]*h+B),\qquad R_j=K_j+\epsilon_j,\quad \epsilon_j\sim\mathcal N(0,\sigma_r^2)"></div>
+    <p>原始图显示 <span data-tex="R_j/Q"></span>。估计和重建使用已标定的 <span data-tex="(R_j-B)/(Q\bar I)"></span>，在这个常量背景模型中去掉背景均值，散粒噪声仍保留。Q 是信号计数尺度，不是相机电子增益。高计数用 PTRS 拒绝采样，低计数用 Poisson 反演采样，并非高斯替代。噪声随机种子固定，点击“重新采集”更换实现；改变计数或光路也会改变噪声分布，不能称作同一批 raw。</p>
+    <div class="formula" data-tex="\operatorname{Var}\!\left[\frac{R_j-B}{Q\bar I}\right]=\frac{Q[sI_j]*h+B+\sigma_r^2}{(Q\bar I)^2}"></div>
+    <p>此方差公式适用于启用 Poisson 噪声时；关闭它后只剩读出噪声项。零噪声对照还需把读出噪声设为 0。增加非调制照明时，<span data-tex="\bar I m=2v\sqrt{I_1I_2}"></span> 不变，归一化调制度下降而总计数上升，不能用画面更亮判断调制信息更强。</p>
+    <h3>OTF 与重叠区估计</h3>
+    <p>第一章使用三角教学 OTF；第二章使用理想无像差圆瞳的非相干 OTF，即归一化瞳函数自相关，并非实测物镜标定。</p>
+    <div class="formula" data-tex="H_{\mathrm{教}}(\mathbf f)=\max(0,1-\rho),\qquad H_{\mathrm{圆瞳}}(\mathbf f)=\begin{cases}\frac2\pi[\arccos\rho-\rho\sqrt{1-\rho^2}],&0\le\rho<1,\\0,&\rho\ge1,\end{cases}\quad \rho=\frac{\|\mathbf f\|}{f_c}"></div>
+    <p>已校准相位解混得到零级及尚未除调制度的一级。以下写出无噪声关系；估计不需要样品真值。频带在共同支持内匹配后，一级相对零级的幅度给出调制度。</p>
+    <div class="formula" data-tex="B_0(\mathbf q)=H(\mathbf q)S(\mathbf q),\qquad B_+(\mathbf q+\mathbf f_\theta)=\frac{m_{\mathrm{eff}}}{2}H(\mathbf q+\mathbf f_\theta)S(\mathbf q)"></div>
+    <div class="formula" data-tex="X=H(\mathbf q+\mathbf f_\theta)B_0(\mathbf q),\quad Y=H(\mathbf q)B_+(\mathbf q+\mathbf f_\theta),\quad Y=\frac{m_{\mathrm{eff}}}{2}X"></div>
+    <div class="formula" data-tex="\widetilde m=2\frac{\Re\sum_{\Omega}[X^*Y-\operatorname E(n_X^*n_Y)]}{\sum_{\Omega}[|X|^2-\operatorname E|n_X|^2]}"></div>
+    <p>噪声矩由 raw 计数估计的逐像素方差和相位解混矩阵传播，包含零级与一级的噪声互协方差。筛选两个 OTF 均至少 0.06 的交叠点；至少 12 点、零级及一级信号功率均大于对应噪声功率的 3 倍、观测相关系数至少 0.8、相对残差不高于 0.5，并检查复相位残差及参数边界。数值阈值属于本演示，不是通用实验验收标准。小于 0.03 的候选调制度视为未可靠检出；大于 1.08 的候选值拒绝，1–1.08 范围明确标注边界并约束为 1。失败时显示候选值及原因，绝不以真值替代。</p>
+    <p>解混与重建在 <span data-tex="128\times128"></span> 周期网格上计算，非整数频移有离散误差。噪声矩修正不保证有限样本无偏，也不提供严格置信区间；逐方向空间恒定调制度是假设，实际非均匀照明需要局部模型。</p>
+    <div class="formula" data-tex="\widehat S(\mathbf f)=A(\mathbf f)\frac{\sum_b w_bH_b^*(\mathbf f)C_b(\mathbf f)}{\sum_b w_b|H_b(\mathbf f)|^2+\varepsilon^2}"></div>
+    <p><span data-tex="C_b"></span> 为从 raw 解混并搬回的频带。<span data-tex="w_b"></span> 按方向平均噪声及解混后的相对方差倒数设置，包含调制度影响；融合阶段忽略跨频带噪声相关及像素间异方差，不是完整广义最小二乘。<span data-tex="A"></span> 在支持域外缘 15% 区域使用余弦切趾窗，乘在分式外。像差、运动、漂白及像素积分暂未模拟。</p>
+    <p>来源：Chen et al., <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a> (2023)，式 (1)–(9)、Fig. 4–5 及 Parameter estimation。光路截光和估计可靠性阈值是本演示的近似与选择。<a href="SIM知识库预览.html" target="_blank">本地知识库</a> · <a href="SIM模拟台核对与操作说明.md">模型核对与对照操作说明</a>。</p>
+  </details>
+</div>
+<div id="wAmodal" role="dialog" aria-modal="true" aria-labelledby="modal-title" hidden style="position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:60;padding:18px;box-sizing:border-box;align-items:center;justify-content:center">
+  <div style="background:white;border-radius:12px;width:100%;max-width:700px;max-height:95vh;overflow:auto;padding:20px;box-sizing:border-box">
+    <div class="toolbar"><h2 id="modal-title">本次采集的原始帧</h2><button class="btn-action" id="wAmodalClose">关闭</button></div>
+    <p class="note" id="wAmodalInfo"></p><div id="wAmodalGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px"></div>
+  </div>
+</div>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="sim-core.js"></script>
+<script src="sim-experiment.js"></script>
+<script src="sim-wave-lab.js"></script>
+<script src="sim-conv-otf.js?v=1"></script>
+<script src="sim-demo.js?v=4"></script>
+<script src="sim-comparison.js?v=3"></script>
+</body>
+</html>

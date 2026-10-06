@@ -1,0 +1,196 @@
+{
+  "dir1": {
+    "wedges": [
+      {
+        "deg": 0,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 5.1
+      },
+      {
+        "deg": 45,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 16.9
+      },
+      {
+        "deg": 90,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 23.8
+      },
+      {
+        "deg": 135,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 16.9
+      },
+      {
+        "deg": 180,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 5.1
+      },
+      {
+        "deg": 225,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 16.9
+      },
+      {
+        "deg": 270,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 23.8
+      },
+      {
+        "deg": 315,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 16.9
+      }
+    ],
+    "frameCount": "1 方向 × 3 相位 = 3 帧",
+    "inspectOptions": [
+      {
+        "label": "方向 1 · 0°",
+        "disabled": false
+      },
+      {
+        "label": "方向 2 · 60.3°",
+        "disabled": true
+      },
+      {
+        "label": "方向 3 · 119.7°",
+        "disabled": true
+      }
+    ],
+    "rmse": [
+      "0.2753",
+      "0.2044"
+    ]
+  },
+  "dir3": {
+    "wedges": [
+      {
+        "deg": 0,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 23.5
+      },
+      {
+        "deg": 45,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 24
+      },
+      {
+        "deg": 90,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 24.5
+      },
+      {
+        "deg": 135,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 24
+      },
+      {
+        "deg": 180,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 23.5
+      },
+      {
+        "deg": 225,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 24
+      },
+      {
+        "deg": 270,
+        "truth": 84.8,
+        "wf": 0.3,
+        "recon": 24.5
+      },
+      {
+        "deg": 315,
+        "truth": 84.2,
+        "wf": 0.3,
+        "recon": 24
+      }
+    ],
+    "frameCount": "3 方向 × 3 相位 = 9 帧",
+    "inspectOptions": [
+      {
+        "label": "方向 1 · 0°",
+        "disabled": false
+      },
+      {
+        "label": "方向 2 · 60.3°",
+        "disabled": false
+      },
+      {
+        "label": "方向 3 · 119.7°",
+        "disabled": false
+      }
+    ],
+    "rmse": [
+      "0.2624",
+      "0.2044"
+    ]
+  },
+  "gratings_dir1": {
+    "disks": [
+      {
+        "name": "上盘 a=0°（竖条纹）",
+        "truth": 122.3,
+        "wf": 3.2,
+        "recon": 3.5
+      },
+      {
+        "name": "左下 a=60°",
+        "truth": 125.5,
+        "wf": 2.7,
+        "recon": 2
+      },
+      {
+        "name": "右下 a=120°",
+        "truth": 129.3,
+        "wf": 2.6,
+        "recon": 1.7
+      }
+    ],
+    "rmse": [
+      "0.2330",
+      "0.2027"
+    ]
+  },
+  "gratings_dir3": {
+    "disks": [
+      {
+        "name": "上盘 a=0°（竖条纹）",
+        "truth": 122.3,
+        "wf": 3.2,
+        "recon": 3.5
+      },
+      {
+        "name": "左下 a=60°",
+        "truth": 125.5,
+        "wf": 2.7,
+        "recon": 5.2
+      },
+      {
+        "name": "右下 a=120°",
+        "truth": 129.3,
+        "wf": 2.6,
+        "recon": 7.3
+      }
+    ],
+    "rmse": [
+      "0.2273",
+      "0.2027"
+    ]
+  }
+}

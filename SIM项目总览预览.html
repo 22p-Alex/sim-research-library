@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="SIM Markdown preview">
+<title>SIM + 深度学习项目总览 · SIM 资料库</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+:root { color-scheme: light; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; color: #243142; background: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.8; }
+a { color: #17646c; text-underline-offset: .2em; overflow-wrap: anywhere; }
+a:hover { color: #0a4047; }
+a:focus-visible { outline: 2px solid #17646c; outline-offset: 3px; }
+.skip { position: absolute; left: 18px; top: -100px; background: white; padding: 10px; z-index: 10; }
+.skip:focus { top: 8px; }
+.layout { max-width: 1440px; margin: auto; display: grid; grid-template-columns: 260px minmax(0,1fr); }
+aside { position: sticky; top: 0; height: 100vh; overflow: auto; background: #f5f7f8; border-right: 1px solid #e3e8eb; padding: 30px 20px; font-size: 14px; }
+.brand { margin: 0 0 18px; color: #17646c; font-weight: 700; letter-spacing: .04em; }
+nav a { display: block; text-decoration: none; padding: 6px 10px; border-radius: 5px; }
+nav a[aria-current] { background: #e0eeee; color: #0d5057; font-weight: 650; }
+nav .group { margin: 22px 10px 6px; font-size: 12px; color: #617080; }
+main { min-width: 0; padding: 42px 48px 80px; }
+article { max-width: 1000px; margin: auto; }
+h1,h2,h3,h4 { color: #162a37; line-height: 1.45; scroll-margin-top: 24px; }
+h1 { font-size: 2rem; margin: 0 0 24px; }
+h2 { font-size: 1.4rem; margin-top: 2em; padding-bottom: .3em; border-bottom: 1px solid #e3e8eb; }
+h3 { font-size: 1.1rem; margin-top: 1.8em; }
+p,li { overflow-wrap: anywhere; }
+a[id] { scroll-margin-top: 24px; }
+blockquote { margin: 1.2em 0; padding: .5em 1em; background: #f5f8f8; border-left: 3px solid #7ba9ac; color: #526371; }
+blockquote p { margin: .3em 0; }
+table { width: 100%; border-collapse: collapse; margin: 1.3em 0; font-size: .9rem; }
+th,td { padding: .65em .75em; border: 1px solid #dce4e8; text-align: left; vertical-align: top; }
+th { background: #f0f5f5; font-weight: 600; }
+tr:nth-child(even) td { background: #fafcfc; }
+code { background: #edf1f3; border-radius: 4px; padding: .12em .3em; font-size: .88em; overflow-wrap: anywhere; }
+pre { overflow: auto; padding: 16px; background: #f3f6f7; border-radius: 6px; line-height: 1.65; }
+pre code { padding: 0; background: none; white-space: pre; }
+img,svg { max-width: 100%; height: auto; }
+.math-display { display: block; max-width: 100%; overflow-x: auto; margin: 1em 0; }
+.katex-display { margin: .4em 0; }
+.katex { font-size: 1.08em; }
+footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; color: #667785; font-size: 13px; }
+@media(max-width: 850px) { .layout { display: block; } aside { position: static; height: auto; padding: 18px; border-right: 0; border-bottom: 1px solid #e3e8eb; } nav { display: flex; flex-wrap: wrap; gap: 2px; } nav .topics,nav .group { display: none; } .brand { margin: 0 10px 10px; } main { padding: 28px 18px 50px; } table { display: block; overflow: auto; } th,td { min-width: 110px; } h1 { font-size: 1.7rem; } }
+@media print { aside,.skip,footer { display: none; } .layout { display: block; } main { padding: 0; } h2,h3 { break-after: avoid; } img { max-height: 90vh; object-fit: contain; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">跳到正文</a>
+<div class="layout">
+<aside><p class="brand">SIM · 毕业课题资料库</p><nav aria-label="资料库导航">
+<a href="index.html">资料库首页</a>
+<a href="SIM知识库预览.html">知识库目录</a>
+<a href="SIM文献目录预览.html">文献与代码</a>
+<a href="SIM项目总览预览.html" aria-current="page">项目总览</a>
+<p class="group">学习专题</p><div class="topics"><a href="知识库/01-SIM基础与频谱直觉预览.html">01 · SIM基础与频谱直觉</a>
+<a href="知识库/02-统一成像模型与SIM分类预览.html">02 · 统一成像模型与SIM分类</a>
+<a href="知识库/03-传统重建与参数估计预览.html">03 · 传统重建与参数估计</a>
+<a href="知识库/04-三维SIM与多平面成像预览.html">04 · 三维SIM与多平面成像</a>
+<a href="知识库/05-误差噪声与质量评价预览.html">05 · 误差噪声与质量评价</a>
+<a href="知识库/06-深度学习与可信重建预览.html">06 · 深度学习与可信重建</a>
+<a href="知识库/07-课题路线与代码映射预览.html">07 · 课题路线与代码映射</a>
+<a href="知识库/08-术语与参考来源预览.html">08 · 术语与参考来源</a></div>
+<p class="group">工具与维护</p>
+<a href="sim_interactive_demo.html">SIM 交互演示</a>
+<a href="SIM模拟台核对与操作说明预览.html">模拟台模型核对</a>
+<a href="知识库/维护说明预览.html">维护说明</a>
+</nav></aside>
+<main id="content"><article>
+<h1 id="sim-深度学习项目总览">SIM + 深度学习项目总览</h1>
+<p><a href="index.html">资料库首页</a> · <a href="SIM%E7%9F%A5%E8%AF%86%E5%BA%93%E9%A2%84%E8%A7%88.html">知识库目录</a> · <a href="SIM%E6%96%87%E7%8C%AE%E7%9B%AE%E5%BD%95%E9%A2%84%E8%A7%88.html">文献目录</a></p>
+<h2 id="研究问题">研究问题</h2>
+<p>从有限光子、有限采样、像差和运动干扰下的 SIM 多帧观测中恢复更高空间频率，并说明结果的可靠程度。基础观测模型为</p>
+<p><span class="math-display"><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><msub><mi>y</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi mathvariant="bold">r</mi><mo stretchy="false">)</mo><mo>=</mo><mrow><mo fence="true">[</mo><mi>s</mi><mo stretchy="false">(</mo><mi mathvariant="bold">r</mi><mo stretchy="false">)</mo><msub><mi>I</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi mathvariant="bold">r</mi><mo stretchy="false">)</mo><mo fence="true">]</mo></mrow><mo>∗</mo><mi>h</mi><mo stretchy="false">(</mo><mi mathvariant="bold">r</mi><mo stretchy="false">)</mo><mo>+</mo><msub><mi>n</mi><mi>j</mi></msub><mo stretchy="false">(</mo><mi mathvariant="bold">r</mi><mo stretchy="false">)</mo><mi mathvariant="normal">.</mi></mrow><annotation encoding="application/x-tex">y_j(\mathbf r)=\left[s(\mathbf r)I_j(\mathbf r)\right]*h(\mathbf r)+n_j(\mathbf r).</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.03588em;">y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0359em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathbf">r</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2778em;"></span></span><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="minner"><span class="mopen delimcenter" style="top:0em;">[</span><span class="mord mathnormal">s</span><span class="mopen">(</span><span class="mord mathbf">r</span><span class="mclose">)</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07847em;">I</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:-0.0785em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathbf">r</span><span class="mclose">)</span><span class="mclose delimcenter" style="top:0em;">]</span></span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">h</span><span class="mopen">(</span><span class="mord mathbf">r</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222em;"></span></span><span class="base"><span class="strut" style="height:1.0361em;vertical-align:-0.2861em;"></span><span class="mord"><span class="mord mathnormal">n</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3117em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight" style="margin-right:0.05724em;">j</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2861em;"><span></span></span></span></span></span></span><span class="mopen">(</span><span class="mord mathbf">r</span><span class="mclose">)</span><span class="mord">.</span></span></span></span></span></span></p>
+<p>模型、符号与适用条件见 <a href="%E7%9F%A5%E8%AF%86%E5%BA%93/02-%E7%BB%9F%E4%B8%80%E6%88%90%E5%83%8F%E6%A8%A1%E5%9E%8B%E4%B8%8ESIM%E5%88%86%E7%B1%BB%E9%A2%84%E8%A7%88.html">统一成像模型</a>。文献依据为 S1；3D 多平面部分依据 S10 和当前 S2 代码。</p>
+<h2 id="当前资料与实验状态">当前资料与实验状态</h2>
+<table>
+<thead>
+<tr>
+<th>层次</th>
+<th>当前记录</th>
+<th>入口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>原理与文献</td>
+<td>已有综述及主要方法的译文/理解笔记</td>
+<td><a href="SIM%E6%96%87%E7%8C%AE%E7%9B%AE%E5%BD%95%E9%A2%84%E8%A7%88.html">文献状态表</a></td>
+</tr>
+<tr>
+<td>核心物理模型</td>
+<td>已整理 3D-MP-SIM 的轴向相移、7 级频谱与代码映射</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/04-%E4%B8%89%E7%BB%B4SIM%E4%B8%8E%E5%A4%9A%E5%B9%B3%E9%9D%A2%E6%88%90%E5%83%8F%E9%A2%84%E8%A7%88.html">三维与多平面专题</a></td>
+</tr>
+<tr>
+<td>本地复现</td>
+<td>最小实例、统一 benchmark 等仍在未完成清单中</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/07-%E8%AF%BE%E9%A2%98%E8%B7%AF%E7%BA%BF%E4%B8%8E%E4%BB%A3%E7%A0%81%E6%98%A0%E5%B0%84%E9%A2%84%E8%A7%88.html">课题路线与代码映射</a></td>
+</tr>
+<tr>
+<td>深度学习</td>
+<td>物理初值 + 残差网络 + 数据一致性是拟验证方案</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/06-%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E4%B8%8E%E5%8F%AF%E4%BF%A1%E9%87%8D%E5%BB%BA%E9%A2%84%E8%A7%88.html">深度学习专题</a></td>
+</tr>
+<tr>
+<td>待阅读文献</td>
+<td>DMF-SIM 尚未纳入可靠结论</td>
+<td><a href="SIM%E6%96%87%E7%8C%AE%E7%9B%AE%E5%BD%95%E9%A2%84%E8%A7%88.html">文献目录</a></td>
+</tr>
+</tbody></table>
+<p>以上状态来自现有资料记录；本次目录整理不新增复现或实验完成结论。</p>
+<h2 id="推荐研究主线">推荐研究主线</h2>
+<pre><code class="language-text">3D-MP-SIM raw + OTF + 参数元数据
+            ↓
+传统 7 级频谱分离 / Wiener 物理基线 x₀
+            ↓
+参数误差、噪声、像差与运动的可控扰动实验
+            ↓
+输入物理初值、照明参数与 OTF 的残差网络
+            ↓
+数据一致性 + 分辨率 + 跨样品泛化 + 不确定性评价
+</code></pre>
+<p>这是面向本课题的工程建议。首个研究方向是验证物理先验残差网络能否改善 3D-MP-SIM 的低 SNR 重建，并限制不可验证的结构生成。</p>
+<h2 id="执行入口">执行入口</h2>
+<ul>
+<li><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/07-%E8%AF%BE%E9%A2%98%E8%B7%AF%E7%BA%BF%E4%B8%8E%E4%BB%A3%E7%A0%81%E6%98%A0%E5%B0%84%E9%A2%84%E8%A7%88.html">阶段 A–D、代码映射、方法选择和统一待办</a>：执行细节集中维护于此。</li>
+<li><a href="3D-MP-SIM/MP-main/README.md">MP-main 环境和运行说明</a>。</li>
+<li><a href="3D-MP-SIM/MP-main/core/run1_488.py">运行配置</a>：现有配置解释见 <a href="%E7%9F%A5%E8%AF%86%E5%BA%93/02-%E7%BB%9F%E4%B8%80%E6%88%90%E5%83%8F%E6%A8%A1%E5%9E%8B%E4%B8%8ESIM%E5%88%86%E7%B1%BB%E9%A2%84%E8%A7%88.html#s2-2">SIM 分类与当前参数</a>。</li>
+<li><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/05-%E8%AF%AF%E5%B7%AE%E5%99%AA%E5%A3%B0%E4%B8%8E%E8%B4%A8%E9%87%8F%E8%AF%84%E4%BB%B7%E9%A2%84%E8%A7%88.html">质量评价</a>：覆盖分辨率、伪影、物理一致性与泛化。</li>
+<li><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/08-%E6%9C%AF%E8%AF%AD%E4%B8%8E%E5%8F%82%E8%80%83%E6%9D%A5%E6%BA%90%E9%A2%84%E8%A7%88.html">术语、来源与证据等级</a>：写作和引用时核对。</li>
+</ul>
+
+<footer>正文来源：<a href="SIM项目总览.md">SIM项目总览.md</a> · 修改源文件后运行预览构建命令。公式与字体均使用本地资源。</footer>
+</article></main>
+</div>
+</body></html>

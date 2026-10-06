@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="SIM Markdown preview">
+<title>SIM + 深度学习毕业课题资料库 · SIM 资料库</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+:root { color-scheme: light; font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC",sans-serif; color: #243142; background: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; line-height: 1.8; }
+a { color: #17646c; text-underline-offset: .2em; overflow-wrap: anywhere; }
+a:hover { color: #0a4047; }
+a:focus-visible { outline: 2px solid #17646c; outline-offset: 3px; }
+.skip { position: absolute; left: 18px; top: -100px; background: white; padding: 10px; z-index: 10; }
+.skip:focus { top: 8px; }
+.layout { max-width: 1440px; margin: auto; display: grid; grid-template-columns: 260px minmax(0,1fr); }
+aside { position: sticky; top: 0; height: 100vh; overflow: auto; background: #f5f7f8; border-right: 1px solid #e3e8eb; padding: 30px 20px; font-size: 14px; }
+.brand { margin: 0 0 18px; color: #17646c; font-weight: 700; letter-spacing: .04em; }
+nav a { display: block; text-decoration: none; padding: 6px 10px; border-radius: 5px; }
+nav a[aria-current] { background: #e0eeee; color: #0d5057; font-weight: 650; }
+nav .group { margin: 22px 10px 6px; font-size: 12px; color: #617080; }
+main { min-width: 0; padding: 42px 48px 80px; }
+article { max-width: 1000px; margin: auto; }
+h1,h2,h3,h4 { color: #162a37; line-height: 1.45; scroll-margin-top: 24px; }
+h1 { font-size: 2rem; margin: 0 0 24px; }
+h2 { font-size: 1.4rem; margin-top: 2em; padding-bottom: .3em; border-bottom: 1px solid #e3e8eb; }
+h3 { font-size: 1.1rem; margin-top: 1.8em; }
+p,li { overflow-wrap: anywhere; }
+a[id] { scroll-margin-top: 24px; }
+blockquote { margin: 1.2em 0; padding: .5em 1em; background: #f5f8f8; border-left: 3px solid #7ba9ac; color: #526371; }
+blockquote p { margin: .3em 0; }
+table { width: 100%; border-collapse: collapse; margin: 1.3em 0; font-size: .9rem; }
+th,td { padding: .65em .75em; border: 1px solid #dce4e8; text-align: left; vertical-align: top; }
+th { background: #f0f5f5; font-weight: 600; }
+tr:nth-child(even) td { background: #fafcfc; }
+code { background: #edf1f3; border-radius: 4px; padding: .12em .3em; font-size: .88em; overflow-wrap: anywhere; }
+pre { overflow: auto; padding: 16px; background: #f3f6f7; border-radius: 6px; line-height: 1.65; }
+pre code { padding: 0; background: none; white-space: pre; }
+img,svg { max-width: 100%; height: auto; }
+.math-display { display: block; max-width: 100%; overflow-x: auto; margin: 1em 0; }
+.katex-display { margin: .4em 0; }
+.katex { font-size: 1.08em; }
+footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; color: #667785; font-size: 13px; }
+@media(max-width: 850px) { .layout { display: block; } aside { position: static; height: auto; padding: 18px; border-right: 0; border-bottom: 1px solid #e3e8eb; } nav { display: flex; flex-wrap: wrap; gap: 2px; } nav .topics,nav .group { display: none; } .brand { margin: 0 10px 10px; } main { padding: 28px 18px 50px; } table { display: block; overflow: auto; } th,td { min-width: 110px; } h1 { font-size: 1.7rem; } }
+@media print { aside,.skip,footer { display: none; } .layout { display: block; } main { padding: 0; } h2,h3 { break-after: avoid; } img { max-height: 90vh; object-fit: contain; } }
+</style>
+</head>
+<body>
+<a class="skip" href="#content">跳到正文</a>
+<div class="layout">
+<aside><p class="brand">SIM · 毕业课题资料库</p><nav aria-label="资料库导航">
+<a href="index.html" aria-current="page">资料库首页</a>
+<a href="SIM知识库预览.html">知识库目录</a>
+<a href="SIM文献目录预览.html">文献与代码</a>
+<a href="SIM项目总览预览.html">项目总览</a>
+<p class="group">学习专题</p><div class="topics"><a href="知识库/01-SIM基础与频谱直觉预览.html">01 · SIM基础与频谱直觉</a>
+<a href="知识库/02-统一成像模型与SIM分类预览.html">02 · 统一成像模型与SIM分类</a>
+<a href="知识库/03-传统重建与参数估计预览.html">03 · 传统重建与参数估计</a>
+<a href="知识库/04-三维SIM与多平面成像预览.html">04 · 三维SIM与多平面成像</a>
+<a href="知识库/05-误差噪声与质量评价预览.html">05 · 误差噪声与质量评价</a>
+<a href="知识库/06-深度学习与可信重建预览.html">06 · 深度学习与可信重建</a>
+<a href="知识库/07-课题路线与代码映射预览.html">07 · 课题路线与代码映射</a>
+<a href="知识库/08-术语与参考来源预览.html">08 · 术语与参考来源</a></div>
+<p class="group">工具与维护</p>
+<a href="sim_interactive_demo.html">SIM 交互演示</a>
+<a href="SIM模拟台核对与操作说明预览.html">模拟台模型核对</a>
+<a href="知识库/维护说明预览.html">维护说明</a>
+</nav></aside>
+<main id="content"><article>
+<h1 id="sim-深度学习毕业课题资料库">SIM + 深度学习毕业课题资料库</h1>
+<p>围绕结构光照明显微镜（SIM）的超分辨成像组织。日常从<a href="index.html">网页阅读首页</a>进入，或按当前任务选择入口：</p>
+<table>
+<thead>
+<tr>
+<th>想做什么</th>
+<th>入口</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>学原理、查公式、理解论文之间的关系</td>
+<td><a href="SIM%E7%9F%A5%E8%AF%86%E5%BA%93%E9%A2%84%E8%A7%88.html">知识库目录</a> · <a href="SIM%E7%9F%A5%E8%AF%86%E5%BA%93%E9%A2%84%E8%A7%88.html">公式阅读版</a></td>
+</tr>
+<tr>
+<td>看课题目标、当前状态和实验路线</td>
+<td><a href="SIM%E9%A1%B9%E7%9B%AE%E6%80%BB%E8%A7%88%E9%A2%84%E8%A7%88.html">项目总览</a></td>
+</tr>
+<tr>
+<td>找论文原文、译文、补充材料与阅读状态</td>
+<td><a href="SIM%E6%96%87%E7%8C%AE%E7%9B%AE%E5%BD%95%E9%A2%84%E8%A7%88.html">文献目录</a></td>
+</tr>
+<tr>
+<td>逐步核对 2D-SIM/Wiener-SIM 的参数估计与重建代码</td>
+<td><a href="%E7%9F%A5%E8%AF%86%E5%BA%93/03-%E4%BC%A0%E7%BB%9F%E9%87%8D%E5%BB%BA%E4%B8%8E%E5%8F%82%E6%95%B0%E4%BC%B0%E8%AE%A1%E9%A2%84%E8%A7%88.html">知识库专题 03 第 3 节</a> · <a href="Wiener-SIM/fairSIM-%E8%AE%BA%E6%96%87/%E7%90%86%E8%A7%A3%E7%AC%94%E8%AE%B0%E9%A2%84%E8%A7%88.html">fairSIM 理解笔记</a></td>
+</tr>
+<tr>
+<td>运行当前 3D-MP-SIM 重建代码</td>
+<td><a href="3D-MP-SIM/MP-main/README.md">MP-main 运行说明</a></td>
+</tr>
+<tr>
+<td>调参数、注入误差、做单变量 A/B 对照</td>
+<td><a href="sim_interactive_demo.html">SIM 交互模拟台</a></td>
+</tr>
+<tr>
+<td>俯瞰每个中间产物、查某个检测点混了哪些频率</td>
+<td><a href="sim_pipeline_atlas.html">2D-SIM 全流程图谱</a></td>
+</tr>
+<tr>
+<td>看真实硬件怎么摆：从 488 nm 激光到样品条纹的 17 个工位</td>
+<td><a href="sim_real_optical_path.html">2D-SIM 真实光路走查</a></td>
+</tr>
+</tbody></table>
+<h2 id="资料分区">资料分区</h2>
+<ul>
+<li><code>知识库/</code>：按学习顺序排列的 8 个专题，以及维护说明和自动生成的阅读页。</li>
+<li>各论文目录：保留原文、SI、元数据、译文、笔记与作者代码。具体条目见文献目录。</li>
+<li><code>Wiener-SIM/</code>：2D-SIM/Wiener-SIM 参考实现 fairSIM 的文献条目、源码级理解笔记与克隆源码（<code>fairSIM-src/</code>）。</li>
+<li><code>原文图示/</code>：知识库引用的论文图版；示意图与演示资源仍由原路径引用。</li>
+<li><code>2025.06/</code>：早期收集存档；重复副本与待阅读资料的状态见文献目录。</li>
+<li><code>归档/</code>：结构调整前的文档快照和已完成迁移的历史工具。</li>
+</ul>
+<h2 id="交互页面分工">交互页面分工</h2>
+<p>两个计算页面职责不重叠，按“先实验、后俯瞰”使用；第三页是纯静态硬件示意，不参与计算。改任何一页前先确认它属于哪一类，不要把另一类的职责搬过来。</p>
+<table>
+<thead>
+<tr>
+<th>页面</th>
+<th>解决什么问题</th>
+<th>明确不负责</th>
+<th>页面独占模块</th>
+<th>验收</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="sim_interactive_demo.html">sim_interactive_demo.html</a></td>
+<td>参数与误差实验台：四类共 11 项单变量 A/B 对照、调制度 <span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span></span></span></span></span> 的数据估计与可靠性筛查、相机噪声模型、CH1–CH4 截线波形、成像模型的二维卷积 ⇄ OTF 对照（PSF、截止与像差后果）</td>
+<td>不逐个展示重建流水线的频谱中间产物，不做流水线全景俯瞰</td>
+<td><a href="sim-lab/README.md"><code>sim-lab/</code></a>：启动、成像、采集、预设、对照与样式</td>
+<td><code>tests/sim-browser.test.cjs</code></td>
+</tr>
+<tr>
+<td><a href="sim_pipeline_atlas.html">sim_pipeline_atlas.html</a></td>
+<td>按固定 fairSIM 二维 Wiener 路径展示中间产物，点开频谱核对相移解混与归位</td>
+<td>不替代完整的单变量 A/B 实验台</td>
+<td><code>sim-atlas-core.js</code>、<code>sim-atlas.js</code>、<code>sim-atlas.css</code></td>
+<td><code>tests/sim-atlas.test.cjs</code>、<code>tests/sim-atlas-fairsim.test.cjs</code>（JDK）、<code>tests/sim-atlas-browser.test.cjs</code></td>
+</tr>
+<tr>
+<td><a href="sim_real_optical_path.html">sim_real_optical_path.html</a></td>
+<td>真实 2D-SIM 光路走查：17 个工位从 488 nm 激光到样品条纹，逐站交代光束状态（波前 / 束径 / 偏振）、为什么非有不可、装错会变成哪种伪影；含共轭面链、BFP 正视图、入射角真实比例图与关键量核算表，每条论断带证据标签（S 编号 / H / 量级 / 待核实）</td>
+<td>不做任何数值计算与参数实验（纯静态 SVG，内联脚本只管着色切换、滚动联动与高亮；不依赖共享计算层，页面上每个数字都是预先核算后写死的）</td>
+<td>无（内联脚本与样式）</td>
+<td>离线打开即用；无远程依赖由 <code>tests/sim-page-boundary.test.cjs</code> 断言</td>
+</tr>
+</tbody></table>
+<p><strong>共用计算层</strong>：<a href="sim-core.js"><code>sim-core.js</code></a>（理想教学模型：OTF、前向成像、相移解混、Wiener 融合）与 <a href="sim-experiment.js"><code>sim-experiment.js</code></a>（有效参数实验层：瞳面截光、可见度、相机噪声、<span class="math-inline"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>m</mi></mrow><annotation encoding="application/x-tex">m</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.4306em;"></span><span class="mord mathnormal">m</span></span></span></span></span> 估计）被两个页面共同依赖，<strong>改动会同时影响两页</strong>，提交前必须跑全部单测。页面独占模块不得被其他页面引用，共享层不得反向依赖页面，删除页面时必须一并清理其独占模块——这三条由 <code>tests/sim-page-boundary.test.cjs</code> 断言，不靠约定。</p>
+<pre><code class="language-sh">node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-page-boundary.test.cjs tests/sim-preview.test.mjs
+for f in tests/sim-browser.test.cjs tests/sim-atlas-browser.test.cjs; do node &quot;$f&quot;; done
+</code></pre>
+<p>模拟台的模型边界、每个参数改变的对象与 A/B 操作次序见 <a href="SIM%E6%A8%A1%E6%8B%9F%E5%8F%B0%E6%A0%B8%E5%AF%B9%E4%B8%8E%E6%93%8D%E4%BD%9C%E8%AF%B4%E6%98%8E%E9%A2%84%E8%A7%88.html">SIM 模拟台核对与操作说明</a>；图谱页的适用边界写在其页内说明；固定 fairSIM 配置、输出标度和 Java 对照方法见 <a href="Wiener-SIM/fairSIM-%E8%AE%BA%E6%96%87/%E5%9B%BE%E8%B0%B1%E5%AE%9E%E7%8E%B0%E5%AF%B9%E7%85%A7%E9%A2%84%E8%A7%88.html">图谱实现对照</a>。</p>
+<h2 id="演示开发记录">演示开发记录</h2>
+<ul>
+<li><p>2026-10-06：将实验室独占代码集中到 <code>sim-lab/</code>，统一启动与状态订阅，修复保存页面首次打开时 A/B 旧数值和空 Canvas 不一致的问题；方向改用原生开关，相位使用静态标题。维护入口见 <a href="sim-lab/README.md">代码结构说明</a>，常用命令为 <code>npm run check</code>、<code>npm run test:ui</code>、<code>npm run preview</code>。</p>
+</li>
+<li><p>2026-10-06：移植 WorkBuddy 交互实验室修改版，简化光路控件、固定三相位帧，A/B 对照移到采集控制台之后并按四类分组；计算核心沿用原实现。</p>
+</li>
+<li><p><a href="SIM%E6%A8%A1%E6%8B%9F%E5%8F%B0%E6%A0%B8%E5%AF%B9%E4%B8%8E%E6%93%8D%E4%BD%9C%E8%AF%B4%E6%98%8E%E9%A2%84%E8%A7%88.html">SIM 模拟台：模型核对与对照操作</a>：现有仿真模型的适用边界、每个参数改变的对象和单变量 A/B 操作，2026-09-27 核对。</p>
+</li>
+<li><p>真实采集改造计划、修改和验证说明、2026-09-24 原版审查记录已不在工作目录，仅存于<a href="%E5%BD%92%E6%A1%A3/%E7%9F%A5%E8%AF%86%E5%BA%93%E6%95%B4%E7%90%86%E5%89%8D-2026-09-26.zip">整理前快照</a>，不再更新。</p>
+</li>
+</ul>
+<h2 id="资料状态约定">资料状态约定</h2>
+<ul>
+<li><strong>已阅读</strong>：已根据主文、Methods、图注或 SI 整理译文/笔记；不代表本地复现完成。</li>
+<li><strong>仅存档</strong>：已有文件，尚未形成可靠的独立结论。</li>
+<li><strong>待复现</strong>：已有论文理解或代码入口，尚未完成本地实验验证。</li>
+</ul>
+<p>维护方式与预览命令见 <a href="%E7%9F%A5%E8%AF%86%E5%BA%93/%E7%BB%B4%E6%8A%A4%E8%AF%B4%E6%98%8E%E9%A2%84%E8%A7%88.html">知识库维护说明</a>。论文与代码分别遵循其许可条件；本地中文译文用于学习和课题研究。</p>
+
+<footer>正文来源：<a href="README.md">README.md</a> · 修改源文件后运行预览构建命令。公式与字体均使用本地资源。</footer>
+</article></main>
+</div>
+</body></html>

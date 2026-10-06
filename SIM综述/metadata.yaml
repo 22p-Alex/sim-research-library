@@ -1,0 +1,18 @@
+title: "Superresolution structured illumination microscopy reconstruction algorithms: a review"
+title_zh: "超分辨结构光照明显微镜重建算法综述"
+authors:
+  - "Chen, X."
+  - "Zhong, S."
+  - "Hou, Y."
+  - "et al."
+journal: "Light: Science & Applications"
+year: 2023
+doi: "10.1038/s41377-023-01204-4"
+source_pdf: "SIM综述/Superresolution structured illumination microscopy reconstruction algorithms.pdf"
+status: "已阅读，核心内容已纳入 SIM知识库.md"
+keywords:
+  - "SIM reconstruction"
+  - "Fourier-domain reconstruction"
+  - "iterative reconstruction"
+  - "deep learning"
+  - "blind-SIM"

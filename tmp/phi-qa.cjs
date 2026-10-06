@@ -1,0 +1,24 @@
+const path=require('node:path'),os=require('node:os'),fs=require('node:fs');
+const {pathToFileURL}=require('node:url');
+const {chromium}=require('/Users/22p/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const root=path.resolve(__dirname,'..');
+const cache=path.join(os.homedir(),'Library/Caches/ms-playwright');
+const shell=fs.readdirSync(cache).filter(x=>/^chromium_headless_shell-\d+$/.test(x)).sort((a,b)=>Number(b.split('-')[1])-Number(a.split('-')[1])).map(x=>path.join(cache,x,'chrome-headless-shell-mac-arm64/chrome-headless-shell')).find(x=>fs.existsSync(x));
+(async()=>{
+  const browser=await chromium.launch({headless:true,executablePath:shell});
+  const page=await browser.newPage({viewport:{width:1200,height:1000}});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(pathToFileURL(path.join(root,'sim_interactive_demo.html')).href);
+  await page.waitForFunction(()=>window.SIMDemo?.latest?.result.ok);
+  await page.evaluate(()=>{document.getElementById('tab2Btn').click();});
+  await page.evaluate(()=>{const el=document.getElementById('wAphi3');el.value=16;el.dispatchEvent(new Event('input',{bubbles:true}));});
+  await page.waitForTimeout(200);
+  const outs=await page.evaluate(()=>[1,2,3].map(i=>document.getElementById('wAphi'+i+'_out').textContent));
+  console.log('phase outputs:',JSON.stringify(outs));
+  await page.evaluate(()=>{const el=document.getElementById('wAphi2');el.value=9;el.dispatchEvent(new Event('input',{bubbles:true}));});
+  await page.waitForTimeout(200);
+  console.log('phi2=9 →',await page.evaluate(()=>document.getElementById('wAphi2_out').textContent));
+  await page.locator('.sim-acquisition-controls').first().screenshot({path:path.join(__dirname,'phi-qa-controls.png')});
+  console.log('errors:',errors);
+  await browser.close();
+})();

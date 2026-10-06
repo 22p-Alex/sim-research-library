@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="430" viewBox="0 0 900 430">
+  <rect width="900" height="430" fill="#ffffff"/>
+  <text x="40" y="42" font-family="Arial, sans-serif" font-size="24" fill="#111827">SIM frequency shift: sample 9 and illumination 5 produce difference 4</text>
+  <text x="40" y="85" font-family="Arial, sans-serif" font-size="18" fill="#374151">Product: cos(2pi*9x) * [1 + cos(2pi*5x)]</text>
+  <line x1="90" y1="170" x2="810" y2="170" stroke="#374151" stroke-width="2"/>
+  <text x="74" y="205" font-family="Arial, sans-serif" font-size="16" fill="#4b5563">negative</text>
+  <text x="775" y="205" font-family="Arial, sans-serif" font-size="16" fill="#4b5563">positive</text>
+  <g font-family="Arial, sans-serif" font-size="17" text-anchor="middle">
+    <circle cx="170" cy="170" r="8" fill="#2563eb"/><text x="170" y="145" fill="#2563eb">-14</text>
+    <circle cx="270" cy="170" r="8" fill="#2563eb"/><text x="270" y="145" fill="#2563eb">-9</text>
+    <circle cx="370" cy="170" r="8" fill="#16a34a"/><text x="370" y="145" fill="#16a34a">-4</text>
+    <circle cx="450" cy="170" r="8" fill="#111827"/><text x="450" y="145" fill="#111827">0</text>
+    <circle cx="530" cy="170" r="8" fill="#16a34a"/><text x="530" y="145" fill="#16a34a">+4</text>
+    <circle cx="630" cy="170" r="8" fill="#2563eb"/><text x="630" y="145" fill="#2563eb">+9</text>
+    <circle cx="730" cy="170" r="8" fill="#2563eb"/><text x="730" y="145" fill="#2563eb">+14</text>
+  </g>
+  <rect x="350" y="235" width="200" height="54" rx="5" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="450" y="269" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#166534">low-pass range |f| &lt;= 5.5</text>
+  <path d="M630 170 C600 215 560 220 530 170" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>
+  <path d="M270 170 C310 215 340 220 370 170" fill="none" stroke="#dc2626" stroke-width="3" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#dc2626"/></marker></defs>
+  <text x="450" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#111827">+9 - 5 = +4, enters detectable bandwidth</text>
+  <text x="450" y="375" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#6b7280">The known illumination frequency then maps +4 back to sample +9</text>
+</svg>

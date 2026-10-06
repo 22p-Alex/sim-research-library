@@ -1,0 +1,10 @@
+{
+  "name": "sim-research-library",
+  "private": true,
+  "scripts": {
+    "preview": "python3 -m http.server 8765 --bind 127.0.0.1",
+    "check": "node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-page-boundary.test.cjs tests/sim-preview.test.mjs",
+    "test:ui": "node tests/sim-browser.test.cjs",
+    "test": "npm run check && npm run test:ui"
+  }
+}

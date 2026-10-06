@@ -1,0 +1,39 @@
+title: "Bayesian deep-learning structured illumination microscopy enables reliable super-resolution imaging with uncertainty quantification"
+title_zh: "贝叶斯深度学习结构光照明显微镜：通过不确定性量化实现可靠的超分辨成像"
+authors:
+  - "Tao Liu"
+  - "Jiahao Liu"
+  - "Dong Li"
+  - "Shan Tan"
+journal: "Nature Communications"
+year: 2025
+volume: 16
+article_number: 5027
+doi: "10.1038/s41467-025-60093-w"
+received: "2024-04-30"
+accepted: "2025-05-14"
+published_online: "2025-05-30"
+# 2025.06/ 下的英文同名主文副本与 41467_2025_60093_MOESM1_ESM.pdf 已核对为逐字节重复，于 2026-09-28 去重删除
+local_pdf: "BayesDL-SIM/Bayesian deep-learning structured illumination microscopy enables reliable super-resolution imaging with uncertainty quantification.pdf"
+local_si: "BayesDL-SIM/BayesDL-SIM-SI.pdf"
+keywords:
+  - "structured illumination microscopy"
+  - "super-resolution imaging"
+  - "Bayesian deep learning"
+  - "aleatoric uncertainty"
+  - "epistemic uncertainty"
+  - "knowledge inconsistency"
+  - "live-cell imaging"
+  - "uncertainty calibration"
+related_topics:
+  - "2D-SIM"
+  - "deep learning reconstruction"
+  - "SGLD"
+  - "F-actin dynamics"
+  - "OTF and PSF engineering"
+status: "已阅读，译文与理解笔记已整理"
+license_note: "论文为 CC BY-NC-ND 4.0；本地译文仅用于非商业学习，不作为改编版发表。"
+data:
+  biosr: "https://figshare.com/articles/dataset/BioSR/13264793"
+  source_data: "https://doi.org/10.6084/m9.figshare.27824586.v1"
+code: "https://github.com/HUST-Tan/BayesDL-SIM"

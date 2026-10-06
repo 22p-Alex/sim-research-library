@@ -1,0 +1,46 @@
+title: "Physics-guided reinforcement learning for structured illumination microscopy"
+title_zh: "用于结构光照明显微镜的物理引导强化学习"
+authors:
+  - "Junli Wu"
+  - "Qiurong Yan"
+  - "Siying Huang"
+  - "Haoran Zhang"
+  - "Junyuan Yin"
+  - "Xiaolong Luo"
+  - "Zhiqiang Wen"
+journal: "Communications Physics"
+year: 2026
+volume: 9
+article_number: 261
+doi: "10.1038/s42005-026-02692-7"
+received: "2025-12-08"
+accepted: "2026-05-07"
+published_online: "2026"
+# 期刊原始下载名 s42005-026-02692-7.pdf；该副本与 local_pdf 逐字节一致，已于 2026-09-28 去重删除
+local_pdf: "参数自适应/RL-SIM/Physics-guided reinforcement learning for structured illumination microscopy.pdf"
+keywords:
+  - "structured illumination microscopy"
+  - "reinforcement learning"
+  - "Soft Actor-Critic"
+  - "physics-guided reconstruction"
+  - "differentiable forward model"
+  - "adaptive illumination"
+  - "phase detuning"
+  - "photobleaching"
+  - "low-dose imaging"
+related_topics:
+  - "SIM parameter adaptation"
+  - "frequency-domain constraints"
+  - "BioSR"
+  - "SCUNet"
+  - "Wiener-SIM"
+  - "CR-SIM"
+  - "rDL-SIM"
+status: "已阅读，完整主文译文与理解笔记已整理"
+license_note: "论文为 CC BY 4.0。使用第三方图像或数据时仍应检查图注中的版权说明。"
+data:
+  biosr: "BioSR images from Qiao et al. (references 50, 51)"
+  reproducibility_package: "https://github.com/w545646253-arch/RL-SIM/tree/3963039"
+code:
+  repository: "https://github.com/w545646253-arch/RL-SIM"
+  commit: "3963039"

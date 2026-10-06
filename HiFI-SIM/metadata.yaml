@@ -1,0 +1,21 @@
+title: "High-fidelity structured illumination microscopy by point-spread-function engineering"
+title_zh: "基于点扩散函数工程的高保真结构光照明显微镜"
+authors:
+  - "Wen, G."
+  - "Li, S."
+  - "Wang, L."
+  - "et al."
+journal: "Light: Science & Applications"
+year: 2021
+volume: 10
+article_number: 70
+doi: "10.1038/s41377-021-00513-w"
+source_pdf: "HiFI-SIM/High-fidelity structured illumination microscopy by point-spread-function engineering.pdf"
+translation: "HiFI-SIM/High-fidelity structured illumination microscopy by point-spread-function engineering-译文.md"
+status: "已阅读，译文已整理"
+keywords:
+  - "HiFi-SIM"
+  - "PSF engineering"
+  - "OTF engineering"
+  - "2D-SIM"
+  - "artifact suppression"

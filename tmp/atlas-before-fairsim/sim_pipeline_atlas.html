@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SIM 重建图谱 · 从原始帧到超分辨图像</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="sim-atlas.css">
+</head>
+<body>
+<a class="skip" href="#content">跳到正文</a>
+<header class="topbar">
+  <a class="brand" href="index.html"><span class="brand-mark">S</span><span>SIM <span class="brand-slash">/</span> 学习实验室</span></a>
+  <nav aria-label="相关学习页面"><a href="sim_pipeline_atlas.html" aria-current="page">重建图谱</a><a href="sim_interactive_demo.html">交互模拟台 ↗</a><a href="sim_real_optical_path.html">真实光路 ↗</a></nav>
+</header>
+<div class="layout">
+<aside class="sidebar">
+  <a class="back-link" href="index.html">← 返回资料库</a>
+  <p class="nav-label">重建路线 <span>09 步</span></p>
+  <nav class="stage-nav" aria-label="重建步骤">
+    <p class="nav-group">A · 光学编码与采集</p>
+    <a href="#b1" aria-current="step"><span>01</span> 样品与频谱</a><a href="#b2"><span>02</span> 结构光调制</a><a href="#b3"><span>03</span> 多相位采集</a>
+    <p class="nav-group">B · 频率分离与归位</p>
+    <a href="#b4"><span>04</span> 用数据推导解混</a><a href="#b5"><span>05</span> 读懂解混结果</a><a href="#b6"><span>06</span> 频带搬移</a>
+    <p class="nav-group">C · 重建与验证</p>
+    <a href="#b7"><span>07</span> 频谱支撑</a><a href="#b8"><span>08</span> 加权融合</a><a href="#b9"><span>09</span> 结果与对照</a>
+  </nav>
+  <div class="sidebar-note"><span class="note-label">阅读提示</span><p>先看每步的输入与输出，再展开公式推导。修改参数后，中间结果会同步更新。</p><a href="#experiment">调整实验条件 ↑</a><a href="#sources">符号与文献依据 ↘</a></div>
+  <span class="local-badge"><i></i> 本地计算 · 可离线使用</span>
+</aside>
+<main id="content">
+<section class="hero">
+  <p class="eyebrow"><span></span> RECONSTRUCTION ATLAS <span class="edition">LINEAR 2D-SIM</span></p>
+  <h1>从九帧原始图，<br>看见超分辨的每一步<span class="title-dot">。</span></h1>
+  <p class="intro">结构光把高频信息编码进相机可见的范围；重建再把它们分离、归位、融合。<br class="desktop-break">沿着同一份数据，追踪图像、频谱与公式之间的对应关系。</p>
+  <div class="hero-bottom"><div class="hero-meta"><span><b>3 × 3</b> 默认方向与相位</span><span><b>128²</b> 样品像素</span><span><b>9</b> 个可追踪步骤</span></div><a class="primary-link" href="#b1">开始阅读 <span>↓</span></a></div>
+  <div class="route" aria-label="流程概览"><a href="#b2"><span>01 — 03</span><b>编码与采集</b><small>样品 → 多相位图像</small></a><span class="route-arrow">→</span><a href="#b5"><span>04 — 06</span><b>解混与搬移</b><small>混合频谱 → 独立频带</small></a><span class="route-arrow">→</span><a href="#b8"><span>07 — 09</span><b>融合与验证</b><small>扩展频谱 → 重建图像</small></a></div>
+</section>
+<section class="experiment" id="experiment" aria-labelledby="experiment-title">
+  <div class="section-heading"><div><p class="eyebrow">LIVE EXPERIMENT</p><h2 id="experiment-title">实验条件</h2></div><button id="reset" class="text-button" type="button">↺ 恢复默认</button></div>
+  <p class="section-note">从理想条件开始，再观察噪声、正则与参数偏差如何影响结果。</p>
+  <div class="presets" role="group" aria-label="对照实验"><span>快速对照</span><button type="button" data-preset="ideal" aria-pressed="true">理想重建</button><button type="button" data-preset="direction" aria-pressed="false">单方向采集</button><button type="button" data-preset="noise" aria-pressed="false">低计数 + 正则</button><button type="button" data-preset="mismatch" aria-pressed="false">角度失配 3°</button></div>
+<div class="console" role="group" aria-label="实验条件"><fieldset><legend><span>01</span> 采集参数</legend><div class="control-grid">
+  <label>样品<select id="c-sample">
+    <option value="star-points">西门子星 + 点对</option>
+    <option value="star">仅西门子星</option>
+    <option value="points">仅点对</option>
+    <option value="gratings">三方向细条纹</option>
+  </select></label>
+  <label>方向与相位<select id="c-dir"><option value="3">3 方向 × 3 相位</option><option value="1">1 方向 × 3 相位</option></select></label>
+  <label><span>照明调制度 m <output id="o-m" for="c-m">0.8</output></span><input id="c-m" type="range" min="0" max="1" step="0.1" value="0.8"></label>
+  <label>相机噪声<select id="c-noise"><option value="none">关闭全部噪声</option><option value="high">高计数 Q=5000</option><option value="low">低计数 Q=150</option></select></label>
+</div></fieldset><fieldset><legend><span>02</span> 重建参数</legend><div class="control-grid reconstruction-controls">
+  <label>调制度来源<select id="c-msrc"><option value="known">已知 m（理想对照）</option><option value="estimated">从采集帧估计 m</option></select></label>
+  <label><span>正则参数 ε <output id="o-eps" for="c-eps">0</output></span><input id="c-eps" type="range" min="0" max="0.15" step="0.005" value="0"></label>
+</div></fieldset>
+  <details class="advanced">
+    <summary>参数失配实验 <span>相位 / 角度 / 调制度 / OTF</span></summary><p class="section-note">固定采集数据，只改变重建采用的参数；选择作用范围可比较估计器的可靠性筛查。</p>
+    <div class="mismatch-grid">
+      <label>失配作用范围<select id="c-scope"><option value="both">估计器与重建同时失配</option><option value="recon">仅重建失配</option></select></label>
+      <label><span>公共相位偏差 <output id="o-phase" for="c-phase">0°</output></span><input id="c-phase" type="range" min="0" max="45" step="5" value="0"></label>
+      <label><span>角度偏差 <output id="o-angle" for="c-angle">0°</output></span><input id="c-angle" type="range" min="0" max="5" step="1" value="0"></label>
+      <label><span>采用 m 偏差 <output id="o-merr" for="c-merr">0%</output></span><input id="c-merr" type="range" min="-40" max="40" step="10" value="0"></label>
+      <label><span>检测截止偏差 <output id="o-otf" for="c-otf">0%</output></span><input id="c-otf" type="range" min="-20" max="20" step="5" value="0"></label>
+    </div>
+  </details>
+</div>
+<div class="statusline" id="status" role="status" aria-live="polite"></div></section>
+<div class="view-settings"><div><b>统一读图</b><span>蓝虚线：检测截止 · 绿虚线：名义最大扩展 · 黄十字：照明波矢</span></div><label>频谱视野<select id="c-view"><option value="24">放大中心 ±24 格</option><option value="64">完整频谱 ±64 格</option></select></label></div>
+
+<section class="band" id="b1">
+<div class="band-head"><span class="no">01</span><div><p class="stage-kicker">SPECIMEN · 起点</p><h2>样品与它的频谱</h2></div><span class="aside">空域 ↔ 频域</span></div>
+<p class="lede">先辨认想恢复的结构。西门子星由外向内越来越密，用同一张样品观察宽场与 SIM 的频率覆盖范围。点对提供另一种直观对照。</p>
+<div class="step-flow"><span>输入 <b>样品 s(r)</b></span><i>→</i><span>操作 <b>傅里叶变换</b></span><i>→</i><span>输出 <b>样品频谱 S(f)</b></span></div>
+<div class="strip" id="s1"></div>
+  <div class="zone-legend" id="zones"></div><div class="callout" id="c1"></div>
+<details class="derivation"><summary>为什么星形图能帮助理解分辨率？</summary><p>本样品的角向调制为 cos(16θ)，半径 r 处一周有 16 个周期，因此局部弧长周期近似为：</p><div class="formula" data-tex="p(r)=\frac{2\pi r}{16},\qquad p_{\mathrm{WF}}=\frac{128}{10}=12.8\ \mathrm{px},\quad p_{\mathrm{SIM,nom}}\approx\frac{128}{18}=7.11\ \mathrm{px}"></div><p>有限样品具有频谱展宽，实际支撑也随方向变化，不能把两个半径当作严格的可分辨判据。<a href="#source-model">模型说明 ↗</a></p></details>
+</section>
+
+<section class="band" id="b2">
+<div class="band-head"><span class="no">02</span><div><p class="stage-kicker">ILLUMINATION · 编码</p><h2>结构光调制，带来差频信息</h2></div><span class="aside">尚未经过物镜</span></div>
+<p class="lede">照明与样品在空域相乘，产生和频与差频分量。可以把条纹想成一把移动的刻度尺：细结构与刻度相互作用，形成相机更容易记录的粗包络。</p>
+<div class="step-flow"><span>输入 <b>样品 + 条纹照明</b></span><i>→</i><span>操作 <b>空域相乘</b></span><i>→</i><span>输出 <b>受调制的发射强度</b></span></div>
+<div class="strip" id="s2a"></div>
+  <div class="strip" id="s2b"></div>
+<details class="derivation"><summary>展开照明公式与频谱搬移关系</summary><div class="formula" data-tex="I_{d,j}(\mathbf r)=1+m\cos(2\pi\mathbf k_d\cdot\mathbf r+\phi_j)"></div><div class="formula" data-tex="\mathcal F\{sI_{d,j}\}(\mathbf f)=S(\mathbf f)+\frac m2e^{i\phi_j}S(\mathbf f-\mathbf k_d)+\frac m2e^{-i\phi_j}S(\mathbf f+\mathbf k_d)"></div><p>余弦展开为两个复指数，再使用傅里叶调制定理，得到三个分量。此时尚未乘上检测 OTF。<a href="#source-review">依据 [1] ↗</a></p></details>
+</section>
+
+<section class="band" id="b3">
+<div class="band-head"><span class="no">03</span><div><p class="stage-kicker">ACQUISITION · 观测</p><h2>多相位采集，保留解混的线索</h2></div><span class="aside" id="frame-count">3 方向 × 3 相位 = 9 帧</span></div>
+<p class="lede">物镜模糊受调制的发射光，相机再引入噪声。每个方向的三帧只改变相位，三个频谱分量的位置不变，复权重改变。无噪声时，<b>它们都被限制在同一个检测通带内</b>。</p>
+<div class="step-flow"><span>输入 <b>受调制的发射光</b></span><i>→</i><span>操作 <b>PSF 卷积 + 相机采样</b></span><i>→</i><span>输出 <b>多相位观测 D</b></span></div>
+<div class="strip acquisition" id="s3a"></div>
+  <div class="strip acquisition" id="s3b"></div>
+<p class="figure-note">上组：扣除已知背景并归一化的采集帧。下组：对应频谱，位置一一对应；通带外亮点可能来自噪声。频谱幅度按各图最大值取对数归一化，用于看形状。</p><details class="derivation"><summary>从空域成像方程到频域观测</summary><div class="formula" data-tex="d_{d,j}(\mathbf r)=[s(\mathbf r)I_{d,j}(\mathbf r)]*h(\mathbf r)+n_{d,j}(\mathbf r)"></div><div class="formula" data-tex="D_{d,j}(\mathbf f)=H(\mathbf f)\sum_{\ell=-1}^{1}a_\ell e^{i\ell\phi_j}S(\mathbf f-\ell\mathbf k_d)+N_{d,j}(\mathbf f)"></div><p>a₀ = 1，a₊₁ = a₋₁ = m/2。H(f) 乘在整个混合和上；扩展后的“六瓣”要到频带归位后才出现。<a href="#source-review">依据 [1] ↗</a></p></details>
+</section>
+
+<section class="band" id="b4">
+<div class="band-head"><span class="no">04</span><div><p class="stage-kicker">WORKED EXAMPLE · 边算边理解</p><h2>跟着三次观测，算出一个频率分量</h2></div><span class="aside">数据 → 代入 → 抵消 → 答案</span></div>
+<p class="lede">先固定一个频率点，再把三帧数据放进同一组方程。下面直接用<b>当前模拟产生的观测值</b>演算；切换级次，就能看到不同的相位权重如何留下不同的分量。</p>
+<div class="inspect-controls"><label>检查方向<select id="c-inspect"><option value="0">方向 1 · 0°</option><option value="1">方向 2 · 60.3°</option><option value="2">方向 3 · 119.7°</option></select></label><span>同步用于步骤 04—07</span><button class="text-button" id="probe-reset" type="button">回到示例点 (6, 0)</button></div>
+<div class="probe-wrap">
+    <div class="strip" id="s4"></div>
+    <div class="probe-panel" id="probe" aria-live="polite"></div>
+  </div>
+  <div class="calculation-heading"><div><span class="reason-step">2</span><h3>看公式怎样把一项分出来</h3></div><div class="order-selector" role="group" aria-label="选择要推导的级次"><button type="button" data-order="0" aria-pressed="false">0 级</button><button type="button" data-order="1" aria-pressed="false">+1 级</button><button type="button" data-order="2" aria-pressed="true">−1 级</button></div></div>
+  <div class="symbol-key" aria-label="四个符号的区别"><span><b>D</b> 混合观测</span><span><b>u</b> 解混系数 · 用来乘</span><span><b>A</b> 解混结果 · 算出的数据</span><span><b>C</b> 归位结果 · 同份数据换坐标</span></div>
+  <div id="demix-animation" class="demix-animation" role="region" aria-label="相移解混公式动画">
+    <div class="animation-toolbar"><div class="animation-playback"><button id="demix-play" type="button">▶ 播放推导</button><button id="demix-prev" type="button" aria-label="上一步公式">← 上一步</button><button id="demix-next" type="button" aria-label="下一步公式">下一步 →</button><button id="demix-replay" type="button">↺ 从头看</button></div><label>每步停留<select id="demix-speed"><option value="7000">7 秒 · 慢慢读</option><option value="4000">4 秒</option><option value="10000">10 秒</option></select></label></div>
+    <div class="animation-steps" role="group" aria-label="跳转推导步骤"><button type="button" data-demix-step="0">1 混合</button><button type="button" data-demix-step="1">2 乘系数</button><button type="button" data-demix-step="2">3 展开</button><button type="button" data-demix-step="3">4 相加</button><button type="button" data-demix-step="4">5 抵消</button><button type="button" data-demix-step="5">6 答案</button></div>
+    <p id="demix-step-status" class="animation-status" role="status" aria-live="polite"></p>
+    <div class="animation-equation" id="demix-equation"></div>
+    <p id="demix-step-explanation" class="animation-explanation"></p>
+    <div id="demix-source-terms" class="demix-source-terms"></div>
+    <div id="demix-animation-result" class="animation-result"></div>
+    <p id="demix-model-note" class="figure-note"></p>
+  </div>
+  <details class="derivation" id="demix-arithmetic"><summary>核对数值：展开三个复数乘法、求和与代回检查</summary>
+  <div id="demix-calculation" aria-live="polite"></div>
+  <div id="demix-cancellation"></div>
+  </details>
+  <details class="derivation" id="demix-theory"><summary>推导依据：为什么加权后会只剩一级？</summary>
+    <p>省略方向下标，把保留了 OTF 与调制度的三个频带记作 A₀、A₊₁、A₋₁。固定检测频率 f 后：</p>
+    <div class="formula" data-tex="D_j=\sum_{h=-1}^{1}e^{ih\phi_j}A_h+N_j,\qquad A_h(\mathbf f)=a_h H(\mathbf f)S(\mathbf f-h\mathbf k_d)"></div>
+    <p>等间隔三相位 φⱼ = 2πj/3 时，用目标级次 ℓ 的反向相位加权，得到：</p>
+    <div class="formula" data-tex="\widehat A_\ell=\frac13\sum_{j=0}^{2}e^{-i\ell\phi_j}D_j=\sum_{h=-1}^{1}\left[\frac13\sum_{j=0}^{2}e^{i(h-\ell)\phi_j}\right]A_h+\widetilde N_\ell"></div>
+    <div class="formula" data-tex="\frac13\sum_{j=0}^{2}e^{i(h-\ell)\phi_j}=\begin{cases}1,&amp;h=\ell,\\0,&amp;h\ne\ell.\end{cases}"></div>
+    <p>三项复指数相加的正交性让目标分量保留、另两项抵消。实际实现使用当前采用相位的矩阵逆，因此注入相位偏差后，下方系数也随之改变。噪声会传播到解混结果中。<a href="#source-review">依据 [1] 的相移分离模型 ↗</a></p>
+  </details>
+</section>
+
+<section class="band" id="b5">
+<div class="band-head"><span class="no">05</span><div><p class="stage-kicker">READ THE RESULT · 从一点到整幅图</p><h2>三个答案，分别代表什么？</h2></div><span class="aside">与上面的选点实时联动</span></div>
+<p class="lede">把一个分量理解成<b>“样品里某一种条纹尺度的信息”</b>：频率决定疏密与方向，复数答案记录幅度与相位。下面把三种尺度画出来，再把它们与刚才的答案对上。</p>
+<p class="figure-note component-guide">条纹示意使用来源频率 q 和解混结果的相位，统一对比度以便看清形状；强弱请读 |A|。这些是单个频率的示意，不是三张样品图。无有效信号时不画条纹。</p>
+<div id="order-results" class="order-results"></div>
+<details class="derivation"><summary>条纹示意怎样从复数与频率得到？</summary><div class="formula" data-tex="b_\ell(\mathbf r)=\cos\!\left(2\pi\frac{\mathbf q\cdot\mathbf r}{N}+\arg A_\ell\right),\qquad p=\frac{N}{\|\mathbf q\|},\quad N=128"></div><p>这里 q 用 DFT 格表示，r 用像素表示。示意只显示频率与相位，把幅度统一为 1；实际复指数项的实部为 |Aℓ|bℓ，仍带 OTF 与调制度衰减。零频对应常量。参数失配时，q 是按采用参数分配的来源，不能据此确认真实样品结构。依据：傅里叶逆变换与本页的 q = f − ℓk 关系。</p></details>
+<div class="callout" id="c5"></div>
+<details class="derivation intermediate-images" id="demix-images"><summary>对照整幅中间频谱：红圈就是上面算过的点</summary>
+<p>对每个检测点重复同样的三次加权求和，便得到以下整幅频谱。<b>亮度</b>表示该级次的幅度（各图独立取对数归一化）；<b>色相</b>表示复相位，不是样品颜色。相位图中黑色表示幅度太低而被隐藏。</p>
+<div class="strip" id="s5a"></div><div class="strip" id="s5b"></div>
+<div class="phase-key"><span>相位色相</span><i></i><span>0 → 2π</span><small>幅度低于本图最大值 2% 的位置隐藏相位</small></div>
+<p>零级对应的空域图为实值，但它的频谱仍可有复相位；所需条件是共轭对称。三个级次这里仍使用检测坐标，下一步才搬回样品坐标。</p>
+</details>
+</section>
+
+<section class="band" id="b6">
+<div class="band-head"><span class="no">06</span><div><p class="stage-kicker">RELOCATION · 归位</p><h2>把副本搬回真实的样品频率</h2></div><span class="aside">检测坐标 f → 样品坐标 q</span></div>
+<p class="lede">分离只回答“它属于哪个级次”，搬移才回答“它原来在哪里”。按本页符号约定，+1 级沿 −k<sub>d</sub> 搬移，−1 级沿 +k<sub>d</sub> 搬移，OTF 也必须同步归位。</p>
+<div class="step-flow"><span>输入 <b>A<sub>ℓ</sub>(f)</b></span><i>→</i><span>操作 <b>q = f − ℓk<sub>d</sub></b></span><i>→</i><span>输出 <b>C<sub>ℓ</sub>(q) 与 T<sub>ℓ</sub>(q)</b></span></div>
+<div id="shift-example" class="shift-example"></div>
+<details class="derivation intermediate-images" id="shift-images"><summary>对照完整搬移图：同一个分量，改变频率坐标</summary><p>上排红圈在检测频率 f，下排红圈在对应样品频率 q。搬移不重新估计该分量的值，只将它归位。</p>
+<div class="strip" id="s6a"></div>
+  <div class="strip" id="s6b"></div></details>
+<details class="derivation"><summary>为什么数据与 OTF 必须一起搬移？</summary><div class="formula" data-tex="C_\ell(\mathbf q)=A_\ell(\mathbf q+\ell\mathbf k_d)=\underbrace{a_\ell H(\mathbf q+\ell\mathbf k_d)}_{T_\ell(\mathbf q)}S(\mathbf q)"></div><p>由 q = f − ℓk<sub>d</sub> 代回即可。搬回后的数据仍带着原检测位置的衰减，不能直接当作无衰减的样品频谱。<a href="#source-review">依据 [1] ↗</a></p></details>
+</section>
+
+<section class="band" id="b7">
+<div class="band-head"><span class="no">07</span><div><p class="stage-kicker">SPECTRAL SUPPORT · 覆盖</p><h2>多个方向，补齐频率覆盖</h2></div><span class="aside">支撑域 ≠ 恢复质量</span></div>
+<p class="lede">一个方向贡献两侧频带；多个方向扩大覆盖范围。中图按方向混色表示理论几何支撑，右图显示实际用于融合的信息权重。即使位于几何支撑内，信号过弱也未必能稳定恢复。</p>
+<div class="strip" id="s7"></div>
+<p class="figure-note">左图颜色表示级次：零级紫灰、+1 红、−1 绿。中图颜色表示方向：方向 1 红、2 绿、3 蓝，重叠处混色。右图红线表示采用参数与有效频带对应的连续支撑边界。</p>
+</section>
+
+<section class="band" id="b8">
+<div class="band-head"><span class="no">08</span><div><p class="stage-kicker">WEIGHTED FUSION · 重建</p><h2>加权融合，在细节与噪声间取舍</h2></div><span class="aside">广义 Wiener 形式</span></div>
+<p class="lede">各频带像多次测量同一个量：传递强、噪声小的观测贡献更大。正则参数 ε 抑制弱传递处的过度反演；增大它，也会压低这些位置的真实细节。</p>
+<div class="equation"><span>融合公式</span><div class="formula" data-tex="\widehat S(\mathbf q)=\frac{\sum_b w_bT_b^*(\mathbf q)C_b(\mathbf q)}{\underbrace{\sum_b w_b|T_b(\mathbf q)|^2}_{W(\mathbf q)}+\varepsilon^2}"></div><a href="#source-review">[1]</a></div><div class="strip" id="s8"></div>
+<p class="figure-note">绿色曲线为理想匹配条件下的等效传递 G = W / (W + ε²)。参数失配时，输出包含错误归位的分量，不能用这条曲线预测全部伪影。</p><details class="derivation"><summary>从加权最小二乘推导融合与等效传递</summary><div class="formula" data-tex="\widehat S=\underset{S}{\arg\min}\left[\sum_b w_b|C_b-T_bS|^2+\varepsilon^2|S|^2\right]"></div><p>对 S* 求导并令导数为零，得到融合式。无噪声且参数匹配时，代入 C<sub>b</sub> = T<sub>b</sub>S：</p><div class="formula" data-tex="\widehat S=G S,\qquad G(\mathbf q)=\frac{W(\mathbf q)}{W(\mathbf q)+\varepsilon^2}"></div><p>ε = 0 时，在有信息且未触发数值阈值的位置 G = 1；支撑之外的频率仍不能恢复。这里采用相对平均噪声方差权重，忽略频带间噪声相关，没有额外切趾窗。<a href="#source-model">实现边界 ↗</a></p></details>
+</section>
+
+<section class="band" id="b9">
+<div class="band-head"><span class="no">09</span><div><p class="stage-kicker">VALIDATION · 对照</p><h2>回到图像，检查恢复了什么</h2></div><span class="aside">逆 FFT → 定量比较</span></div>
+<p class="lede">把融合频谱变回图像，与样品真值和无噪声宽场参考比较。既看细节是否可辨，也看误差与噪声；更强的局部对比度本身不等于更准确的重建。</p>
+<div class="strip" id="s9"></div>
+  <div class="strip" id="s9c"></div>
+  <div class="callout" id="c9"></div>
+<p class="figure-note">图像统一显示 [0, 1]；误差图蓝色为负、白色为零、红色为正，范围 ±0.2。RMSE 使用未截断数据。宽场是无噪声光学参考，不是与 SIM 等光子预算的性能比较。</p><details class="derivation"><summary>误差与环向对比度如何计算？</summary><div class="formula" data-tex="\mathrm{RMSE}=\sqrt{\frac1{N^2}\sum_{\mathbf r}(\widehat s-s)^2},\qquad c(r)=\frac{\sigma_\theta[\widehat s(r,\theta)]}{\max(10^{-9},\mu_\theta[\widehat s(r,\theta)])}"></div><p>环向对比度受样品包络、采样与噪声影响，不等同于 OTF，也不直接给出分辨率。点对样品改看强度剖面；细条纹样品只展示图像与 RMSE。</p></details>
+</section>
+
+<details class="sources" id="sources">
+<summary><span>继续深入</span> 公式依据、符号与模型边界 <b>＋</b></summary>
+<div class="body"><h3>统一符号</h3>
+<dl class="symbols"><dt>s(r) / S(f)</dt><dd>样品强度 / 其傅里叶变换</dd><dt>f / q</dt><dd>检测频率 / 搬移后的样品频率</dd><dt>k<sub>d</sub> / φ<sub>j</sub></dt><dd>照明波矢 / 第 j 帧相位</dd><dt>A<sub>ℓ</sub> / C<sub>ℓ</sub></dt><dd>解混后的频带 / 搬回后的频带</dd><dt>H / T<sub>ℓ</sub></dt><dd>检测 OTF / 含调制度的搬移后传递</dd><dt>w<sub>b</sub> / ε</dt><dd>噪声权重 / 正则参数</dd></dl>
+<h3 id="source-model">模型与显示约定</h3>
+<p>本页是标准线性 2D-SIM 教学模拟，采用二维、线性、移不变与周期边界模型，不是 HiFi-SIM 算法复现。照明平均强度为 1；已知照明波矢、相位和检测 OTF，仅提供 m 的估计选项。</p>
+<p>傅里叶变换采用负指数。公式频率以 cycles/pixel 表示；图中坐标以 DFT 格表示，1 格 = 1/128 cycles/pixel，x 向右、y 随像素行向下。探针复数除以 N² 便于阅读，融合使用未缩放 FFT。</p>
+<p>照明波矢取整数 DFT 格 (8, 0)、(4, 7)、(−4, 7)，角度约 0° / 60.3° / 119.7°。检测截止 10 格，最大扩展约 18—18.06 格，方向间存在覆盖差异；绿虚线是 18 格的名义参考。参数失配的非整数搬移通过空域复指数调制实现。</p>
+<p>噪声模式包含泊松计数噪声、背景 B = 5 与读出噪声 σ = 2（电子）；Q 是单位归一化强度对应的电子计数尺度。权重按方向平均噪声与解混系数方差设置，不是完整广义最小二乘。</p>
+<p>启用 m 估计时，若失配同时进入估计器，可靠性筛查可能弃用一级频带；已知 m 模式不会由该筛查弃用。样品真值不进入重建；“已知 m”模式显式使用照明调制度真值作理想对照。</p>
+<h3 id="source-review">[1] 主要文献</h3>
+<p>Chen et al. (2023), <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a>，式 (1)—(9)。本页按同一成像与融合框架统一符号；最小二乘推导与读图指标在本页明确给出。</p>
+<div class="source-links"><a href="SIM综述/Superresolution%20structured%20illumination%20microscopy%20reconstruction%20algorithms.pdf" target="_blank" rel="noopener">阅读本地原文 ↗</a><a href="知识库/02-统一成像模型与SIM分类预览.html">统一成像模型 ↗</a><a href="知识库/03-传统重建与参数估计预览.html">重建与参数估计 ↗</a></div>
+</div></details>
+<footer><span>SIM 学习实验室 / 重建图谱</span><span>线性 2D 模型 · 中间结果均来自当前计算</span><a href="#content">回到顶部 ↑</a></footer>
+</main></div>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="sim-core.js"></script>
+<script src="sim-experiment.js"></script>
+<script src="sim-atlas-core.js"></script>
+<script src="sim-atlas.js"></script>
+</body>
+</html>
