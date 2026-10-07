@@ -70,7 +70,7 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 </nav></aside>
 <main id="content"><article>
 <h1 id="sim-模拟台模型核对与对照操作">SIM 模拟台：模型核对与对照操作</h1>
-<p>模型核对日期：2026-09-27；界面与代码维护：2026-10-06。对象：<code>sim-core.js</code>、<code>sim-experiment.js</code>、<code>sim-lab/</code> 和 <code>sim_interactive_demo.html</code>。</p>
+<p>模型核对日期：2026-09-27；界面与代码维护：2026-10-06。对象：<code>web/shared/sim-core.js</code>、<code>web/shared/sim-experiment.js</code>、<code>web/lab/</code> 和 <code>sim_interactive_demo.html</code>。</p>
 <p>结论：现有计算符合声明的简化模型，可用于研究参数的作用和重建敏感性；不能把它当作实测仪器、完整光场传播或 HiFi-SIM 原算法复现。此次未改变成像或重建算法，补充了参数含义、适用边界和单变量 A/B 操作入口。</p>
 <p>2026-10-06 页面同步：迁入 WorkBuddy 修改版。第二章固定有限光斑模型，光斑半径为瞳半径的 0.12、偏心为 0、可见度边缘衰减关闭；三相位帧固定保留，相移量仍可调，采集方向仍可开关。A/B 对照改为四类共 11 项。共享计算层未变，历史的偏心与边缘衰减模型仍保留在计算层和单测中，但本页不再提供这两个实验入口。</p>
 <h2 id="1-每类参数到底改变什么">1. 每类参数到底改变什么</h2>

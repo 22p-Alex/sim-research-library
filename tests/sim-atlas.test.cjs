@@ -1,5 +1,5 @@
 const test = require('node:test'), assert = require('node:assert/strict');
-const C = require('../sim-core'), A = require('../sim-atlas-core');
+const C = require('../web/shared/sim-core'), A = require('../web/atlas/sim-atlas-core');
 const N = A.N;
 const take = p => A.capture({ sample: 'star-points', directions: 3, noise: 'none', m: .8, ...p });
 test('siemens star still spans three frequency zones after fairSIM apodization', () => {

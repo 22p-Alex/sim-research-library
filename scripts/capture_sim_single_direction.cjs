@@ -1,5 +1,5 @@
 /* 生成《SIM 单方向学习指南》的配图与实测数据。
- * Run: node output/sim-single-direction-guide/capture.cjs
+ * Run: node scripts/capture_sim_single_direction.cjs
  * 页面参数改动后重跑本脚本即可同步全部截图与 measurements.json。
  */
 const path = require('node:path');
@@ -9,8 +9,9 @@ const { pathToFileURL } = require('node:url');
 const { chromium } = require(process.env.SIM_PLAYWRIGHT_DIR
   || '/Users/22p/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
 
-const root = path.resolve(__dirname, '..', '..');
-const outDir = __dirname;
+const root = path.resolve(__dirname, '..');
+const outDir = path.join(root, 'output/sim-single-direction-guide');
+fs.mkdirSync(outDir, { recursive: true });
 const cache = path.join(os.homedir(), 'Library/Caches/ms-playwright');
 const shell = fs.readdirSync(cache).filter(x => /^chromium_headless_shell-\d+$/.test(x))
   .sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]))

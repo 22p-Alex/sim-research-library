@@ -13,7 +13,7 @@ Müller, Marcel, Viola Mönkemöller, Simon Hennig, Wolfgang Hübner, Thomas Hus
 
 - `metadata.yaml`：题录、关键词、代码来源与阅读范围。
 - `citation.bib`：BibTeX 引用条目（fairSIM 主文 + Gustafsson 2000 + Wicker 2013）。
-- `理解笔记.md`：以 fairSIM v1.5.1 源码为主线，逐步拆解 2D-SIM 参数估计与 Wiener 重建，并对照本项目的 [`sim-core.js`](../../sim-core.js) 与 [`MP-main/core`](../../3D-MP-SIM/MP-main/core/)。
+- `理解笔记.md`：以 fairSIM v1.5.1 源码为主线，逐步拆解 2D-SIM 参数估计与 Wiener 重建，并对照本项目的 [`sim-core.js`](../../web/shared/sim-core.js) 与 [`MP-main/core`](../../3D-MP-SIM/MP-main/core/)。
 - 本地代码：[`fairSIM-src/fairSIM`](../fairSIM-src/fairSIM/)（git 克隆，`develop` 分支，pom 版本 1.5.1）。
 
 ## 原文获取状态
@@ -29,6 +29,6 @@ Müller, Marcel, Viola Mönkemöller, Simon Hennig, Wolfgang Hübner, Thomas Hus
 
 fairSIM 是 2D-SIM（单层 Wiener-SIM）最完整的开源参考实现，同时支持两束干涉（2 频带）与三束干涉（3 频带）。HiFi-SIM（S3）论文将其作为主要对照方法。对本课题的作用：
 
-1. 提供可逐行核对的参数估计与重建流程，用于校验 [`sim-core.js`](../../sim-core.js) 的教学模型是否漏掉工程步骤；
+1. 提供可逐行核对的参数估计与重建流程，用于校验 [`sim-core.js`](../../web/shared/sim-core.js) 的教学模型是否漏掉工程步骤；
 2. 提供 2D 高保真基线的对照实现，与 3D-MP-SIM 的 7 级频谱重建（S10）区分职责；
 3. 其 `Correlation` / `WienerFilter` / `SimUtils` 的模块划分可作为“物理初值 + 残差网络”课题中前向模型的接口参考。

@@ -12,7 +12,7 @@ Liu, Tao; Liu, Jiahao; Li, Dong; Tan, Shan. “Bayesian deep-learning structured
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：按原文主文结构整理的中文工作译稿。公式使用 `$...$` 和 `$$...$$`，可由项目脚本生成 KaTeX 预览。
 - `理解笔记.md`：面向“SIM + 深度学习”毕业课题的概念拆解、理论推导和实验建议。
-- `中文译文预览.html`：由 `build_sim_preview.mjs` 生成的本地阅读页面。
+- `中文译文预览.html`：由 `scripts/build_sim_preview.mjs` 生成的本地阅读页面。
 
 ## 来源与复现
 

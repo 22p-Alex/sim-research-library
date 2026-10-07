@@ -79,7 +79,7 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 <li>OTF：<code>OtfProvider.fromEstimate</code> 的理想圆瞳，曲率参数 a=1；512 个 float 采样点及线性插值；与模拟采集使用同一 OTF。</li>
 <li>OTF attenuation 关闭，RL 关闭；切趾选择 <code>ISOTROPIC</code>。</li>
 <li>默认参数：Wiener w=0.05，切趾截止倍数 1.9，指数 β=0.8，取自 <code>StepByStep.java</code>。其余示例参数没有被当作必须照搬的物理标定。</li>
-<li>JavaScript 移植在 <a href="../../sim-atlas-core.js"><code>sim-atlas-core.js</code></a>，原始 GPL 许可保留于 <a href="../fairSIM-src/fairSIM/LICENSE"><code>LICENSE</code></a>。</li>
+<li>JavaScript 移植在 <a href="../../web/atlas/sim-atlas-core.js"><code>sim-atlas-core.js</code></a>，原始 GPL 许可保留于 <a href="../fairSIM-src/fairSIM/LICENSE"><code>LICENSE</code></a>。</li>
 </ul>
 <h2 id="数据流与公式">数据流与公式</h2>
 <p>采用页面的负指数傅里叶约定及 y 随像素行向下的坐标。fairSIM 的 y 轴向上；数值对照入口显式翻转 <code>setPxPy</code> 的 y 符号。</p>

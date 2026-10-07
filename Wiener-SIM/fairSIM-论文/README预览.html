@@ -81,7 +81,7 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 <ul>
 <li><code>metadata.yaml</code>：题录、关键词、代码来源与阅读范围。</li>
 <li><code>citation.bib</code>：BibTeX 引用条目（fairSIM 主文 + Gustafsson 2000 + Wicker 2013）。</li>
-<li><code>理解笔记.md</code>：以 fairSIM v1.5.1 源码为主线，逐步拆解 2D-SIM 参数估计与 Wiener 重建，并对照本项目的 <a href="../../sim-core.js"><code>sim-core.js</code></a> 与 <a href="../../3D-MP-SIM/MP-main/core"><code>MP-main/core</code></a>。</li>
+<li><code>理解笔记.md</code>：以 fairSIM v1.5.1 源码为主线，逐步拆解 2D-SIM 参数估计与 Wiener 重建，并对照本项目的 <a href="../../web/shared/sim-core.js"><code>sim-core.js</code></a> 与 <a href="../../3D-MP-SIM/MP-main/core"><code>MP-main/core</code></a>。</li>
 <li>本地代码：<a href="../fairSIM-src/fairSIM"><code>fairSIM-src/fairSIM</code></a>（git 克隆，<code>develop</code> 分支，pom 版本 1.5.1）。</li>
 </ul>
 <h2 id="原文获取状态">原文获取状态</h2>
@@ -94,7 +94,7 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 <h2 id="与课题的关系">与课题的关系</h2>
 <p>fairSIM 是 2D-SIM（单层 Wiener-SIM）最完整的开源参考实现，同时支持两束干涉（2 频带）与三束干涉（3 频带）。HiFi-SIM（S3）论文将其作为主要对照方法。对本课题的作用：</p>
 <ol>
-<li>提供可逐行核对的参数估计与重建流程，用于校验 <a href="../../sim-core.js"><code>sim-core.js</code></a> 的教学模型是否漏掉工程步骤；</li>
+<li>提供可逐行核对的参数估计与重建流程，用于校验 <a href="../../web/shared/sim-core.js"><code>sim-core.js</code></a> 的教学模型是否漏掉工程步骤；</li>
 <li>提供 2D 高保真基线的对照实现，与 3D-MP-SIM 的 7 级频谱重建（S10）区分职责；</li>
 <li>其 <code>Correlation</code> / <code>WienerFilter</code> / <code>SimUtils</code> 的模块划分可作为“物理初值 + 残差网络”课题中前向模型的接口参考。</li>
 </ol>

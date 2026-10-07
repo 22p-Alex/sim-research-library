@@ -4,14 +4,14 @@ import os from "node:os";
 import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-export const projectRoot = path.dirname(fileURLToPath(import.meta.url));
+export const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const katex = require("./vendor/katex/katex.min.js");
+const katex = require("../vendor/katex/katex.min.js");
 export const paperDirs = [
   "SIM综述", "HiFI-SIM", "BayesDL-SIM", "DeAbe", "SSR-SIM", "Wiener-SIM/fairSIM-论文",
   "参数自适应/RL-SIM", "3D-MP-SIM/3D-SIM/Open-3DSIM", "3D-MP-SIM/3D-MP-SIM-论文",
 ];
-export const rootSources = ["README.md", "SIM知识库.md", "SIM项目总览.md", "SIM文献目录.md", "SIM模拟台核对与操作说明.md"];
+export const rootSources = ["README.md", "SIM知识库.md", "SIM项目总览.md", "SIM文献目录.md", "SIM模拟台核对与操作说明.md", "SIM频带重叠与fairSIM融合.md"];
 export const sourceDirs = ["知识库", ...paperDirs];
 const slash = (value) => value.split(path.sep).join("/");
 const escapeHtml = (value) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;")
@@ -175,7 +175,7 @@ ${body}
 async function main() {
   const args = process.argv.slice(2);
   if (args.includes("--help")) {
-    console.log("node build_sim_preview.mjs [--all | --source 文件.md [--output 文件.html]]");
+    console.log("node scripts/build_sim_preview.mjs [--all | --source 文件.md [--output 文件.html]]");
     return;
   }
   for (let i = 0; i < args.length; i++) {

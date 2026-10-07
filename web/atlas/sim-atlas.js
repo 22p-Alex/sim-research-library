@@ -212,15 +212,15 @@
   function r3() {
     const raws = [], specs = [];
     for (const g of pipe.groups) {
-      const group = items => {
+      const group = (title, domain, items) => {
         const el = document.createElement('div'); el.className = 'frame-group';
-        el.innerHTML = `<h3><span>方向 ${g.index + 1}</span><span>波矢 ${g.angle.toFixed(1)}° · 条纹与波矢垂直</span></h3>`;
+        el.innerHTML = `<h3><span class="frame-kind">${title}<span class="frame-domain">${domain}</span></span><span class="frame-meta"><span class="frame-direction">方向 ${g.index + 1}</span><span>波矢 ${g.angle.toFixed(1)}°</span></span></h3>`;
         const grid = document.createElement('div'); grid.className = 'frame-grid'; grid.append(...items); el.append(grid); return el;
       };
-      raws.push(group(g.frames.map(f => figure(`φ = ${Math.round(f.phase * 180 / Math.PI)}°`, kArrow(blit(plate(), (x, y) => gray(f.pixels[y * N + x])), g.angle)))));
-      specs.push(group(g.rawSpectra.map((z, j) => figure(`φ = ${Math.round(g.frames[j].phase * 180 / Math.PI)}°`, logspec(z, { rings: [RINGS[0]] })))));
+      raws.push(group('采集帧', '归一化强度', g.frames.map(f => figure(`φ = ${Math.round(f.phase * 180 / Math.PI)}°`, kArrow(blit(plate(), (x, y) => gray(f.pixels[y * N + x])), g.angle)))));
+      specs.push(group('对应频谱', '对数幅度', g.rawSpectra.map((z, j) => figure(`φ = ${Math.round(g.frames[j].phase * 180 / Math.PI)}°`, logspec(z, { rings: [RINGS[0]] })))));
     }
-    strip('s3a', '归一化观测 · 空域', raws); strip('s3b', '对应频谱 · 对数幅度', specs);
+    strip('s3a', '', raws); strip('s3b', '', specs);
     $('frame-count').textContent = `${state.directions} 方向 × 3 相位 = ${state.directions * 3} 帧`;
   }
 

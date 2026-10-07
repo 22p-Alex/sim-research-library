@@ -1,283 +1,366 @@
-# SIM 频带重叠与 fairSIM 的融合方式
+# 一个频谱点的 0、−1、+1 级，到底谁提供超分辨？
 
-> **一句话结论**：在单方向 SIM 里，超分辨区（$|q|>k_c$）内每一个频率**恰好只有一个频带**能把信息送到，边带之间零冗余；fairSIM 不去"挑选"那个频带，而是把所有搬移后的分量**全部累加**再除以 $\sum|H|^2+w^2$——几何自动保证超分辨区的求和只剩一项。
+**你说的“只有一个具备超分辨能力”，在常见的单方向、沿照明波矢取点的例子里是对的。但要先分清：你固定的是搬移前的探测频率，还是搬移后的样品频率。**
 
-配套页面：`sim_pipeline_atlas.html` 步骤 06（频带搬移）、步骤 07（频谱支撑）、步骤 08（Wiener 融合）。
-本页教学标度：检测截止 $k_c=10$ 格，照明波矢 $\mathbf{k}_1=(8,0)$、$\mathbf{k}_2=(4,7)$、$\mathbf{k}_3=(-4,7)$，$|\mathbf{k}_1|=8$。
+- **固定探测频率 $\mathbf f$**：分离出的 0、±1 级对应三个不同的样品频率。哪些是新增高频，要分别检查它们搬回后是否超出宽场截止；二维情况下，可能有 0、1 或 2 个。
+- **固定样品频率 $\mathbf q$**：在单方向、理想圆形 OTF 支撑的模型中，一个被覆盖的超分辨频率，确实只有一个边带能提供；多方向时可能有多个来源。
 
-本文所有数字都是实测或可一行复现的，见文末「复现」。
+本篇先沿一个具体频率走完“照明混频 → 相机记录 → 相位分离 → 频谱归位”，再解释 fairSIM 为什么把搬移后的频带融合起来。
 
----
+配套：[全流程图谱](sim_pipeline_atlas.html)的步骤 04–08 · [fairSIM 实现与数值对照](Wiener-SIM/fairSIM-论文/图谱实现对照.md)。
 
-## 1. 问题从哪来
+## 1. 先用一个点把问题说透
 
-步骤 06 的「搬移后 · 红圈 q」那一排显示：同一个检测位置 $f$ 分离出三个分量，分别搬回
+这里的“点”是**二维频谱中的一个复数系数**，不是图像里的一个空间像素，也不是一颗荧光分子。$S(\mathbf q)$ 的幅度与相位描述样品中相应空间频率的结构。
 
-$$\Delta q = (0,0),\qquad \Delta q = (-8,0),\qquad \Delta q = (+8,0)$$
+设检测截止半径 $k_c=10$，照明波矢 $\mathbf k=(8,0)$；单位是图谱里的 DFT 频率格。暂时只看水平方向，省略为零的第二个坐标。
 
-于是自然要问：**这三个分量里，谁在真正做超分辨？会不会三个都在贡献同一份信息？**
+对于探测频率 **$f=6$**，相机在第 $j$ 个照明相位记录的是
 
-答案是：不会，而且**必然不会**。下面给证明。
+$$
+D_j(6)=H(6)\left[S(6)+\frac m2 e^{i\phi_j}S(-2)
++\frac m2 e^{-i\phi_j}S(14)\right].
+$$
 
----
+也就是说，**同一个探测位置混着三个不同样品频率的信息**。它们并不是同一份 $S(6)$ 的三个副本。[S1、S2]
 
-## 2. 记号
-
-解混后，第 $\ell$ 级在检测频率 $f$ 处携带的是样品的
-
-$$S(q),\qquad q = f + \ell\,\mathbf{k}_1,\quad \ell\in\{-1,0,+1\}$$
-
-即 $f = q - \ell\mathbf{k}_1$。检测能工作的条件是 $|f| \le k_c$，所以第 $\ell$ 级能交付的样品频率集合是
-
-$$\Omega_\ell=\{\,q : |q-\ell\mathbf{k}_1|\le k_c\,\}$$
-
-**三个半径 $k_c=10$ 的圆盘，圆心分别在 $(0,0)$、$(+8,0)$、$(-8,0)$。** 这就是步骤 07 中图那个胶囊的构成。
-
-定义"超分辨区"为 $|q| > k_c$ ——宽场永远够不到的那部分。
-
----
-
-## 3. 定理：两个边带不可能同时在超分辨区覆盖同一个 q
-
-**命题**：若 $q \in \Omega_{+1} \cap \Omega_{-1}$，则 $|q| \le \sqrt{k_c^2 - |\mathbf{k}_1|^2} = \sqrt{100-64} = 6$。
-
-**证明**（平行四边形恒等式）：
-
-$$|q-\mathbf{k}_1|^2 + |q+\mathbf{k}_1|^2 = 2|q|^2 + 2|\mathbf{k}_1|^2$$
-
-两个边带同时覆盖意味着左边两项都 $\le k_c^2$，故
-
-$$2|q|^2 + 2|\mathbf{k}_1|^2 \le 2k_c^2 \quad\Longrightarrow\quad |q|^2 \le k_c^2 - |\mathbf{k}_1|^2 = 36$$
-
-$$\boxed{|q| \le 6 < k_c = 10}\qquad\blacksquare$$
-
-**读法**：$+1$ 和 $-1$ 的重叠区是一个**贴着原点的小透镜形**，最远只到 6 格，完全埋在宽场通带内部。到了超分辨区，它们**一点重叠都没有**。
-
-### 实测验证
-
-对方向数 = 1 枚举 $\pm24$ 格视野内每个 $q$，数有几个频带覆盖它（$h>0.01$）：
-
-| 区域 | 覆盖者 = 1 | = 2 | = 3 |
+| 分离分量 | 在原始帧中的相位标签 | 搬回的样品频率 $q$ | 是否超出宽场截止 $\lvert q\rvert>10$？ |
 |---|---|---|---|
-| 超分辨区 $\lvert q\rvert>10$ | **308** | **0** | **0** |
-| 全部 bin | 332 | 260 | 33 |
+| 0 级 | $1$ | $6$ | 否 |
+| +1 级 | $e^{+i\phi_j}$ | $6-8=-2$ | 否 |
+| −1 级 | $e^{-i\phi_j}$ | $6+8=14$ | **是** |
 
-超分辨区里**没有任何一个 bin 的重数 ≥ 2**。全部冗余（260 + 33 个 bin）都在宽场内部，与定理一致。
+**在这个例子里，你的判断完全成立：只有 −1 级携带的 $S(14)$ 提供了超出宽场通带的信息。** 另外两个分量仍然有用，只是它们没有增加这个例子中的最高可达频率。
 
----
+这里按“照明指数中的正负号”命名 ±1 级。因此本篇统一使用
 
-## 4. 0 级完全不贡献超分辨
+$$
+\boxed{\mathbf q=\mathbf f-\ell\mathbf k,\qquad \ell\in\{0,+1,-1\}.}
+$$
 
-$\Omega_0 = \{|q|\le 10\}$，按定义就是宽场通带本身。实测各频带的支撑拆分：
++1 级归位到 $\mathbf f-\mathbf k$，−1 级归位到 $\mathbf f+\mathbf k$。交换照明波矢的正方向，就会交换两个边带的名字；“哪一个符号更有超分辨能力”不是物理不变量。这个约定与本地图谱的 `probe()` 一致。[S2、S3]
 
-| 频带 | $\Delta q$ | 落在宽场内 | **超出宽场** | 超出占比 |
+## 2. 超分辨发生在哪一步：先把高频录进去，再把地址还原
+
+### 2.1 均匀照明为什么录不到 $S(14)$？
+
+均匀照明时，成像关系是
+
+$$
+D_{\mathrm{WF}}(q)=H(q)S(q).
+$$
+
+因为 $14>k_c=10$，所以 $H(14)=0$。这个样品频率没有进入数据，之后单靠数值去卷积无法恢复它。
+
+### 2.2 条纹照明把它变成了相机能记录的频率
+
+采用负指数傅里叶变换，照明与成像模型为
+
+$$
+I_j(\mathbf r)=1+m\cos(2\pi\mathbf k\cdot\mathbf r+\phi_j),
+\qquad d_j(\mathbf r)=[s(\mathbf r)I_j(\mathbf r)]*h(\mathbf r).
+$$
+
+照明平均强度已归一化；这里先忽略噪声与背景，$m>0$，相位和波矢已知。将余弦展开，再用“空间相乘对应频域卷积”，得到
+
+$$
+D_j(\mathbf f)=H(\mathbf f)
+\left[S(\mathbf f)+\frac m2 e^{i\phi_j}S(\mathbf f-\mathbf k)
++\frac m2 e^{-i\phi_j}S(\mathbf f+\mathbf k)\right].
+$$
+
+这正是第 1 节公式的来源，也对应 fairSIM 分离矩阵中的三列。[S2]
+
+沿着 $S(14)$ 这一项看：**样品频率 14 与照明频率 −8 混频，生成探测频率 $14-8=6$**。它经历的检测衰减是 $H(6)$，而非 $H(14)$。本地模型给出 $H(6)\approx0.2848>0$，因此它终于进入了相机数据。[S3]
+
+$$
+\underbrace{S(14)}_{\text{样品的高频}}
+\xrightarrow{\text{条纹照明混频：}14-8=6}
+\underbrace{\frac m2 e^{-i\phi_j}H(6)S(14)}_{\text{原始帧 }D_j(6)\text{ 中的一项}}.
+$$
+
+**SIM 获得新增信息的关键，是采集前的光学混频；软件搬移负责恢复这份信息的正确频率坐标。** 单纯把一张普通宽场图的频谱向外挪，不会得到相同的超分辨信息。
+
+### 2.3 为什么要拍三相位，不能直接把 $D_j(6)$ 搬到 14？
+
+因为 $D_j(6)$ 同时含 $S(6)、S(-2)、S(14)$。直接搬移会把三者一起错放。三相位利用不同的相位标签把它们分开。
+
+令 $\phi_j=2\pi j/3$，$j=0,1,2$，并记
+
+$$
+a_0=1,\qquad a_{+1}=a_{-1}=m/2.
+$$
+
+由 $\sum_{j=0}^{2}e^{i(\ell-\ell')\phi_j}=3\delta_{\ell\ell'}$，可得
+
+$$
+\boxed{A_\ell(\mathbf f)=\frac{1}{3a_\ell}
+\sum_{j=0}^{2}e^{-i\ell\phi_j}D_j(\mathbf f)
+=H(\mathbf f)S(\mathbf f-\ell\mathbf k).}
+$$
+
+相位标签不同的项抵消，目标项保留。fairSIM 把 $m/2$ 放进矩阵并求逆，所以分离结果已经补偿了调制度；OTF 衰减仍在。[S2]
+
+对 −1 级，我们得到 $A_{-1}(6)=H(6)S(14)$。再将整个分离频带按对应位移归位：
+
+$$
+C_\ell(\mathbf q)=A_\ell(\mathbf q+\ell\mathbf k)
+=\underbrace{H(\mathbf q+\ell\mathbf k)}_{H_\ell(\mathbf q)}S(\mathbf q).
+$$
+
+于是 $C_{-1}(14)=A_{-1}(6)=H(6)S(14)$。**归位后，频谱和对应的 OTF 必须一起平移，不能又拿原点居中的 $H(14)=0$ 去判断这份信息。**
+
+## 3. 为什么不能推广成“每个探测点都只有一个超分辨分量”？
+
+### 3.1 同一个探测点，可能带回零个、一个或两个高频
+
+判据始终是：搬回后的样品频率是否在宽场圆盘外。固定一个有效探测频率 $|\mathbf f|<k_c$ 后，逐项计算即可：
+
+| 固定的探测频率 $\mathbf f$ | 0 级的 $\mathbf q$ | +1 级的 $\mathbf q$ | −1 级的 $\mathbf q$ | 超出截止半径 10 的分量数 |
 |---|---|---|---|---|
-| 0 级 | $(0,0)$ | 293 | **0** | **0%** |
-| +1 级 | $(-8,0)$ | 152 | **141** | 48.1% |
-| −1 级 | $(+8,0)$ | 152 | **141** | 48.1% |
+| $(0,0)$ | $(0,0)$ | $(-8,0)$ | $(8,0)$ | **0** |
+| $(6,0)$ | $(6,0)$ | $(-2,0)$ | $(14,0)$ | **1** |
+| $(0,8)$ | $(0,8)$ | $(-8,8)$ | $(8,8)$ | **2** |
 
-**0 级是"白给"的那一份**——它恢复的就是宽场本来能看见的图像，增量严格为零。它的价值在于提供低频的准确幅度与相位，不在于分辨率。
+第三行中，两个边带都满足
 
-$+1$ 与 $-1$ 各有一半支撑在宽场外，但按第 3 节，**这两半朝向相反**：$+1$ 撑到 $q=-18$，$-1$ 撑到 $q=+18$。
+$$
+|\mathbf q_{\pm1}|=\sqrt{8^2+8^2}=\sqrt{128}\approx11.31>10.
+$$
 
-> ⚠️ 措辞陷阱：说"$\pm1$ 各贡献 48%"容易被读成"两个边带一起贡献同一个 $q$"。准确说法是：超分辨那圈里，**一半的弧归 $+1$、另一半归 $-1$，互不重叠**。
+它们提供的是**两个不同的高频系数**，不是对同一个高频系数重复测量。
 
----
+![固定探测频率后，三种相位分量对应的样品频率；右图两个边带都落在宽场圆盘之外](web/figures/sim-fixed-detector-frequency.svg)
 
-## 5. 覆盖到 ≠ 恢复得好
+*图中画的是搬回后的样品频率坐标。浅灰圆为原点居中的宽场通带；箭头表示同一探测频率分离出的边带归位到哪里。所有坐标由 $\mathbf q=\mathbf f-\ell\mathbf k$ 计算。*
 
-支撑是几何概念，能不能用还要看权重。沿 $-x$ 轴量 $+1$ 级的检测 OTF：
+两边带同时在宽场外的条件也可直接推出：
 
-| $q$ | −9 | −10 | −11 | −12 | −13 | −14 | −15 | −16 | −17 | −18 |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 在宽场内？ | 是 | 是 | **否** | 否 | 否 | 否 | 否 | 否 | 否 | 否 |
-| $\lvert H\rvert$ | 0.873 | 0.747 | **0.624** | 0.505 | 0.391 | 0.285 | 0.188 | 0.104 | 0.037 | **0** |
+$$
+\min\bigl(|\mathbf f-\mathbf k|^2,|\mathbf f+\mathbf k|^2\bigr)
+=|\mathbf f|^2+|\mathbf k|^2-2|\mathbf f\cdot\mathbf k|>k_c^2.
+$$
 
-- 真正可用的超分辨段是 $q = 11\text{–}15$ 格（权重 0.62 → 0.19）
-- $q = 16\text{–}18$ 格名义上"够得着"，实际权重 $\le 0.10$
+在 $|\mathbf k|\le k_c$ 的通常情形下，沿 $\mathbf k$ 的一维截线上不会同时满足，但二维频谱里可以，例如上面的垂直取点。这是只看水平截线时容易漏掉的情况。
 
-这就是步骤 07 中图那个圆盘**边缘发黑**的原因：支撑到了，信号没了。
+### 3.2 两个边带作为整体，都能扩展频谱
 
-一个交叉验证：三方向细条纹样品周期 7.5 px，即 $f = 128/7.5 = 17.07$ 格。代入非相干 OTF
++1 级将通带中心移到 $-\mathbf k$，−1 级移到 $+\mathbf k$。它们分别扩展两侧的频率支撑；每个边带又都有一部分落在原宽场通带内。因此，**“边带”不等于“整个频带都是新增高频”，也不能据第 1 节的例子断言另一个边带在整张图上都没有高频价值。**
 
-$$\mathrm{OTF}(\rho)=\frac{2}{\pi}\bigl(\arccos\rho-\rho\sqrt{1-\rho^2}\bigr),\qquad \rho=\frac{|17.07-8|}{10}=0.907$$
+对实值样品，$S(-\mathbf q)=S(\mathbf q)^*$。第 1 节中 $S(14)$ 的共轭伙伴 $S(-14)$，由探测点 $f=-6$ 的 +1 级带回。两侧共同构成实值图像中的细条纹。理论上可利用共轭关系由半谱补齐另一半；fairSIM 仍显式处理两边，不能把它们理解成同一坐标上的两次独立采集。
 
-得 $0.034$，即预测保留 3.4% 对比度；页面实测 $3.5/122.3 = 2.9\%$（差额是 Wiener 与切趾）。数量级吻合。
+0 级则覆盖整个原始低频圆盘，**不只是 $\mathbf q=0$ 这一个直流点**。它不扩展宽场截止，但为整体结构、强度和与边带重叠的频率提供数据。把它称为“没用”或“白给”会误导后续重建理解。
 
----
+## 4. 搬移完成后：固定同一个样品频率，究竟有几路来源？
 
-## 6. fairSIM 怎么做：不挑选，全加
+现在换一个问题：**已经指定最终频谱里的 $\mathbf q$，哪些分离分量能提供 $S(\mathbf q)$？**
 
-### 6.1 每个频带都有正负两个搬移分量
+从前面的式子反解，每一级需要读取的探测位置是
 
-`SimAlgorithm.java:638-640`
+$$
+\boxed{\mathbf f_\ell=\mathbf q+\ell\mathbf k.}
+$$
 
-```java
-int pos = b * 2, neg = (b * 2) - 1; // pos/neg contr. to band
-otfPr.applyOtf(shifted[pos], b,  par.px(b),  par.py(b));
-otfPr.applyOtf(shifted[neg], b, -par.px(b), -par.py(b));
-```
+这三个探测位置通常不同。只有 $H(\mathbf f_\ell)\ne0$ 的通路才有效。
 
-`applyOtf` 的 Javadoc（`OtfProvider.java:545-546`）明确写着 **"Multiplied conjugated OTF to a vector"**，所以这里乘的是 $H^*$，不是 $H$。
+以目标 **$q=14$** 为例：
 
-### 6.2 全部搬移分量累加到同一个 q 网格
-
-`SimAlgorithm.java:657-659`
-
-```java
-for (int i = 0; i < par.nrBand() * 2 - 1; i++) {
-    fullResult.add(shifted[i]);
-}
-```
-
-$2N_{\text{band}}-1$ 个分量（0 级 1 个 + 每级 2 个）**逐个加**进同一个输出频谱。没有任何分支在问"这个 $q$ 该用哪一级"。
-
-### 6.3 分母是 OTF 平方和
-
-`WienerFilter.java:60-85`，对每个 $(d,b)$ 累加两个偏移位置的 $|H|^2$：
-
-```java
-double rad1 = MTool.fhypot(xh - dir.px(b), yh - dir.py(b)) * cyclMicron;
-double rad2 = MTool.fhypot(xh + dir.px(b), yh + dir.py(b)) * cyclMicron;
-float otfVal1 = sp.otf().getOtfVal(b, rad1, false).absSq();
-float otfVal2 = sp.otf().getOtfVal(b, rad2, false).absSq();
-vec.set(x, y, vec.get(x, y) + otfVal1 + otfVal2);
-```
-
-`WienerFilter.java:120-127` 取倒数并加 $w^2$：
-
-```java
-ret.set(x, y, 1 / (ret.get(x, y) + (float) (wParam * wParam)));
-```
-
-### 6.4 合起来
-
-$$\hat S(q)=\frac{\displaystyle\sum_{d}\sum_{\ell=-N_{\text{band}}+1}^{N_{\text{band}}-1} H^{*}\!\bigl(q-\ell\mathbf{k}_d\bigr)\,A_{d,\ell}\bigl(q-\ell\mathbf{k}_d\bigr)}{\displaystyle\sum_{d}\sum_{\ell}\bigl|H(q-\ell\mathbf{k}_d)\bigr|^{2}+w^{2}}$$
-
-这是**加权平均**（严格说是 Wiener 最小均方估计），不是选择。分子 $H^*\!\cdot(H\,S) = |H|^2 S$，分母把所有贡献过的 $|H|^2$ 加起来，所以多处覆盖时自动按信噪比分配权重。
-
-页面对照：步骤 08 的「fairSIM 实际分母 $D + w^2$」和步骤 07 右图「OTF 平方和」画的就是这个分母。
-
----
-
-## 7. 为什么"全加"在超分辨区仍然正确
-
-因为在 $|q| > k_c$ 处，求和**自动只剩一项**：
-
-- $\ell = 0$ 项要求 $|q| \le k_c$ → 直接为零
-- $\ell = +1$ 与 $\ell = -1$ 不能同时非零 → 第 3 节定理
-
-于是分母退化：
-
-$$\hat S(q)\;=\;\frac{H^{*}(q-\ell^{\ast}\mathbf{k}_1)\,A_{\ell^{\ast}}}{\bigl|H(q-\ell^{\ast}\mathbf{k}_1)\bigr|^{2}+w^{2}}\;\approx\;\frac{A_{\ell^{\ast}}(\cdot)}{H(\cdot)}$$
-
-fairSIM 不需要"知道"哪个频带是超分辨来源——**几何保证了无效项在分母里本来就是 0**。这是这个写法优雅的地方：一套统一的累加公式同时处理冗余区和独占区。
-
----
-
-## 8. 代价：零冗余 = 零校验 + 噪声放大
-
-超分辨区只有一个贡献者，意味着：
-
-1. **没有交叉校验。** 两个独立测量可以互相对账、平均掉噪声；一个不行。这一带的误差完全来自那一次测量。
-2. **分母极小。** $\sum|H|^2$ 只剩一项，而这一项在第 5 节的表里从 0.62 掉到 0.04。$1/|H|^2$ 在 $q=-17$ 处是 $1/0.037^2 \approx 730$ 倍放大。
-3. **$w^2$ 是唯一的刹车。** 这就是 Wiener 参数 $w$ 在超分辨边缘决定成败的原因——$w$ 太小，边缘噪声爆炸；$w$ 太大，把仅有的一点高频一起压掉。页面上 $w=0.05$ 是个折中。
-
-这也解释了为什么"名义 2× 分辨率"在实践中往往只兑现成 1.6–1.8×：外圈那点支撑的权重太低，被 $w^2$ 正则掉了。
-
----
-
-## 9. 多方向才真正造出冗余
-
-实测方向数 = 3 时，超分辨区的覆盖重数分布：
-
-| 覆盖者个数 | 1 | 2 | 3 |
-|---|---|---|---|
-| bin 数 | 342 | **250** | 4 |
-
-约 **42%** 的超分辨 bin 被**两个不同方向**的边带同时送到。注意这与第 3 节的定理不矛盾——定理说的是**同一方向**的两个边带，多方向的 $\mathbf{k}_2,\mathbf{k}_3$ 朝向不同，重叠区可以伸到 $|q|>10$。
-
-所以三方向有两层收益，容易只记住第一层：
-
-| | 收益 | 体现 |
+| 想通过哪一级恢复 $S(14)$？ | 必须读取的探测频率 $f_\ell$ | 检测系统能否记录？ |
 |---|---|---|
-| 第一层 | 补齐各向异性 | 支撑从胶囊变成圆；12/6 点方向被补上 |
-| 第二层 | 在超分辨区造出真实冗余 | 42% 的超分辨 bin 有 ≥2 个独立测量，Wiener 平均才真正起作用 |
+| 0 级 | $14$ | 否，$H(14)=0$ |
+| +1 级 | $14+8=22$ | 否，$H(22)=0$ |
+| −1 级 | $14-8=6$ | **能，$H(6)\approx0.2848$** |
 
----
+**在这里，“只有一个边带提供这个超分辨频率”是正确的。** 它问的是同一个输出地址有几路来源，与第 3 节“同一个输入地址装着几个不同高频”不同。
 
-## 10. 一页总结
+### 4.1 为什么单方向下不可能有两个边带同时覆盖同一个超分辨频率？
 
-| 问题 | 答案 | 依据 |
+在理想圆形检测支撑中，定义有效频带
+
+$$
+\Omega_\ell=\{\mathbf q:|\mathbf q+\ell\mathbf k|<k_c\}.
+$$
+
+三个圆盘中心分别为 $0、-\mathbf k、+\mathbf k$，半径均为 $k_c$。用严格小于号，是因为理想非相干 OTF 在截止边界上已经为零。
+
+若两个边带都覆盖同一个 $\mathbf q$，则
+
+$$
+|\mathbf q-\mathbf k|^2<k_c^2,\qquad
+|\mathbf q+\mathbf k|^2<k_c^2.
+$$
+
+相加并使用平行四边形恒等式：
+
+$$
+2|\mathbf q|^2+2|\mathbf k|^2<2k_c^2
+\quad\Longrightarrow\quad
+|\mathbf q|^2<k_c^2-|\mathbf k|^2.
+$$
+
+在本例中即 $|\mathbf q|<6$，完全位于宽场圆盘内部。故两个边带不可能在 $|\mathbf q|>10$ 处重叠；0 级在那里同样为零。
+
+![单方向搬移后，三个有效圆盘及目标频率的覆盖关系](web/figures/sim-shifted-band-support.svg)
+
+*两边带相互重叠的区域位于中央。$(14,0)$ 只有 −1 级覆盖；$(0,14)$ 则没有任何一级覆盖。圆周是支撑的极限边界，边界处的 OTF 为零。*
+
+所以准确结论是：**单方向的一个超分辨频率，最多有一个边带覆盖；只有加上“位于该方向可恢复支撑内”，才能说恰好一个。** 例如 $(0,14)$ 虽然也是高频，却不在当前方向的任何圆盘里。
+
+### 4.2 三方向时，同一高频可以有多路来源
+
+照明波矢变为 $\mathbf k_1=(8,0)、\mathbf k_2=(4,7)、\mathbf k_3=(-4,7)$ 后，考虑 $\mathbf q=(10,6)$，其长度约为 $11.66>10$：
+
+$$
+\mathbf q-\mathbf k_1=(2,6),\quad |(2,6)|\approx6.32<10;
+\qquad
+\mathbf q-\mathbf k_2=(6,-1),\quad |(6,-1)|\approx6.08<10.
+$$
+
+前两个方向的 −1 级都能提供同一个 $S(10,6)$。本地模型对应的 OTF 分别约为 0.2522、0.2764。[S3]
+
+多方向既扩展不同方位的覆盖，也可以增加高频区的多路观测。三方向支撑是多个移位圆盘的并集，通常仍有方向差异，不能直接说成“变成一个完整圆盘”；不同观测的噪声是否独立还取决于采集与分离过程。
+
+## 5. fairSIM 真正融合的是什么？
+
+**fairSIM 先把各频带放到共同的样品频率坐标，再在同一个 $\mathbf q$ 上累加。它不会把 $A_0(6)、A_{+1}(6)、A_{-1}(6)$ 当成对同一个样品频率的三次测量直接平均。**
+
+以下核对的是本地 fairSIM 提交 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732` 的二维 Wiener 路径，`otfBeforeShift=false`，关闭 OTF attenuation 和 RL。不是对所有 fairSIM 版本及配置的统一断言。[S2]
+
+### 5.1 与源码逐步对上
+
+| 过程 | fairSIM 操作 | 对应含义 |
 |---|---|---|
-| 同一 $q$ 上三个分量都在贡献吗？ | 超分辨区**恰好一个**；宽场内最多三个 | 第 3 节定理 + 实测重数分布 |
-| 0 级有用吗？ | 对分辨率**零贡献**，只负责低频准确性 | 293 bins 全在宽场内，超出数 = 0 |
-| $\pm1$ 级各干什么？ | 朝相反两侧拉伸，重叠区最远只到 $\sqrt{k_c^2-|\mathbf k|^2}=6$ 格 | 平行四边形恒等式 |
-| fairSIM 怎么融合？ | 全加 + 除以 $\sum\lvert H\rvert^2+w^2$，不做选择 | `SimAlgorithm.java:638,657`；`WienerFilter.java:60,120` |
-| 为什么全加不出错？ | 无效项在分母里自动为 0 | 第 7 节 |
-| 代价？ | 超分辨区零校验、噪声放大，靠 $w$ 压制 | 第 8 节权重表 |
-| 多方向的额外好处？ | 造出真实冗余（42%） | 第 9 节 |
+| 相位分离 | `BandSeparation.separateBands` | 求逆得到 $A_\ell(\mathbf f)$；同时补偿 $m/2$ |
+| 扩大计算网格 | `SimUtils.placeFreq` | 将频谱放入两倍边长的网格，给外移频带留出坐标；填零本身不产生信息 |
+| 归位 | `SimUtils.fourierShift` | 正负分量分别搬移，得到 $C_\ell(\mathbf q)$ |
+| OTF 匹配 | `OtfProvider.applyOtf` | 在归位坐标乘对应的共轭 $H_\ell^*(\mathbf q)$ |
+| 累加 | `fullResult.add(shifted[i])` | 对各方向、各分量累加，形成同一输出网格上的分子 |
+| 正则化与切趾 | `getDenominator(w)`、`writeApoVector` | 乘正则化分母的倒数，再乘切趾窗，最后逆 FFT |
 
----
+fairSIM 中还要区分**频带参数 `b`** 和**分离分量编号**：二维三相位情形 `nrBand=2`，表示零级与一级谐波；分离分量有三个，按本篇约定为 `separate[0] → 0`、`separate[1] → +1`、`separate[2] → −1`。代码里的 `pos=2`、`neg=1` 描述搬移方向，不能直接当作照明相位指数的正负号。[S2]
 
-## 11. 复现
+### 5.2 先理解标准的融合式，再看源码的计数
 
-### 第 3 / 4 节的重数与支撑统计（纯几何，不需要页面）
+归位后，每一路均有
 
-```bash
-node -e '
-const kc=10, k=[8,0];
-const hist={}, histSR={};
-for (let by=-24; by<=24; by++) for (let bx=-24; bx<=24; bx++) {
-  const q=Math.hypot(bx,by); let c=0;
-  if (q<=kc) c++;
-  if (Math.hypot(bx-k[0],by-k[1])<=kc) c++;
-  if (Math.hypot(bx+k[0],by+k[1])<=kc) c++;
-  if (!c) continue;                       // 跳过没被任何频带覆盖的 bin
-  hist[c]=(hist[c]||0)+1;
-  if (q>kc) histSR[c]=(histSR[c]||0)+1;
+$$
+C_{d,\ell}(\mathbf q)=H_{d,\ell}(\mathbf q)S(\mathbf q)+n_{d,\ell}(\mathbf q).
+$$
+
+如果采用等权二次误差与二次正则化，在每个 $\mathbf q$ 上求
+
+$$
+\min_z\left[\sum_{d,\ell}|C_{d,\ell}-H_{d,\ell}z|^2+w^2|z|^2\right],
+$$
+
+对 $z^*$ 求导并令其为零，得到标准形式
+
+$$
+\widehat S_{\mathrm{standard}}=
+\frac{\sum_{d,\ell}H_{d,\ell}^*C_{d,\ell}}
+{\sum_{d,\ell}|H_{d,\ell}|^2+w^2}.
+$$
+
+这解释了“乘共轭 OTF、累加、除以 OTF 平方和加正则项”的逻辑。无噪声且参数匹配时，分子的每一项都是 $|H_{d,\ell}|^2S(\mathbf q)$，不会把同一结构无条件叠亮。
+
+**但当前 fairSIM 代码的实际分母有一个必须保留的细节：零级计数两次。** `WienerFilter.addWienerDenominator` 每个 `b` 都累加正、负两个位置的 OTF 平方；`b=0` 时两个位置相同，分子却只累加一次零级。因此当前图谱严格对应
+
+$$
+U(\mathbf q)=\sum_d\sum_{\ell=0,\pm1}H_{d,\ell}^*(\mathbf q)C_{d,\ell}(\mathbf q),
+$$
+
+$$
+D_{\mathrm{code}}(\mathbf q)=\sum_d\left[
+2|H_{d,0}(\mathbf q)|^2+|H_{d,+1}(\mathbf q)|^2+|H_{d,-1}(\mathbf q)|^2\right],
+$$
+
+$$
+\boxed{\widehat S_{\mathrm{out}}(\mathbf q)
+=W_{\mathrm{apo}}(\mathbf q)\frac{U(\mathbf q)}{D_{\mathrm{code}}(\mathbf q)+w^2}.}
+$$
+
+这里 $W_{\mathrm{apo}}$ 是切趾窗。原文直接把标准分母当作本版本的实际分母，并不准确。此差别影响宽场内的幅度；在超分辨区，$H_{d,0}=0$，零级重复计数不影响那里。[S2、S3]
+
+此外，分离时除以 $m$ 会改变边带噪声，等相位或不同相位也影响噪声协方差。该源码路径没有再显式使用逐频带噪声方差权重，不能仅凭它叫 Wiener 就称为“严格的最小均方误差最优融合”。
+
+### 5.3 回到 $q=14$：三个分量都加，为什么仍只有一个起作用？
+
+单方向时，$H_0(14)=H(14)=0$，$H_{+1}(14)=H(22)=0$，只有 $H_{-1}(14)=H(6)\ne0$。所以切趾前自动简化为
+
+$$
+\widehat S_{\mathrm{pre}}(14)=
+\frac{H^*(6)C_{-1}(14)}{|H(6)|^2+w^2}.
+$$
+
+无效通路在**乘共轭 OTF 的分子和 OTF 平方分母中都为零**。因此 fairSIM 可以用同一个逐点公式处理：低频重叠区的多路融合、单方向高频区的一路恢复，以及无覆盖区的零输出。
+
+**同理，在三方向的 $(10,6)$，公式保留两条有效通路，融合的是它们对同一个 $S(10,6)$ 的观测。** 这才是“频带重叠”和“同一点融合”的准确含义。
+
+## 6. 有高频通路，还不等于实际图像一定分辨得出来
+
+频带几何只回答“数据能从哪条路来”。结构是否实际存在、调制度、光子数、相位和波矢误差，以及正则化和切趾，都影响最后能否可靠辨认。
+
+在仅有一路的频率上，写 $C=HS+n$，切趾前有
+
+$$
+\widehat S=\underbrace{\frac{|H|^2}{|H|^2+w^2}}_{\text{信号传递}}S
++\underbrace{\frac{H^*}{|H|^2+w^2}}_{\text{噪声振幅增益}}n.
+$$
+
+取 $q=17$、$k=8$，对应 $f=9$。本地 OTF 为 $H(9)\approx0.03739$：
+
+| 条件 | 信号传递（切趾前） | 分离后噪声的振幅增益 |
+|---|---|---|
+| $w=0$ | $1$ | $1/|H|\approx26.75$ |
+| $w=0.05$ | 约 $0.359$ | 约 $9.59$ |
+
+$w=0$ 时的 $1/|H|^2\approx715$ 是**噪声方差增益**，不是振幅增益。这里的噪声指分离后的 $n$，已经包含相位解混和调制度补偿的影响；输出再乘切趾窗后，信号与噪声还会同时衰减。
+
+沿照明方向，几何可达频率的上界为 $k_c+|\mathbf k|=18$，相对于宽场的支撑扩展上限为 $1.8$ 倍；**边界本身 OTF 为零，不能由这个比值直接断言实测分辨率提高了 1.8 倍**。也没有不依赖样品与噪声的“11–15 格才算可用”统一阈值。
+
+## 7. 用本地 fairSIM 图谱代码复核这些点
+
+在项目根目录执行下面的代码。它调用本地图谱的 `capture()`、`pipeline()` 和 `probe()`，不依赖浏览器中残留的参数；参数固定为单方向、无噪声、调制度 0.8。
+
+```sh
+node <<'JS'
+const A = require('./web/atlas/sim-atlas-core.js');
+const cap = A.capture({sample:'star-points', directions:1, m:0.8, noise:'none'});
+const p = A.pipeline(cap.raw, cap.calibration, {}, cap.truth.m);
+for (const f of [[0,0], [6,0], [0,8]]) {
+  const probe = A.probe(p, 0, ...f);
+  console.log('固定 f =', f, probe.orders.map(o => ({
+    order: o.order, q: o.specimenFrequency,
+    beyondWidefield: Math.hypot(...o.specimenFrequency) > p.cutoff
+  })));
 }
-console.log("全部:", JSON.stringify(hist), " 超分辨区:", JSON.stringify(histSR));
-'
-# 输出： 全部: {"1":332,"2":260,"3":33}   超分辨区: {"1":308}
+for (const q of [[0,0], [6,0], [14,0], [0,14]]) {
+  const i = A.idx(...q, p.spectrumSize);
+  console.log('固定 q =', q, p.bands.filter(b => b.h[i] > 0).map(b => ({
+    order: b.order, f: [q[0]+b.kx, q[1]+b.ky], H: b.h[i]
+  })), {Q: p.signalResponse[i], Dcode: p.denominator[i]});
+}
+JS
 ```
 
-### 第 5 节权重、第 9 节三方向分布（读页面真实数据）
+第一组输出的超分辨分量数依次为 **0、1、2**；第二组目标频率的有效来源数依次为 **3、2、1、0**。在 $\mathbf q=0$ 处，$Q\approx1.021669$、$D_{\mathrm{code}}\approx2.021669$，其差为额外计数的一份 $|H_0(0)|^2=1$。
 
-在页面控制台执行（`window.SIMAtlasPage` 由 `sim-atlas.js:720` 暴露）：
+这些是当前理想模拟配置的数值核对，不是显微镜实验测量。图谱与原始 Java 输出的逐像素对照方法见 [实现对照](Wiener-SIM/fairSIM-论文/图谱实现对照.md)。两张几何图可用 `python3 scripts/render_sim_band_figures.py` 重新生成，只依赖 Python 标准库。
 
-```js
-// 沿 -x 轴读 +1 级的 OTF 权重
-var P = SIMAtlasPage, A = SIMAtlas, n = P.pipe.spectrumSize, b = P.pipe.groups[0].bands[1];
-[11,12,13,14,15,16,17,18].map(d => [d, b.h[A.idx(-d,0,n)]]);
+## 来源与适用范围
 
-// 超分辨区的覆盖重数分布（当前方向数）
-var hist = {};
-for (var by=-24; by<=24; by++) for (var bx=-24; bx<=24; bx++) {
-  if (Math.hypot(bx,by) <= 10) continue;
-  var c = P.pipe.bands.filter(bb => bb.active && (bb.h[A.idx(bx,by,n)]||0) > 0.01).length;
-  hist[c] = (hist[c]||0)+1;
-}
-hist
-```
+- **[S1] 背景论文**：Müller et al., “Open-source image reconstruction of super-resolution structured illumination microscopy data in ImageJ”, *Nature Communications* 7, 10980 (2016)，[DOI](https://doi.org/10.1038/ncomms10980)。本篇的具体符号从第 2 节成像模型显式推导，数值实现以以下固定源码为准。
+- **[S2] 已核对的 fairSIM 源码**：本地 `Wiener-SIM/fairSIM-src/fairSIM/`，提交 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732`，pom 版本 1.5.1；这是后续维护版本，不是 2016 年论文的代码快照。
+- **[S3] 本项目实现**：[图谱核心](web/atlas/sim-atlas-core.js)、[配置与 Java 对照说明](Wiener-SIM/fairSIM-论文/图谱实现对照.md)。文中 OTF 数字使用其 512 点采样与线性插值实现；几何坐标、重叠证明由本文公式直接计算。
 
-### fairSIM 源码位置
-
-| 内容 | 文件:行 |
+| 核对项 | 固定提交中的源码位置 |
 |---|---|
-| 正负搬移分量各乘共轭 OTF | `SimAlgorithm.java:638-640` |
-| 全部搬移分量累加 | `SimAlgorithm.java:657-659` |
-| 中间结果里 $\pm$ 配对相加 | `SimAlgorithm.java:679-682` |
-| Wiener 分母 $= \sum\lvert H\rvert^2$ | `WienerFilter.java:60-86` |
-| 取倒数并加 $w^2$ | `WienerFilter.java:120-127` |
-| `applyOtf` 乘共轭的说明 | `OtfProvider.java:545-546` |
+| $m/2$、正负相位列、矩阵求逆 | [BandSeparation.java，80–118 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java#L80-L118) |
+| 分离、填充、正负搬移 | [SimAlgorithm.java，601–628 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java#L601-L628) |
+| 乘移位 OTF、逐分量累加 | [SimAlgorithm.java，633–659 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java#L633-L659) |
+| `val.conj()`：确实乘共轭 OTF | [OtfProvider.java，505–519 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/OtfProvider.java#L505-L519) |
+| OTF 平方的正负两项；零级也走此循环 | [WienerFilter.java，66–81 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/WienerFilter.java#L66-L81) |
+| 所有方向与 `b=0` 起的频带计数、加 $w^2$ 取倒数 | [WienerFilter.java，104–126 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/WienerFilter.java#L104-L126) |
+| 最终滤波、切趾、逆变换 | [SimAlgorithm.java，745–771 行](https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java#L745-L771) |
 
-根目录：`Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/`
-
----
-
-## 相关
-
-- 胶囊几何与凹口深度：`SIM单方向学习指南.md` 第 2 节
-- 各向异性的实测扇区数据：`SIM单方向学习指南.md` 第 3 节
-- 条纹朝向 ⊥ 波矢：`SIM单方向学习指南.md` 第 1.1 节
+本篇限定于**二维线性、正弦照明的 0、±1 级模型**；关于同方向重叠的证明还使用理想圆形支撑。3D-SIM、非线性 SIM 或不同形状的 OTF 支撑，需按其实际频带和几何重新分析。

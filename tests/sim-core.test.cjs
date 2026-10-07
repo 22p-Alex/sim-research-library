@@ -1,6 +1,6 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
-const C=require('../sim-core.js');
+const C=require('../web/shared/sim-core.js');
 const near=(a,b,tol=1e-10)=>assert.ok(Math.abs(a-b)<tol,`${a} != ${b}`);
 const n=128;
 const phases=[0,2*Math.PI/3,4*Math.PI/3];

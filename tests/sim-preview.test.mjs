@@ -4,7 +4,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { getJobs, projectRoot, renderPage } from "../build_sim_preview.mjs";
+import { getJobs, projectRoot, renderPage } from "../scripts/build_sim_preview.mjs";
 
 const jobs = getJobs();
 const outputs = new Map(jobs.map((job) => [job.source, job.output]));

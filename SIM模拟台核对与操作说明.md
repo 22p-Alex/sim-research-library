@@ -1,6 +1,6 @@
 # SIM 模拟台：模型核对与对照操作
 
-模型核对日期：2026-09-27；界面与代码维护：2026-10-06。对象：`sim-core.js`、`sim-experiment.js`、`sim-lab/` 和 `sim_interactive_demo.html`。
+模型核对日期：2026-09-27；界面与代码维护：2026-10-06。对象：`web/shared/sim-core.js`、`web/shared/sim-experiment.js`、`web/lab/` 和 `sim_interactive_demo.html`。
 
 结论：现有计算符合声明的简化模型，可用于研究参数的作用和重建敏感性；不能把它当作实测仪器、完整光场传播或 HiFi-SIM 原算法复现。此次未改变成像或重建算法，补充了参数含义、适用边界和单变量 A/B 操作入口。
 

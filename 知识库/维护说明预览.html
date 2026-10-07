@@ -108,12 +108,20 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 <td>第三个页：纯静态 2D-SIM 光路走查（手写 SVG + 内联脚本），不参与计算；职责与证据标签约定写在页内「先约定：本页每句话属于哪一级证据」</td>
 </tr>
 <tr>
-<td><code>sim-core.js</code>、<code>sim-experiment.js</code></td>
-<td>两页共用的计算层；改动会同时影响两页，提交前必须跑全部单测与浏览器验收</td>
+<td><code>web/shared/</code></td>
+<td><code>sim-core.js</code>、<code>sim-experiment.js</code> 两页共用的计算层；改动会同时影响两页，提交前必须跑全部单测与浏览器验收</td>
+</tr>
+<tr>
+<td><code>web/lab/</code>、<code>web/atlas/</code></td>
+<td>分别存放实验室和图谱的独占 JS/CSS；具体职责见<a href="../web/README.md">前端代码说明</a></td>
+</tr>
+<tr>
+<td><code>scripts/</code></td>
+<td>预览构建、Markdown 监听与学习指南截图；命令见<a href="../scripts/README.md">工具脚本说明</a></td>
 </tr>
 <tr>
 <td><code>tests/</code></td>
-<td>单测（<code>node --test tests/*.test.cjs tests/*.test.mjs</code>）与逐文件运行的浏览器验收脚本；<code>sim-page-boundary.test.cjs</code> 断言页面与模块的归属边界</td>
+<td><code>npm run check</code> 跑数值、链接与模块边界检查，<code>npm run test:ui</code> 跑两个交互页面的桌面浏览器验收；fairSIM Java 对照单独运行</td>
 </tr>
 <tr>
 <td>专题 07</td>
@@ -143,13 +151,13 @@ footer { margin-top: 42px; padding-top: 16px; border-top: 1px solid #e3e8eb; col
 </ol>
 <h2 id="预览命令">预览命令</h2>
 <p>在项目根目录执行：</p>
-<pre><code class="language-sh">node build_sim_preview.mjs --all
-node watch_sim_preview.mjs
+<pre><code class="language-sh">npm run build:preview
+npm run watch:preview
 </code></pre>
-<p>第一条生成资料库首页、知识库目录、8 个专题、维护说明、项目总览、文献目录、模拟台核对说明，以及 9 个文献目录中的条目说明、译文和笔记，当前共 37 页。监听模式覆盖这些 Markdown 文件的修改和专题/论文目录中的 Markdown 新增、删除；删除源文件后，旧预览可能仍在磁盘，但不再列入构建导航。</p>
-<p>新增独立论文目录时，先更新文献目录，再将目录加入 <code>build_sim_preview.mjs</code> 的 <code>paperDirs</code>；已有目录中的新 Markdown 自动发现。重新启动监听以载入目录配置变更。</p>
+<p>第一条生成资料库首页、知识库目录、8 个专题、维护说明、项目总览、文献目录、模拟台核对说明、频带搬移与 fairSIM 融合说明，以及 9 个文献目录中的条目说明、译文和笔记，当前共 39 页。监听模式覆盖这些 Markdown 文件的修改和专题/论文目录中的 Markdown 新增、删除；删除源文件后，旧预览可能仍在磁盘，但不再列入构建导航。</p>
+<p>新增独立论文目录时，先更新文献目录，再将目录加入 <code>scripts/build_sim_preview.mjs</code> 的 <code>paperDirs</code>；已有目录中的新 Markdown 自动发现。重新启动监听以载入目录配置变更。</p>
 <p>单独生成任意文档仍支持：</p>
-<pre><code class="language-sh">node build_sim_preview.mjs --source &quot;HiFI-SIM/High-fidelity structured illumination microscopy by point-spread-function engineering-译文.md&quot; --output &quot;HiFI-SIM/HiFi-SIM译文预览.html&quot;
+<pre><code class="language-sh">node scripts/build_sim_preview.mjs --source &quot;HiFI-SIM/High-fidelity structured illumination microscopy by point-spread-function engineering-译文.md&quot; --output &quot;HiFI-SIM/HiFi-SIM译文预览.html&quot;
 </code></pre>
 <p>预览在构建时使用本地 KaTeX 渲染公式；公式语法有误会报出源文件并停止写入。页面离线可读，无需联网加载公式或字体。<code>marked</code> 优先使用项目依赖，未安装时使用现有本机运行时，也可用 <code>SIM_MARKED_PATH</code> 指定模块文件。</p>
 <p>批量构建管理的 Markdown 链接在预览中自动转为 HTML；代码、PDF 等仍指向原文件。图片和本地资源按输出目录换算相对路径，代码示例中的 <code>$</code> 保留原样。只使用 <code>--source</code> 时默认生成同目录阅读页；<code>--output</code> 可指定输出位置。</p>
@@ -159,9 +167,10 @@ node watch_sim_preview.mjs
 <p>这会检查生成页面的本地文件和锚点链接、公式渲染、代码示例中的数学定界符，以及不同输出目录中的相对路径。</p>
 <h2 id="本次整理记录2026-10-06">本次整理记录（2026-10-06）</h2>
 <ul>
+<li>JS 与配套样式统一按职责归入 <code>web/shared/</code>、<code>web/lab/</code>、<code>web/atlas/</code>；构建、监听和学习指南截图脚本归入 <code>scripts/</code>。原 HTML 入口和截图输出目录保留，文档链接与测试同步迁移；历史记录中的旧路径描述当时状态，当前路径以本页「文件职责」为准。</li>
 <li><strong>建立首个 git 基线提交</strong> <code>a3b0c29</code>：308 个 JS/CJS/MJS/HTML/CSS/MD/JSON/SVG/YAML/BIB/TXT/PY/JAVA 文本文件入库（8.1 MB），PDF、PNG、TIF 等资料二进制暂未纳入。此前仓库零提交，删除不可回退；现在代码与文档的删除、重构可用 <code>git checkout a3b0c29 -- &lt;路径&gt;</code> 找回。</li>
 <li><strong>删除 <code>tmp/</code></strong>（29 MB、305 个文件）：历次改写前快照（<code>atlas-before*</code>、<code>sim-structure-before</code>、<code>waves-convolution-before</code>、<code>optical-before</code>、<code>workbuddy-migration/before</code> 等）与一次性验收脚本（<code>ui-audit.cjs</code>、<code>optical-audit.cjs</code>、<code>phi-qa.cjs</code>、<code>impact-qa.cjs</code>、<code>dots-qa.cjs</code>、<code>verify-layout.cjs</code>、<code>shoot.cjs</code>）及其截图、<code>*.class</code> 编译产物。其中文本类已在基线里，<strong>PNG 截图与编译产物未入库，此条记录后永久丢失</strong>；上方两条历史记录里指向 <code>tmp/</code> 的链接因此降级为纯文本。</li>
-<li><strong>移除 <code>sim-core.js</code> 的 <code>beatExample()</code></strong> 及 <code>tests/sim-core.test.cjs</code> 的 3 个配套三角恒等式测试（提交 <code>813f9bf</code>）：包络演示节删除后两个交互页与 <code>sim-lab/</code> 均不调用它，文件头注释也不再声称 API 含拍节示例。<code>C.acquire()</code> 同样只被单测调用，但它是 <code>reconstruct()</code> 测试构造 raw stack 的入口，<strong>保留</strong>。</li>
+<li><strong>移除 <code>sim-core.js</code> 的 <code>beatExample()</code></strong> 及 <code>tests/sim-core.test.cjs</code> 的 3 个配套三角恒等式测试（提交 <code>813f9bf</code>）：包络演示节删除后两个交互页与 <code>web/lab/</code> 均不调用它，文件头注释也不再声称 API 含拍节示例。<code>C.acquire()</code> 同样只被单测调用，但它是 <code>reconstruct()</code> 测试构造 raw stack 的入口，<strong>保留</strong>。</li>
 <li>修复 <code>知识库/01</code> 中指向已删除 <code>sim-envelope.svg</code> 的图片行；重建 <code>index.html</code>，其依赖表不再列 <code>sim-demo.js</code>、<code>sim-comparison.js</code>、<code>sim-wave-lab.js/.css</code> 四个已删除文件。</li>
 <li>验收：单测 69/69，<code>sim_interactive_demo.html</code> 浏览器 86 项、<code>sim_pipeline_atlas.html</code> 浏览器 80 项，<code>errors</code> 为空且无失败资源请求。</li>
 </ul>

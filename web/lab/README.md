@@ -1,6 +1,6 @@
 # SIM 交互实验室代码结构
 
-页面入口是根目录的 [sim_interactive_demo.html](../sim_interactive_demo.html)。实验室独占代码与样式集中在本目录；共享数值模型继续由根目录 `sim-core.js`、`sim-experiment.js` 提供。
+页面入口是根目录的 [sim_interactive_demo.html](../../sim_interactive_demo.html)。实验室独占代码与样式集中在本目录；共享数值模型由 [sim-core.js](../shared/sim-core.js)、[sim-experiment.js](../shared/sim-experiment.js) 提供。整个前端的目录分工见 [前端代码说明](../README.md)。
 
 ## 修改位置
 
@@ -60,7 +60,7 @@ flowchart TD
 
 ```sh
 npm run check    # 数值、资源链接与模块边界
-npm run test:ui  # 桌面 Chromium、交互及黑屏回归
+npm run test:ui  # 两个交互页面的桌面 Chromium 验收，含实验室黑屏回归
 npm run preview  # 仅本机可访问的 HTTP 预览，默认端口 8765
 ```
 

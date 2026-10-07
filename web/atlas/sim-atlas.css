@@ -715,25 +715,35 @@ summary::-webkit-details-marker {
   color:var(--ink)
 }
 .step-flow {
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 20px minmax(0,1fr) 20px minmax(0,1fr);
   align-items:center;
-  gap:10px 16px;
   border-top:1px solid #edf0f5;
   border-bottom:1px solid #edf0f5;
-  padding:9px 0;
-  margin-bottom:18px;
+  padding:14px 0;
+  margin-bottom:24px;
   color:var(--faint);
   font-size:10px
 }
+.step-flow>span {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:4px;
+  min-width:0;
+  text-align:center
+}
 .step-flow b {
   font-weight:500;
-  color:var(--dim);
-  margin-left:6px
+  color:var(--ink);
+  font-size:12px;
+  line-height:1.6
 }
 .step-flow i {
   font-style:normal;
-  color:#a9b7c9
+  color:#a9b7c9;
+  font-size:16px;
+  text-align:center
 }
 .strip {
   display:grid;
@@ -743,12 +753,7 @@ summary::-webkit-details-marker {
   margin-bottom:17px;
   min-width:0
 }
-/* 图排里的图数量等于采集方向数，单方向时三列网格只剩一个子元素，右侧两列空出来。
-   观测帧那排一格本来就装三帧，铺满整行正好把条纹放大；
-   照明与摩尔纹那两排一格只装一张图，铺满会变成 828px 见方，所以保持原尺寸、整排居中。 */
-#s3a[data-groups="1"], #s3b[data-groups="1"] {
-  grid-template-columns:minmax(0,1fr)
-}
+/* 单方向的照明与摩尔纹保持原图尺寸，整排居中。 */
 #s2a[data-groups="1"], #s2b[data-groups="1"] {
   grid-template-columns:minmax(0,340px);
   justify-content:center
@@ -877,34 +882,87 @@ figure.plate {
   padding:2px 0
 }
 .acquisition {
-  gap:15px
+  grid-template-columns:minmax(0,1fr);
+  gap:24px;
+  margin-bottom:24px
 }
 .frame-group {
   min-width:0;
-  background:var(--panel2);
-  padding:10px;
-  border-radius:8px
+  padding:0
 }
 .frame-group h3 {
-  font-size:10px;
-  color:var(--dim);
-  font-weight:500;
-  margin-bottom:8px;
+  font-size:13px;
+  color:var(--ink);
+  font-weight:600;
+  margin-bottom:18px;
   display:flex;
-  justify-content:space-between
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  line-height:1.6
+}
+.frame-kind,.frame-meta {
+  display:flex;
+  align-items:center;
+  gap:10px
+}
+.frame-domain,.frame-meta {
+  font-size:11px;
+  font-weight:400;
+  color:var(--faint)
+}
+.frame-direction {
+  color:var(--dim);
+  padding-right:10px;
+  border-right:1px solid var(--line)
 }
 .frame-grid {
   display:grid;
   grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:6px
+  gap:20px;
+  padding-bottom:20px
+}
+.frame-grid>.plate {
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:10px
+}
+/* 分割线在行列交点处留白，不围成卡片外框。 */
+.frame-grid>.plate::after {
+  content:"";
+  position:absolute;
+  left:16px;
+  right:16px;
+  bottom:-20px;
+  height:1px;
+  background:var(--line);
+  pointer-events:none
+}
+.frame-grid>.plate+.plate::before {
+  content:"";
+  position:absolute;
+  left:-10px;
+  top:38px;
+  bottom:10px;
+  width:1px;
+  background:var(--line);
+  pointer-events:none
 }
 .frame-grid .plate canvas {
-  border-radius:4px
+  width:min(100%,160px);
+  aspect-ratio:1;
+  border:0;
+  border-radius:3px
 }
 .frame-grid .plate figcaption {
-  font-size:9px;
+  order:-1;
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+  color:var(--dim);
   text-align:center;
-  margin-top:4px
+  margin:0
 }
 .figure-note {
   font-size:11px;
@@ -939,13 +997,6 @@ figure.plate {
   grid-template-columns:minmax(0,1fr) minmax(0,2fr);
   gap:20px;
   align-items:center
-}
-/* 步骤 03 的九帧：三组并排时每组只有约 260px 宽，里面再横排三帧就剩 90px，摩尔纹看不清。
-   改成组内竖排——帧宽涨到 240px 以上，同时保持"一个方向一列"的横向对照，
-   比让每个方向独占一整行省下约一半高度。单方向时那组本来就铺满整行，
-   三帧继续横排才不致于把单帧撑到 800px。 */
-#s3a:not([data-groups="1"]) .frame-grid, #s3b:not([data-groups="1"]) .frame-grid {
-  grid-template-columns:minmax(0,1fr)
 }
 #s4 {
   grid-template-columns:1fr;
@@ -1168,18 +1219,6 @@ footer a {
   }
   .probe-panel {
     padding:12px
-  }
-  .acquisition {
-    grid-template-columns:1fr
-  }
-  .frame-group {
-    padding:12px
-  }
-  .frame-group h3 {
-    font-size:11px
-  }
-  .frame-grid .plate figcaption {
-    font-size:10px
   }
   #s8 {
     grid-template-columns:1fr 1fr

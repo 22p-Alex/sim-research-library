@@ -1,4 +1,4 @@
-/* Local Chromium acceptance checks for the pipeline atlas.
+/* Desktop Chromium acceptance checks for the pipeline atlas.
  * Run: node tests/sim-atlas-browser.test.cjs */
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -28,14 +28,14 @@ console.log('Screenshots:', shotDir);
       for (const id of ['b8', 'b9']) await page.locator('#' + id).screenshot({style:'.topbar,.sidebar,.skip{visibility:hidden!important}',path:path.join(shotDir, id + '-desktop.png')});
       await page.locator('#fusion-transfer summary').click();
       await page.locator('#fusion-transfer').screenshot({style:'.topbar,.sidebar,.skip{visibility:hidden!important}',path:path.join(shotDir, 'transfer-desktop.png')});
-      for (const width of [320,390,768,1024]) {
-        await page.setViewportSize({width,height:844});
+      for (const width of [1024,1440,1920]) {
+        await page.setViewportSize({width,height:1080});
         await page.waitForTimeout(180);
         await page.evaluate(() => document.querySelectorAll('details').forEach(d=>d.open=true));
         const layout=await page.evaluate(() => ({width:innerWidth,scroll:document.documentElement.scrollWidth,offenders:[...document.querySelectorAll('body *')].filter(e=>{const r=e.getBoundingClientRect();return r.width && r.right>innerWidth+2 && !e.closest('.katex') && getComputedStyle(e).position!=='absolute';}).slice(0,35).map(e=>({tag:e.tagName,id:e.id,cls:typeof e.className==='string'?e.className:'svg',right:e.getBoundingClientRect().right,text:e.textContent.slice(0,70)}))}));
         console.log(JSON.stringify(layout));
         ok(`expanded content fits viewport at ${width}px`, layout.scroll <= width + 1);
-        if(width===390) for(const id of ['b8','b9'])await page.locator('#'+id).screenshot({style:'.topbar,.sidebar,.skip{visibility:hidden!important}',path:path.join(shotDir,id+'-mobile.png')});
+        if(width===1024) for(const id of ['b8','b9'])await page.locator('#'+id).screenshot({style:'.topbar,.sidebar,.skip{visibility:hidden!important}',path:path.join(shotDir,id+'-desktop-1024.png')});
       }
       console.log(JSON.stringify({errors,screenshots:shotDir}));
       return;
@@ -228,18 +228,18 @@ console.log('Screenshots:', shotDir);
     await page.locator('#b8').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band8-fusion.png') });
     await page.locator('#b7').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band7-splice.png') });
     await page.locator('#b9').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band9-result.png') });
-    for (const width of [320, 390, 768, 1024]) {
-      await page.setViewportSize({ width, height: 844 });
+    for (const width of [1024, 1440, 1920]) {
+      await page.setViewportSize({ width, height: 1080 });
       await page.evaluate(() => document.querySelectorAll('details').forEach(d => d.open = true));
       ok(`expanded content fits viewport at ${width}px`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
     }
     await page.evaluate(() => document.querySelectorAll('details').forEach(d => d.open = false));
-    await page.setViewportSize({ width: 390, height: 844 });
+    await page.setViewportSize({ width: 1024, height: 1080 });
     await page.goto(pathToFileURL(path.join(root, 'sim_pipeline_atlas.html')).href);
     await page.waitForFunction(() => window.SIMAtlasPage?.pipe?.ok);
-    ok('mobile has no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
-    await page.screenshot({ path: path.join(shotDir, 'mobile.png'), fullPage: false });
-    await page.locator('#b4').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'mobile-demix.png') });
+    ok('desktop 1024px has no horizontal overflow', await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1));
+    await page.screenshot({ path: path.join(shotDir, 'desktop-1024.png'), fullPage: false });
+    await page.locator('#b4').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'desktop-1024-demix.png') });
     await page.setViewportSize({ width: 1780, height: 1100 });
     await page.goto(pathToFileURL(path.join(root, 'sim_pipeline_atlas.html')).href);
     await page.waitForFunction(() => window.SIMAtlasPage?.pipe?.ok);

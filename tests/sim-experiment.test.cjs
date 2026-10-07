@@ -1,5 +1,5 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-const C=require('../sim-core'),E=require('../sim-experiment');
+const C=require('../web/shared/sim-core'),E=require('../web/shared/sim-experiment');
 const near=(a,b,t=1e-9)=>assert.ok(Math.abs(a-b)<t,`${a} != ${b}`);
 const n=128,sample=C.makeSample(n);
 const base={period:13,exPeriod:9,visibility:.9,kc:1/12,opticsMode:'finite',spotRadius:.12,decenter:.04,balance:1,illumBackground:.05,electrons:2000,background:4,readNoise:2,shotNoise:true,seed:240924,angles:[0,60,120],phases:[0,2*Math.PI/3,4*Math.PI/3],directionOn:[true,true,true],phaseOn:[true,true,true]};

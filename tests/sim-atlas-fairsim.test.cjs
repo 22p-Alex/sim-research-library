@@ -4,7 +4,7 @@
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), os = require('node:os');
 const { execFileSync } = require('node:child_process');
-const A = require('../sim-atlas-core');
+const A = require('../web/atlas/sim-atlas-core');
 const root = path.resolve(__dirname, '..');
 const source = path.join(root, 'Wiener-SIM/fairSIM-src/fairSIM/src/main/java');
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'atlas-fairsim-'));

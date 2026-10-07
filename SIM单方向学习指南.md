@@ -5,7 +5,7 @@
 本文所有数字都由脚本从页面实测生成，不是手填：
 
 ```bash
-node output/sim-single-direction-guide/capture.cjs   # 重跑会同步更新全部截图与 measurements.json
+node scripts/capture_sim_single_direction.cjs   # 重跑会同步更新全部截图与 measurements.json
 ```
 
 统一实验参数：样品 = 仅西门子星，$m=0.8$，关闭全部噪声，$w=0.05$，切趾截止 1.9，$\beta=0.8$。
@@ -108,7 +108,7 @@ $\mathbf{k}_2,\mathbf{k}_3$ 把胶囊转到 $60.3°$ 和 $119.7°$，三块并�
 2. **宽场那一行是 0.3** → 这个环带里宽场一点信号都没有。所以重建出来的 5.1 到 23.8 **全部是 SIM 净增的**。
 3. **1 方向有 4.7 倍角度起伏，3 方向抹平到 ±2%。**
 
-（这张表由 `capture.cjs` 里的 `WEDGE` 从页面数据数组算出，落在 `measurements.json`。它只是文档里的证据，页面上没有对应控件——各向异性在页面上看步骤 07 的支撑图和步骤 09 的误差图就够了。）
+（这张表由 `scripts/capture_sim_single_direction.cjs` 里的 `WEDGE` 从页面数据数组算出，落在 `measurements.json`。它只是文档里的证据，页面上没有对应控件——各向异性在页面上看步骤 07 的支撑图和步骤 09 的误差图就够了。）
 
 ### 和 OTF 对一下数量级
 
@@ -174,7 +174,7 @@ $$D_j=A_0+\tfrac{m}{2}e^{i\phi_j}A_{+1}+\tfrac{m}{2}e^{-i\phi_j}A_{-1},\qquad j=
 
 这份指南第一版推荐用细条纹样品，理由是"三族同周期只差方向"，听起来很干净。**这是错的**，因为没查它的周期：
 
-`sim-atlas-core.js:71` → `C.makeSample(n, 7.5)`，周期 $7.5$ 采集像素，换频率
+`web/atlas/sim-atlas-core.js:71` → `C.makeSample(n, 7.5)`，周期 $7.5$ 采集像素，换频率
 
 $$f=\frac{128}{7.5}=17.07\ \text{格}$$
 

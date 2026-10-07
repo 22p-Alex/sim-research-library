@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { projectRoot, getJobs } from "./build_sim_preview.mjs";
 
-const builderPath = path.join(projectRoot, "build_sim_preview.mjs");
+const builderPath = path.join(projectRoot, "scripts/build_sim_preview.mjs");
 let child = null, pending = false;
 
 function signature() {

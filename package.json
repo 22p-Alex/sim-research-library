@@ -3,8 +3,11 @@
   "private": true,
   "scripts": {
     "preview": "python3 -m http.server 8765 --bind 127.0.0.1",
+    "build:preview": "node scripts/build_sim_preview.mjs --all",
+    "watch:preview": "node scripts/watch_sim_preview.mjs",
+    "capture:guide": "node scripts/capture_sim_single_direction.cjs",
     "check": "node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-page-boundary.test.cjs tests/sim-preview.test.mjs",
-    "test:ui": "node tests/sim-browser.test.cjs",
+    "test:ui": "node tests/sim-browser.test.cjs && node tests/sim-atlas-browser.test.cjs",
     "test": "npm run check && npm run test:ui"
   }
 }

@@ -12,8 +12,8 @@
 (function (root) {
   'use strict';
   const node = typeof module !== 'undefined' && module.exports;
-  const C = node ? require('./sim-core.js') : root.SIMCore;
-  const E = node ? require('./sim-experiment.js') : root.SIMExperiment;
+  const C = node ? require('../shared/sim-core.js') : root.SIMCore;
+  const E = node ? require('../shared/sim-experiment.js') : root.SIMExperiment;
 
   // Integer illumination vectors: exact band shifts, no interpolation error.
   const N = 128, KC = 10, TAU = 2 * Math.PI;

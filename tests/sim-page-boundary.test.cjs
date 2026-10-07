@@ -1,7 +1,7 @@
 /* Page/module ownership boundary.
  * Each interactive page may only load its own exclusive modules plus the shared
  * layer; the shared layer must never depend on a page; and no front-end module
- * may be left orphaned in the project root after a page is deleted.
+ * may be left orphaned in web/ after a page is deleted.
  * Run: node --test tests/sim-page-boundary.test.cjs
  */
 const test=require('node:test'),assert=require('node:assert/strict');
@@ -12,13 +12,13 @@ const read=f=>fs.readFileSync(path.join(root,f),'utf8');
 // Exclusive ownership, as declared in the README page-responsibility table.
 const PAGES={
   'sim_interactive_demo.html':[
-    'sim-lab/ui.js','sim-lab/scene.js','sim-lab/acquisition.js','sim-lab/presets.js',
-    'sim-lab/comparison.js','sim-lab/conv-otf.js','sim-lab/app.js',
-    'sim-lab/base.css','sim-lab/acquisition.css'
+    'web/lab/ui.js','web/lab/scene.js','web/lab/acquisition.js','web/lab/presets.js',
+    'web/lab/comparison.js','web/lab/conv-otf.js','web/lab/app.js',
+    'web/lab/base.css','web/lab/acquisition.css'
   ],
-  'sim_pipeline_atlas.html':['sim-atlas-core.js','sim-atlas.js','sim-atlas.css']
+  'sim_pipeline_atlas.html':['web/atlas/sim-atlas-core.js','web/atlas/sim-atlas.js','web/atlas/sim-atlas.css']
 };
-const SHARED=['sim-core.js','sim-experiment.js'];
+const SHARED=['web/shared/sim-core.js','web/shared/sim-experiment.js'];
 // Static visual pages: pure SVG diagrams with no computation, therefore they do
 // NOT load the shared layer. They must stay fully local (offline-first project)
 // and must be reachable from the interactive pages' navigation.
@@ -61,13 +61,13 @@ test('each page loads its own exclusive modules and the shared layer',()=>{
 
 test('laboratory bootstrap loads after all module definitions',()=>{
   const scripts=assetsOf('sim_interactive_demo.html').filter(file=>file.endsWith('.js'));
-  assert.equal(scripts.at(-1),'sim-lab/app.js');
-  assert.ok(scripts.indexOf('sim-core.js')<scripts.indexOf('sim-lab/scene.js'));
-  assert.ok(scripts.indexOf('sim-lab/ui.js')<scripts.indexOf('sim-lab/comparison.js'));
+  assert.equal(scripts.at(-1),'web/lab/app.js');
+  assert.ok(scripts.indexOf('web/shared/sim-core.js')<scripts.indexOf('web/lab/scene.js'));
+  assert.ok(scripts.indexOf('web/lab/ui.js')<scripts.indexOf('web/lab/comparison.js'));
 });
 
 test('shared computation and experiment presets do not read page state',()=>{
-  for(const file of [...SHARED,'sim-lab/presets.js'])
+  for(const file of [...SHARED,'web/lab/presets.js'])
     assert.doesNotMatch(read(file),/\bdocument\.|SIMLab\.app\b|SIMDemo\b|SIMComparisons\b/,file);
 });
 
@@ -79,13 +79,19 @@ test('dependencies point page-ward only, never from shared or across pages',()=>
     }
 });
 
-test('no front-end module is orphaned in the project root',()=>{
+test('no front-end module is orphaned in web/ or left in the project root',()=>{
   const claimed=new Set([...SHARED,...Object.values(PAGES).flat()]);
+  function collect(dir) {
+    return fs.readdirSync(path.join(root,dir),{withFileTypes:true}).flatMap(entry=>{
+      const file=path.posix.join(dir,entry.name);
+      return entry.isDirectory()?collect(file):/\.(js|css)$/.test(entry.name)?[file]:[];
+    });
+  }
   const modules=fs.readdirSync(root).filter(f=>/^sim[-_].*\.(js|css)$/.test(f))
-    .concat(fs.readdirSync(path.join(root,'sim-lab')).filter(f=>/\.(js|css)$/.test(f)).map(f=>'sim-lab/'+f));
+    .concat(collect('web'));
   const orphans=modules.filter(f=>!claimed.has(f));
   assert.deepEqual(orphans,[],
-    `根目录存在未被任何页面认领的模块：${orphans.join('、')}。删除页面时必须一并清理其独占模块。`);
+    `存在未归类或未被任何页面认领的模块：${orphans.join('、')}。前端模块应放入 web/；删除页面时必须一并清理其独占模块。`);
 });
 
 test('the two pages link to each other both ways',()=>{
