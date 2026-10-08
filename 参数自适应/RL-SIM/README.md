@@ -11,7 +11,6 @@ Wu, Junli; Yan, Qiurong; Huang, Siying; Zhang, Haoran; Yin, Junyuan; Luo, Xiaolo
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：较完整的主文译文，包含摘要、引言、结果、讨论、Methods、图注和数据/代码信息。
 - `理解笔记.md`：对 RL-SIM 的物理模型、强化学习闭环、损失函数和毕业课题价值的拆解。
-- `中文译文预览.html`：使用项目 KaTeX 脚本生成的本地预览。
 
 这次译文不再把 Methods 大段压缩为“译要”；但补充材料和 57 条参考文献仍以原文 PDF 为准，参考文献编号在译文中保留。
 

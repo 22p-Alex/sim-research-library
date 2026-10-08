@@ -3,7 +3,7 @@
 > 版本：v1.2 · 整理于 2026-09-26，2026-09-29 新增 2D-SIM/Wiener-SIM 源码级流程与 S11、S12 来源
 > 方向：SIM + 深度学习，用物理观测约束超分辨重建，并评价恢复结果的可靠性。
 
-[资料库首页](README.md) · [项目总览](SIM项目总览.md) · [文献目录](SIM文献目录.md) · [公式阅读版](SIM知识库预览.html) · [交互演示](sim_interactive_demo.html)
+[资料库首页](README.md) · [项目总览](SIM项目总览.md) · [文献目录](SIM文献目录.md) · [交互演示](sim_interactive_demo.html)
 
 ## 按学习顺序阅读
 

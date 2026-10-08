@@ -1,22 +1,22 @@
 # SIM + 深度学习毕业课题资料库
 
-围绕结构光照明显微镜（SIM）的超分辨成像组织。日常从[网页阅读首页](index.html)进入，或按当前任务选择入口：
+围绕结构光照明显微镜（SIM）的超分辨成像组织。按当前任务选择入口：
 
 | 想做什么 | 入口 |
 |---|---|
-| 学原理、查公式、理解论文之间的关系 | [知识库目录](SIM知识库.md) · [公式阅读版](SIM知识库预览.html) |
+| 学原理、查公式、理解论文之间的关系 | [知识库目录](SIM知识库.md) |
 | 看课题目标、当前状态和实验路线 | [项目总览](SIM项目总览.md) |
 | 找论文原文、译文、补充材料与阅读状态 | [文献目录](SIM文献目录.md) |
 | 逐步核对 2D-SIM/Wiener-SIM 的参数估计与重建代码 | [知识库专题 03 第 3 节](知识库/03-传统重建与参数估计.md) · [fairSIM 理解笔记](Wiener-SIM/fairSIM-论文/理解笔记.md) |
 | 运行当前 3D-MP-SIM 重建代码 | [MP-main 运行说明](3D-MP-SIM/MP-main/README.md) |
 | 调参数、注入误差、做单变量 A/B 对照 | [SIM 交互模拟台](sim_interactive_demo.html) |
 | 俯瞰每个中间产物、查某个检测点混了哪些频率 | [2D-SIM 全流程图谱](sim_pipeline_atlas.html) |
-| 分清同一个探测点的 0、±1 级，理解搬移后谁提供超分辨 | [频带搬移与 fairSIM 融合](SIM频带重叠与fairSIM融合.md) · [图文公式版](SIM频带重叠与fairSIM融合预览.html) |
+| 分清同一个探测点的 0、±1 级，理解搬移后谁提供超分辨 | [频带搬移与 fairSIM 融合](SIM频带重叠与fairSIM融合.md) |
 | 看真实硬件怎么摆：从 488 nm 激光到样品条纹的 17 个工位 | [2D-SIM 真实光路走查](sim_real_optical_path.html) |
 
 ## 资料分区
 
-- `知识库/`：按学习顺序排列的 8 个专题，以及维护说明和自动生成的阅读页。
+- `知识库/`：按学习顺序排列的 8 个专题，以及维护说明。
 - 各论文目录：保留原文、SI、元数据、译文、笔记与作者代码。具体条目见文献目录。
 - `Wiener-SIM/`：2D-SIM/Wiener-SIM 参考实现 fairSIM 的文献条目、源码级理解笔记与克隆源码（`fairSIM-src/`）。
 - `原文图示/`：知识库引用的论文图版；示意图与演示资源仍由原路径引用。
@@ -32,7 +32,7 @@ web/
 ├── shared/    # 两个交互页面共用的计算模型
 ├── lab/       # 交互实验室的 JS、CSS 与模块说明
 └── atlas/     # 全流程图谱的 JS 与 CSS
-scripts/       # 预览构建、文档监听、学习指南截图工具
+scripts/       # 学习指南截图与频带配图渲染工具
 tests/         # 数值、模块边界、资源链接与桌面浏览器验收
 vendor/        # 本地第三方依赖
 output/        # 截图、测量数据等生成结果
@@ -53,7 +53,7 @@ output/        # 截图、测量数据等生成结果
 **共用计算层**：[`sim-core.js`](web/shared/sim-core.js)（理想教学模型：OTF、前向成像、相移解混、Wiener 融合）与 [`sim-experiment.js`](web/shared/sim-experiment.js)（有效参数实验层：瞳面截光、可见度、相机噪声、$m$ 估计）被两个页面共同依赖，**改动会同时影响两页**，提交前必须跑全部单测。页面独占模块不得被其他页面引用，共享层不得反向依赖页面，删除页面时必须一并清理其独占模块——这三条由 `tests/sim-page-boundary.test.cjs` 断言，不靠约定。
 
 ```sh
-node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-page-boundary.test.cjs tests/sim-preview.test.mjs
+node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-page-boundary.test.cjs
 for f in tests/sim-browser.test.cjs tests/sim-atlas-browser.test.cjs; do node "$f"; done
 ```
 
@@ -61,6 +61,7 @@ for f in tests/sim-browser.test.cjs tests/sim-atlas-browser.test.cjs; do node "$
 
 ## 演示开发记录
 
+- 2026-10-08：移除预览生成子系统（38 个 `*预览.html`、`index.html`、build/watch 脚本与预览测试），Markdown 成为唯一文档载体；文档与交互页中的预览链接全部改指 `.md` 源。同步清理 `output/` 历史会话产物（保留学习指南引用的 `sim-single-direction-guide/`）。详见[维护说明](知识库/维护说明.md)当日记录。
 - 2026-10-06：前端模块统一归入 `web/shared/`、`web/lab/`、`web/atlas/`，工具归入 `scripts/`；同步 HTML、CommonJS、文档链接和构建路径，模块边界检查递归覆盖 `web/`。数值算法与页面入口保持原有行为。
 - 2026-10-06：将实验室独占代码集中到 `web/lab/`，统一启动与状态订阅，修复保存页面首次打开时 A/B 旧数值和空 Canvas 不一致的问题；方向改用原生开关，相位使用静态标题。维护入口见 [代码结构说明](web/lab/README.md)，常用命令为 `npm run check`、`npm run test:ui`、`npm run preview`。
 - 2026-10-06：移植 WorkBuddy 交互实验室修改版，简化光路控件、固定三相位帧，A/B 对照移到采集控制台之后并按四类分组；计算核心沿用原实现。
@@ -74,4 +75,4 @@ for f in tests/sim-browser.test.cjs tests/sim-atlas-browser.test.cjs; do node "$
 - **仅存档**：已有文件，尚未形成可靠的独立结论。
 - **待复现**：已有论文理解或代码入口，尚未完成本地实验验证。
 
-维护方式与预览命令见 [知识库维护说明](知识库/维护说明.md)。论文与代码分别遵循其许可条件；本地中文译文用于学习和课题研究。
+维护方式见 [知识库维护说明](知识库/维护说明.md)。论文与代码分别遵循其许可条件；本地中文译文用于学习和课题研究。

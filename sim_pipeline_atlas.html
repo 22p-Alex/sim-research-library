@@ -9,12 +9,12 @@
 <body>
 <a class="skip" href="#content">跳到正文</a>
 <header class="topbar">
-  <a class="brand" href="index.html"><span class="brand-mark">S</span><span>SIM <span class="brand-slash">/</span> 学习实验室</span></a>
+  <a class="brand" href="README.md"><span class="brand-mark">S</span><span>SIM <span class="brand-slash">/</span> 学习实验室</span></a>
   <nav aria-label="相关学习页面"><a href="sim_pipeline_atlas.html" aria-current="page">重建图谱</a><a href="sim_interactive_demo.html">交互模拟台 ↗</a></nav>
 </header>
 <div class="layout">
 <aside class="sidebar">
-  <a class="back-link" href="index.html">← 返回资料库</a>
+  <a class="back-link" href="README.md">← 返回资料库</a>
   <p class="nav-label">重建路线 <span>09 步</span></p>
   <nav class="stage-nav" aria-label="重建步骤">
     <p class="nav-group">A · 光学编码与采集</p>
@@ -210,10 +210,10 @@ SimUtils.spatial(fullResult, clipScale);</code></pre><div class="formula" data-t
 <tr><td>分母计数与正则</td><td><a href="https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/WienerFilter.java#L49" target="_blank" rel="noopener">WienerFilter · L49–125</a></td><td>08</td></tr>
 <tr><td>切趾与逆 FFT</td><td><a href="https://github.com/fairSIM/fairSIM/blob/711afd12cb8c4fd4207bbca7ee7610c5aed4f732/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java#L749" target="_blank" rel="noopener">SimAlgorithm · L749–771</a></td><td>08—09</td></tr>
 </tbody></table></div>
-<p>数值核验：相同采集帧输入本地原始 Java 重建代码与本页移植代码，比较完整 256 × 256 输出；测试覆盖噪声、单方向、失配、m 回退和切趾变化。<a href="Wiener-SIM/fairSIM-论文/图谱实现对照预览.html">配置、标度与复核方法</a> · <a href="Wiener-SIM/fairSIM-src/fairSIM/LICENSE">fairSIM GPL 许可</a></p>
+<p>数值核验：相同采集帧输入本地原始 Java 重建代码与本页移植代码，比较完整 256 × 256 输出；测试覆盖噪声、单方向、失配、m 回退和切趾变化。<a href="Wiener-SIM/fairSIM-论文/图谱实现对照.md">配置、标度与复核方法</a> · <a href="Wiener-SIM/fairSIM-src/fairSIM/LICENSE">fairSIM GPL 许可</a></p>
 <h3 id="source-review">[1] 主要文献</h3>
 <p>Chen et al. (2023), <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a>，式 (1)—(9)。用于解释采集与相移分离的物理模型；具体重建数值约定以下面的 fairSIM 源码为准。</p>
-<div class="source-links"><a href="SIM综述/Superresolution%20structured%20illumination%20microscopy%20reconstruction%20algorithms.pdf" target="_blank" rel="noopener">阅读本地原文 ↗</a><a href="知识库/02-统一成像模型与SIM分类预览.html">统一成像模型 ↗</a><a href="知识库/03-传统重建与参数估计预览.html">重建与参数估计 ↗</a></div>
+<div class="source-links"><a href="SIM综述/Superresolution%20structured%20illumination%20microscopy%20reconstruction%20algorithms.pdf" target="_blank" rel="noopener">阅读本地原文 ↗</a><a href="知识库/02-统一成像模型与SIM分类.md">统一成像模型 ↗</a><a href="知识库/03-传统重建与参数估计.md">重建与参数估计 ↗</a></div>
 </div></details>
 <footer><span>SIM 学习实验室 / 重建图谱</span><span>fairSIM Wiener 路径 · 中间结果均来自当前计算</span><a href="#content">回到顶部 ↑</a></footer>
 </main></div>

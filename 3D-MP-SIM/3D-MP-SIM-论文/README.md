@@ -12,7 +12,6 @@ Chen, Qian et al. “Fast, three-dimensional, live-cell super-resolution imaging
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：主文与补充材料关键理论的完整工作译稿。
 - `理解笔记.md`：面向当前 `MP-main` 代码和 SIM+深度学习课题的理论推导、实现映射与复现路线。
-- `中文译文预览.html`、`理解笔记预览.html`：使用项目 KaTeX 脚本生成的本地预览。
 
 ## 代码与数据
 

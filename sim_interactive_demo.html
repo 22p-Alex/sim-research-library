@@ -20,7 +20,7 @@
       <nav class="resource-nav" aria-label="相关资料">
         <a href="sim_pipeline_atlas.html">全流程图谱 <span aria-hidden="true">↗</span></a>
         
-        <a href="知识库/03-传统重建与参数估计预览.html#s1-2" title="HiFi-SIM 的旁瓣、PSF 与两步频谱优化">知识库 <span aria-hidden="true">↗</span></a>
+        <a href="知识库/03-传统重建与参数估计.md#s1-2" title="HiFi-SIM 的旁瓣、PSF 与两步频谱优化">知识库 <span aria-hidden="true">↗</span></a>
       </nav>
     </div>
     <div class="page-intro">
@@ -105,7 +105,7 @@
         <div class="formula" data-tex="s(\mathbf r)=s_0[1+a\cos(2\pi\mathbf f_s\cdot\mathbf r)]\quad\Longrightarrow\quad d(\mathbf r)=s_0[1+aH(\mathbf f_s)\cos(2\pi\mathbf f_s\cdot\mathbf r)]"></div>
         <div class="formula" data-tex="f_c=\frac{2\mathrm{NA}}{\lambda_{\mathrm{em}}},\qquad d_c=\frac1{f_c}"></div>
         <p class="note">因此，减小 NA 会降低截止频率、增大截止周期。<span data-tex="d_c"></span> 是截止频率的倒数；截止处对比度为零，不能把它直接当作可见条纹的实测分辨率，也不等于双点的 Rayleigh 判据。</p>
-        <p class="note">依据：卷积定理；Chen et al. (2023) 的线性成像关系在均匀照明下的特例，<a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">式 (1)–(9)</a>；<a href="知识库/01-SIM基础与频谱直觉预览.html#s3">本地知识库：普通显微镜的 OTF 限制</a>。</p>
+        <p class="note">依据：卷积定理；Chen et al. (2023) 的线性成像关系在均匀照明下的特例，<a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">式 (1)–(9)</a>；<a href="知识库/01-SIM基础与频谱直觉.md#s3">本地知识库：普通显微镜的 OTF 限制</a>。</p>
       </details>
       <details class="wave-details"><summary>这个二维例子的模型与显示约定</summary>
         <p class="note">光瞳为圆盘 <span data-tex="\|\mathbf u\|\le R"></span>，由 <span data-tex="h\propto|\mathcal F\{P\}|^2"></span> 生成非相干强度 PSF，计算时归一化为 <span data-tex="H(0)=1"></span>；OTF 由 PSF 的傅里叶变换得到。本节只展示无像差的理想圆瞳，离焦与像差对 OTF 的影响留到后续章节再讨论。</p>
@@ -315,7 +315,7 @@
     <p>解混与重建在 <span data-tex="128\times128"></span> 周期网格上计算，非整数频移有离散误差。噪声矩修正不保证有限样本无偏，也不提供严格置信区间；逐方向空间恒定调制度是假设，实际非均匀照明需要局部模型。</p>
     <div class="formula" data-tex="\widehat S(\mathbf f)=A(\mathbf f)\frac{\sum_b w_bH_b^*(\mathbf f)C_b(\mathbf f)}{\sum_b w_b|H_b(\mathbf f)|^2+\varepsilon^2}"></div>
     <p><span data-tex="C_b"></span> 为从 raw 解混并搬回的频带。<span data-tex="w_b"></span> 按方向平均噪声及解混后的相对方差倒数设置，包含调制度影响；融合阶段忽略跨频带噪声相关及像素间异方差，不是完整广义最小二乘。<span data-tex="A"></span> 在支持域外缘 15% 区域使用余弦切趾窗，乘在分式外。像差、运动、漂白及像素积分暂未模拟。</p>
-    <p>来源：Chen et al., <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a> (2023)，式 (1)–(9)、Fig. 4–5 及 Parameter estimation。光路截光和估计可靠性阈值是本演示的近似与选择。<a href="SIM知识库预览.html" target="_blank">本地知识库</a> · <a href="SIM模拟台核对与操作说明.md">模型核对与对照操作说明</a>。</p>
+    <p>来源：Chen et al., <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Superresolution structured illumination microscopy reconstruction algorithms: a review</a> (2023)，式 (1)–(9)、Fig. 4–5 及 Parameter estimation。光路截光和估计可靠性阈值是本演示的近似与选择。<a href="SIM知识库.md" target="_blank">本地知识库</a> · <a href="SIM模拟台核对与操作说明.md">模型核对与对照操作说明</a>。</p>
   </details>
   <footer class="page-footer"><span>SIM 交互实验室</span><span>px 为样品平面归一化采样单位 · <a href="#theory">查看模型与依据 ↑</a></span></footer>
 </div>

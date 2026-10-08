@@ -11,7 +11,6 @@ Cao, Ruijie et al. “Open-3DSIM: an open-source three-dimensional structured il
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：主文和 Methods 的中文工作译稿，保留重建流程、滤波思想、实验条件、图注和扩展数据概要。
 - `理解笔记.md`：面向 3D-MP-SIM/SIM+深度学习课题的算法拆解、公式和工程对照。
-- `中文译文预览.html`、`理解笔记预览.html`：使用项目 KaTeX 脚本生成的本地预览。
 
 ## 代码与数据
 

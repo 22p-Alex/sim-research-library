@@ -11,7 +11,6 @@ Liu, Jiahao et al. “Bio-friendly and high-precision super-resolution imaging t
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：按主文结构整理的较完整中文工作译稿，保留 Methods、主要公式、主要图注和扩展数据图注概要。
 - `理解笔记.md`：面向“SIM + 深度学习”毕业课题的理论拆解、适用边界和实验建议。
-- `中文译文预览.html`、`理解笔记预览.html`：由项目 KaTeX 脚本生成的本地公式预览。
 
 ## 来源与复现
 

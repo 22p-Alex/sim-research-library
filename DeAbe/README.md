@@ -11,7 +11,6 @@ Guo, Min et al. “Deep learning-based aberration compensation improves contrast
 - `citation.bib`：BibTeX 引用条目。
 - `中文译文.md`：按论文主文结构整理的中文工作译稿。
 - `理解笔记.md`：像差、Zernike 建模、DeAbe 训练策略及其对 SIM + 深度学习课题的启发。
-- `中文译文预览.html`：使用项目 KaTeX 编译脚本生成的本地预览。
 
 ## 代码与数据
 
