@@ -40,6 +40,15 @@
 .pe-refine-phase-diagram{display:block;width:160px;height:100px}
 .pe-refine-formula-numeric{font-size:11px;line-height:1.5;color:#8eabb6;text-align:center;font-variant-numeric:tabular-nums}
 
-/* Fixed SVG formula slots in the common-coefficient story. */
-.pe-fit-math { color: #e5efed; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
-.pe-fit-math .katex-display { margin: 0; }
+/* Final getPeak: title < 190, fields/operations 190–403, numeric rows
+ * 409–459, display key 481, global scene footer 518. No shared text slots. */
+.pe-peak-field-title{font-size:19px;fill:#dce8e6;font-weight:500}
+.pe-peak-transform{font-size:28px;font-weight:600;paint-order:stroke;stroke:#091115;stroke-width:9px}
+[data-get-peak] text{font-variant-numeric:tabular-nums}
+
+.pe-peak-formula{column-gap:20px;row-gap:6px;align-items:center;justify-content:center;min-height:58px}
+.pe-peak-formula .pe-study-formula-part{display:block;transition:none}
+.pe-peak-formula [data-emphasized=true]{color:#efb879;text-shadow:0 0 13px #efb87940}
+.pe-peak-formula [data-formula-part=get-peak-conjugate],.pe-peak-formula [data-formula-part=get-peak-energy],.pe-peak-formula [data-formula-part=get-peak-energySum]{color:#7ad5cd}
+.pe-peak-formula [data-formula-part=get-peak-multiply],.pe-peak-formula [data-formula-part=get-peak-phase]{color:#b7a5eb}
+.pe-peak-formula [data-formula-part=get-peak-domain]{font-size:13px;color:#8eabb6}

@@ -10,7 +10,7 @@ const near = (a,b,eps=1e-9) => assert.ok(Number.isFinite(+a) && Math.abs(+a-b) <
 const mul = (a,b) => ({re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re});
 const zOf = node => ({re:+node.attrs['data-re'],im:+node.attrs['data-im']});
 
-test('the two stages define location before the unified complex least-squares fit, with valid formulas at all stops', () => {
+test('the two stages define location before the final fairSIM getPeak pass, with valid formulas at all stops', () => {
   assert.deepEqual(L.scenes.map(s=>s.id), ['shared','line-shift','shift','otf','match','coarse','refine','least-squares-fit']);
   assert.deepEqual(L.scenes.map(s=>s.phase), [...Array(7).fill('position'),...Array(1).fill('coefficient')]);
   for(const s of L.scenes) for(const p of [0,.15,.3,.35,.5,.7,1]) {
@@ -576,31 +576,20 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
     assert.deepEqual(nodes.filter(n=>n.attrs['data-otf-term']!==undefined).map(n=>[n.attrs.transform,n.attrs.opacity]),preparedTerms);
     assert.equal(byId.get('equation').attrs['data-formula-mode'],'match-prepare');
   }
-  // The actual full story has zero common phase: a visible trial still returns
-  // to that fitted value instead of inventing a nonzero acquisition phase.
+  // Zero phase is reported as observed; the known ramp does not invent a
+  // trial common phase. Final accumulation uses a separate source-faithful pass.
   near(e.phase,0); seek('least-squares-fit',.32);
-  const trial=context.SIMParameterLesson.leastSquaresState(lesson,.32); assert.ok(Math.abs(trial.phase)>.5);
-  d.selected.forEach((p,i)=>{
-    const expected=mul(p.x,trial.alpha), node=get('data-vector-prediction',['P','Q','R'][i]);
-    near(zOf(node).re,expected.re); near(zOf(node).im,expected.im);
-  });
-  seek('least-squares-fit',.60);
-  const frozenMap=map.attrs.transform, frozenPair=pair.attrs.transform;
-  d.selected.forEach((p,i)=>{const node=get('data-vector-prediction',['P','Q','R'][i]);near(zOf(node).re,p.y.re);near(zOf(node).im,p.y.im);});
-  const fitting=get('data-fitting'), ratio=get('data-study-ratio');
-  for(const progress of [.62,.70,.75,.79,.84,1]) {
+  assert.equal(context.SIMParameterLesson.leastSquaresState(lesson,.32).phase,null);
+  const fitting=get('data-get-peak'), ratio=get('data-study-ratio'), peak=e.finalPeak;
+  for(const progress of [.62,.70,.75,.79,.84,.87,1]) {
     seek('least-squares-fit',progress);
-    assert.equal(map.attrs.transform,frozenMap);assert.equal(pair.attrs.transform,frozenPair);
-    const count=+fitting.attrs['data-count'], points=d.best.points.slice(0,count);
-    near(fitting.attrs['data-sum-re'],points.reduce((s,p)=>s+p.cross.re,0));
-    near(fitting.attrs['data-sum-im'],points.reduce((s,p)=>s+p.cross.im,0));
-    near(fitting.attrs['data-energy'],points.reduce((s,p)=>s+p.energy,0));
-    if(+fitting.attrs['data-divide']>0)assert.equal(count,d.best.count);
+    const count=+fitting.attrs['data-count'], sum=peak.sums[count];
+    near(fitting.attrs['data-sum-re'],sum.re); near(fitting.attrs['data-sum-im'],sum.im); near(fitting.attrs['data-energy'],sum.energy);
+    if(+fitting.attrs['data-divide']>0)assert.equal(count,peak.count);
   }
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined).map(n=>n.attrs.href),imageURLs);
-  near(zOf(ratio).re,d.best.alpha.re);near(zOf(ratio).im,d.best.alpha.im);
-  const points=nodes.filter(n=>n.attrs['data-fit-q']!==undefined);
-  assert.deepEqual(points.map(n=>n.attrs['data-fit-q']).sort(),Array.from(d.best.points,p=>p.q.join(',')).sort());
+  near(zOf(ratio).re,peak.alpha.re);near(zOf(ratio).im,peak.alpha.im);
+  assert.equal(get('data-fit-cloud'),undefined);
   assert.equal(get('data-fit-parameter','m').attrs['data-value'],String(e.m));
   assert.equal(get('data-fit-parameter','phase').attrs['data-value'],String(e.phase));
   assert.equal(get('data-illumination-preview'),undefined,'the stripe preview is removed');
@@ -624,7 +613,7 @@ test('every meaningful intermediate state is reversible and formula terms use th
     if(snapshots.has(key))assert.deepEqual(state,snapshots.get(key));else snapshots.set(key,state);
   }
   seek('least-squares-fit',.62);const formula=byId.get('equation').children[0], count=h.mathRenders;
-  seek('least-squares-fit',.80);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
-  assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-leastSquaresFit');
+  seek('least-squares-fit',.75);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-finalSum');
   h.windowEvents.pagehide.forEach(f=>f());assert.equal(byId.get('parameter-stage').children.length,0);assert.equal(byId.get('frequency-handoff-stage').children.length,0);
 });

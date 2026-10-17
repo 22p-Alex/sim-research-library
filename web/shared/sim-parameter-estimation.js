@@ -1,9 +1,10 @@
-/* Teaching estimator: provisional separation, OTF-corrected overlap,
- * normalized complex correlation, then complex least-squares scale.
+/* Teaching search followed by fairSIM's final two-beam coefficient calculation.
+ * Provisional separation, OTF-corrected overlap and normalized search are demo
+ * choices; fairSimGetPeak follows the local final commonRegion/getPeak path.
  * Method: Müller et al. 2016, doi:10.1038/ncomms10980, Supplementary Note 1.
  * Each band is corrected by its own H: conj(H) A / |H|^2 = A/H.
  * This is the algebra used by fairSIM commonRegion's divideByOtf branch.
- * This is NOT a port of its search, masks or normalization. Coordinates: x right,
+ * This is NOT a port of the complete fairSIM estimator. Coordinates: x right,
  * y down; forward FFT has a negative exponential; frequencies are DFT bins.
  */
 (function (root) {
@@ -161,6 +162,64 @@
     return {...main,inputs,masks,energies,xx,yy,counts,score,at,n};
   }
 
+  // Final two-beam path in local fairSIM Correlation.java:194–297, called by
+  // SimAlgorithm.java:290 with weightLimit=.05 (commonRegion dist=.15).
+  // Source OTF coordinates point y up, while these arrays point y down:
+  // source (peakX,peakY)=(-kx,+ky), so fourierShift(peakX,-peakY)
+  // multiplies by exp(-2πi(kx*x+ky*y)/N). Keep the integer-index radial
+  // exclusion even for fractional k; it is part of that source algorithm.
+  // We use this demo's real circular OTF, double precision and existing FFT,
+  // rather than fairSIM's OTF provider, float buffers or fast trigonometry.
+  function fairSimGetPeak(ctx, kx, ky) {
+    const { n, cutoff } = ctx.config, size = n * n;
+    const radius = Math.hypot(kx, ky), threshold = .05, distanceFraction = .15;
+    if (!Number.isFinite(radius) || radius === 0) throw new Error('最终幅相计算需要非零且有限的波矢。');
+    const prepared = ctx.separated.bands.slice(0, 2).map(z => ({ re: z.re.slice(), im: z.im.slice() }));
+    const masks = [new Uint8Array(size), new Uint8Array(size)];
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const i = y * n + x, fx = A.bin(x, n), fy = A.bin(y, n), own = A.otf(fx, fy, cutoff);
+      const partners = [A.otf(fx + kx, fy + ky, cutoff), A.otf(fx - kx, fy - ky, cutoff)];
+      for (let b = 0; b < 2; b++) {
+        const keep = own >= threshold && partners[b] >= threshold;
+        masks[b][i] = keep ? 1 : 0;
+        prepared[b].re[i] = keep ? prepared[b].re[i] / own : 0;
+        prepared[b].im[i] = keep ? prepared[b].im[i] / own : 0;
+      }
+    }
+    // Make the two exclusions explicit; Java's in-place zeroing gives the
+    // same result since a later division never restores a zeroed sample.
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const ratio = Math.hypot(A.bin(x, n), A.bin(y, n)) / radius;
+      if (ratio >= distanceFraction && ratio <= 1 - distanceFraction) continue;
+      const indices = [y * n + x, A.idx(x + Math.trunc(kx), y + Math.trunc(ky), n)];
+      indices.forEach((i, b) => { masks[b][i] = 0; prepared[b].re[i] = 0; prepared[b].im[i] = 0; });
+    }
+    const spatial = prepared.map(z => A.spatial(z, n));
+    const shifted = { re: new Float64Array(size), im: new Float64Array(size) };
+    const product = { re: new Float64Array(size), im: new Float64Array(size) }, energy = new Float64Array(size);
+    const sums = [{ re: 0, im: 0, energy: 0 }];
+    let targetEnergy = 0;
+    for (let i = 0; i < size; i++) {
+      const x = i % n, y = Math.floor(i / n), phase = -TAU * (kx * x + ky * y) / n;
+      const c = Math.cos(phase), s = Math.sin(phase), u = spatial[0], v = spatial[1];
+      shifted.re[i] = v.re[i] * c - v.im[i] * s;
+      shifted.im[i] = v.re[i] * s + v.im[i] * c;
+      product.re[i] = u.re[i] * shifted.re[i] + u.im[i] * shifted.im[i];
+      product.im[i] = u.re[i] * shifted.im[i] - u.im[i] * shifted.re[i];
+      energy[i] = u.re[i] ** 2 + u.im[i] ** 2;
+      targetEnergy += shifted.re[i] ** 2 + shifted.im[i] ** 2;
+      const previous = sums[i];
+      sums.push({ re: previous.re + product.re[i], im: previous.im + product.im[i], energy: previous.energy + energy[i] });
+    }
+    const last = sums[size], cross = { re: last.re, im: last.im }, referenceEnergy = last.energy;
+    const valid = referenceEnergy > 1e-14 && targetEnergy > 1e-14 && [last.re, last.im, referenceEnergy, targetEnergy].every(Number.isFinite);
+    const alpha = valid ? { re: last.re / referenceEnergy, im: last.im / referenceEnergy } : { re: 0, im: 0 };
+    return { n, kx, ky, valid, threshold, distanceFraction, sourceShift: [-kx, ky],
+      prepared, masks, supportCounts: masks.map(mask => mask.reduce((a, b) => a + b, 0)),
+      spatial, shifted, product, energy, sums, count: size, cross, referenceEnergy, targetEnergy,
+      alpha, m: Math.hypot(alpha.re, alpha.im), phase: Math.atan2(alpha.im, alpha.re) };
+  }
+
   function estimate(group, options = {}) {
     const ctx = context(group, options), { config } = ctx, extent = Math.ceil(config.maxRadius);
     const fft = fixedCorrelation(ctx);
@@ -186,10 +245,11 @@
       best = candidates.reduce((a, b) => b.valid && b.score > a.score + 1e-14 ? b : a, best);
       rounds.push({ step, center, candidates, best });
     }
-    const fit = compare(ctx, best.kx, best.ky, true), m = Math.hypot(fit.alpha.re, fit.alpha.im), phase = Math.atan2(fit.alpha.im, fit.alpha.re);
-    if (!Number.isFinite(m) || m < .05 || m > 1.1 || fit.score < .8) return { ok: false, reason: '调制度或公共区匹配未通过本示例的有效性检查。', context: ctx, coarse, coarseBest, rounds, extent, fit };
+    const fit = compare(ctx, best.kx, best.ky, true), finalPeak = fairSimGetPeak(ctx, best.kx, best.ky);
+    const { m, phase } = finalPeak;
+    if (!finalPeak.valid || !Number.isFinite(m) || m < .05 || m > 1.1 || fit.score < .8) return { ok: false, reason: '调制度或公共区匹配未通过本示例的有效性检查。', context: ctx, coarse, coarseBest, rounds, extent, fit, finalPeak };
     const phases = config.nominalPhases.map(p => p + phase);
-    return { ok: true, context: ctx, coarse, coarseBest, rounds, extent, fit, fft,
+    return { ok: true, context: ctx, coarse, coarseBest, rounds, extent, fit, fft, finalPeak,
       kx: best.kx, ky: best.ky, m, phase, phases, angle: Math.atan2(best.ky, best.kx) * 180 / Math.PI,
       period: config.n / Math.hypot(best.kx, best.ky), precision: .01 };
   }
@@ -276,6 +336,6 @@
     if (pipeline.groups.some(group => group.fallback)) throw new Error('全方向重建的调制度触发了核心回退。');
     return { pipeline, parameters, estimates, raw: reconstructionRaw, config, modulationFallback: false };
   }
-  const api = { defaults, capture, separate, correctOtf, context, compare, correlationMap, fixedCorrelation, estimate, reconstruct, estimateDataset, reconstructDataset, wrapPhase };
+  const api = { defaults, capture, separate, correctOtf, context, compare, correlationMap, fixedCorrelation, fairSimGetPeak, estimate, reconstruct, estimateDataset, reconstructDataset, wrapPhase };
   if (node) module.exports = api; else root.SIMParameterEstimation = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

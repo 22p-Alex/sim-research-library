@@ -10,75 +10,128 @@ const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a
 const magnitude = z => Math.hypot(z.re, z.im);
 const zOf = node => ({ re: +node.attrs['data-re'], im: +node.attrs['data-im'] });
 
-test('the complex fit minimizes the actual noisy residual and preserves the nonzero fitted phase', () => {
+test('the final getPeak playhead uses full spatial prefixes and reveals no fitted value before division', () => {
   const capture = E.capture({ m: .67, offsets: [-.72, .55, -.4] });
   capture.raw.groups[0].frames.forEach((frame, j) => frame.pixels.forEach((_, i) => { frame.pixels[i] += .002 * Math.sin(i * .37 + j * .81); }));
-  const lesson = M.createLesson({ raw: capture.raw, config: capture.config }), fit = lesson.estimate.fit;
-  Object.defineProperty(lesson.capture, 'truth', { get() { throw new Error('fit accessed generation truth'); } });
   const originals = capture.raw.groups[0].frames.map(frame => Array.from(frame.pixels));
-  const sums = fit.points.reduce((s, p) => ({
-    re: s.re + p.x.re * p.y.re + p.x.im * p.y.im,
-    im: s.im + p.x.re * p.y.im - p.x.im * p.y.re,
-    energy: s.energy + p.x.re ** 2 + p.x.im ** 2,
-  }), { re: 0, im: 0, energy: 0 });
-  near(fit.alpha.re, sums.re / sums.energy); near(fit.alpha.im, sums.im / sums.energy);
-  const end = L.leastSquaresState(lesson, 1);
-  assert.ok(end.minimum > 0, 'noise residual must not be forced to vanish');
-  near(end.minimum / end.energy, 1 - fit.score ** 2, 1e-12);
-  near(end.phase, Math.atan2(sums.im, sums.re)); near(end.m, Math.hypot(sums.re, sums.im) / sums.energy);
-  assert.ok(end.phase < -.7, 'negative observed phase is retained');
-  for (const delta of [{ re: .2, im: -.3 }, { re: -.1, im: .17 }]) {
-    const alpha = { re: fit.alpha.re + delta.re, im: fit.alpha.im + delta.im };
-    const loss = fit.points.reduce((sum, p) => { const z = multiply(alpha, p.x); return sum + (p.y.re - z.re) ** 2 + (p.y.im - z.im) ** 2; }, 0);
-    near(loss, end.minimum + sums.energy * (delta.re ** 2 + delta.im ** 2));
-  }
-  for (let i = 0; i <= 200; i++) {
-    const p = i / 200, state = L.leastSquaresState(lesson, p);
+  const lesson = M.createLesson({ raw: capture.raw, config: capture.config }), peak = lesson.estimate.finalPeak;
+  Object.defineProperty(lesson.capture, 'truth', { get() { throw new Error('animation accessed generation truth'); } });
+  assert.equal(peak.count, capture.config.n ** 2);
+  assert.notEqual(peak.count, lesson.estimate.fit.count, 'spatial positions are not the old reliable frequency points');
+  const sums = peak.product.re.reduce((s, re, i) => ({ re: s.re + re, im: s.im + peak.product.im[i], energy: s.energy + peak.energy[i] }), { re: 0, im: 0, energy: 0 });
+  near(peak.alpha.re, sums.re / sums.energy); near(peak.alpha.im, sums.im / sums.energy);
+  for (let i = 0; i <= 400; i++) {
+    const p = i / 400, state = L.leastSquaresState(lesson, p);
     assert.deepEqual(state.k, [lesson.estimate.kx, lesson.estimate.ky]);
-    if (state.divide > 0) assert.equal(state.count, fit.count);
-    for (const point of L.dataFor(lesson).selected) {
-      const predicted = multiply(state.alpha, point.x);
-      near(magnitude(predicted), magnitude(point.x) * state.m);
-      if (p >= .25 && p <= .43) near(magnitude(predicted), magnitude(point.x));
-    }
-    if (p >= .43) near(state.phase, end.phase);
-    if (p >= .60) near(state.m, end.m);
+    assert.equal(state.total, peak.count); assert.deepEqual(state.sum, peak.sums[state.count]);
+    assert.ok(state.count >= 0 && state.count <= peak.count);
+    if (state.divide > 0) assert.equal(state.count, peak.count);
+    if (p < .86) assert.equal(state.alpha, null); else assert.deepEqual(state.alpha, peak.alpha);
+    if (p < .90) { assert.equal(state.phase, null); assert.equal(state.m, null); }
+    else { near(state.phase, peak.phase); near(state.m, peak.m); }
+    assert.equal('trial' in state, false); assert.equal('residual' in state, false);
+    assert.ok(state.panels.filter(alpha => alpha > 0).length <= 1, 'old and new beat bodies never overlap');
+    if (state.overview > 0) assert.equal(state.body, 0, 'overview exits before working fields enter');
+    if (state.shiftOutput > 0 || state.shiftScan > 0) near(state.shift, 1, 1e-12);
   }
+  near(L.leastSquaresState(lesson, 1).phase, lesson.estimate.phase);
+  assert.ok(peak.phase < -.7, 'negative observed phase remains negative');
   assert.deepEqual(capture.raw.groups[0].frames.map(frame => Array.from(frame.pixels)), originals);
 });
 
-test('all observed pairs, residuals and fitted cards use one reversible playhead', () => {
-  let chapter;
-  const h = boot({ beforeRenderer(ctx) { const create = ctx.SIMMotionParameterChapter.create; ctx.SIMMotionParameterChapter.create = options => (chapter = create(options)); } });
-  const { nodes, context, byId } = h, flow = context.SIMMotionParameterChapter.plan(context.SIMMotion);
-  const seek = p => { byId.get('progress').value = flow.index('parameters.least-squares-fit') - 1 + p; byId.get('progress').dispatch('input'); };
+for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${page} pairs each source operation with its fields, formula and narration on one reversible playhead`, () => {
+  let view, lesson;
+  const h = boot({ page, renderer: page === 'sim_motion_demo.html' ? 'web/motion/sim-motion.js' : 'web/parameter-demo/sim-parameter-app.js',
+    beforeRenderer(ctx) { const create = ctx.SIMParameterLesson.createView; ctx.SIMParameterLesson.createView = (container, data, options) => { lesson = data; return (view = create(container, data, options)); }; } });
+  const { nodes, context, byId } = h, main = page === 'sim_motion_demo.html';
+  assert.deepEqual(h.errors, []);
+  const flow = main ? context.SIMMotionParameterChapter.plan(context.SIMMotion) : context.SIMParameterDemo.preview;
+  const seek = p => {
+    if (main) { byId.get('progress').value = flow.index('parameters.least-squares-fit') - 1 + p; byId.get('progress').dispatch('input'); }
+    else context.SIMParameterDemo.player.seek(flow.index('least-squares-fit') + p);
+  };
   const get = (key, value) => nodes.find(n => value === undefined ? n.attrs[key] !== undefined : n.attrs[key] === String(value));
-  const selected = context.SIMParameterLesson.dataFor(chapter.lesson).selected;
-  const tracked = nodes.filter(n => ['data-least-squares-fit', 'data-fit-residual', 'data-fit-q', 'data-vector-u', 'data-vector-v', 'data-vector-prediction', 'data-fitting', 'data-fit-parameter'].some(key => n.attrs[key] !== undefined));
+  const peak = lesson.estimate.finalPeak, stage = get('data-get-peak');
+  const tracked = nodes.filter(n => Object.keys(n.attrs).some(key => key.startsWith('data-get-peak') || ['data-study-ratio', 'data-fit-parameter', 'data-frequency-map', 'data-complex-plane'].includes(key)));
+  const snapshot = () => tracked.map(n => ({ attrs: { ...n.attrs }, text: n.textContent }));
+  const samples = [.001, .04, .07, .10, .119, .12, .16, .21, .26, .28, .31, .36, .405, .42, .46, .50, .54, .575, .58, .60, .625, .68, .73, .79, .80, .83, .859, .86, .895, .90, .925, .955, .985, 1];
   const snapshots = new Map();
-  const samples = [.001, .12, .249, .25, .29, .32, .38, .43, .50, .60, .66, .72, .76, .82, .85, .91, .97, 1];
-  seek(.001); // Materialize the host's lazily cached initial textures.
+  seek(.001); // Materialize the host’s lazily cached initial textures.
   const canvases = h.work.canvas;
   for (const p of [...samples, ...samples.toReversed()]) {
     seek(p);
-    const state = L.leastSquaresState(chapter.lesson, p), stage = get('data-least-squares-fit');
+    const state = L.leastSquaresState(lesson, p);
     assert.equal(stage.attrs['data-mode'], state.mode);
-    assert.equal(byId.get('scene-title').textContent, state.title);
-    selected.forEach((point, i) => {
-      const name = ['P', 'Q', 'R'][i], predicted = multiply(state.alpha, point.x);
-      const u = zOf(get('data-vector-u', name)), v = zOf(get('data-vector-v', name));
-      near(u.re, point.x.re); near(u.im, point.x.im); near(v.re, point.y.re); near(v.im, point.y.im);
-      const z = zOf(get('data-vector-prediction', name)), residual = zOf(get('data-fit-residual', i));
-      near(z.re, predicted.re); near(z.im, predicted.im);
-      near(residual.re, point.y.re - predicted.re); near(residual.im, point.y.im - predicted.im);
-    });
-    const snapshot = tracked.map(n => ({ ...n.attrs }));
-    if (snapshots.has(p)) assert.deepEqual(snapshot, snapshots.get(p)); else snapshots.set(p, snapshot);
+    assert.equal(+stage.attrs['data-count'], state.count); assert.equal(+stage.attrs['data-total'], peak.count);
+    near(stage.attrs['data-sum-re'], peak.sums[state.count].re); near(stage.attrs['data-sum-im'], peak.sums[state.count].im);
+    near(stage.attrs['data-energy'], peak.sums[state.count].energy);
+    assert.equal(byId.get(main ? 'scene-title' : 'pe-title').textContent, state.title);
+    assert.equal(byId.get(main ? 'equation-note' : 'pe-note').textContent, state.note);
+    const equation = byId.get(main ? 'equation' : 'pe-equation');
+    assert.equal(equation.attrs['data-formula-mode'], L.formulaMode(L.stateForScene('least-squares-fit',p)));
+    assert.equal(equation.children[0].attrs['data-get-peak-formula-beat'], p < .07 ? 'handoff' : state.mode);
+    assert.match(byId.get(main ? 'scene-svg-description' : 'pe-svg-description').textContent, new RegExp(state.note.slice(0, 8)));
+    if (main) assert.equal(byId.get('stage-caption').textContent, `${state.beat + 1}/7 · ${state.action}`);
+    const vector = zOf(get('data-get-peak-alpha-vector'));
+    near(vector.re, p < .86 ? 0 : peak.alpha.re); near(vector.im, p < .86 ? 0 : peak.alpha.im);
+    for (const key of ['m', 'phase']) assert.equal(get('data-fit-parameter', key).attrs['data-value'], state.cards > 0 ? String(key === 'm' ? peak.m : peak.phase) : '');
+    if (p >= .055) {
+      near(get('data-frequency-map').attrs.opacity, 0);
+      for (const name of ['P', 'Q', 'R']) near(get('data-complex-plane', name).attrs.opacity, 0);
+    }
+    if (p >= .50 && p < .58) {
+      const i = state.sample, conj = zOf(get('data-get-peak-conjugate-vector'));
+      near(conj.re, peak.spatial[0].re[i]); near(conj.im, -peak.spatial[0].im[i]);
+      const product = get('data-get-peak-beat', 'finalProduct');
+      near(product.attrs['data-z-re'], peak.product.re[i]); near(product.attrs['data-z-im'], peak.product.im[i]); near(product.attrs['data-e'], peak.energy[i]);
+    }
+    const scanCount = +get('data-get-peak-shift-prefix').attrs['data-count'];
+    if (p < .36) assert.equal(scanCount, 0, 'the field scan waits for the one-position explanation');
+    if (scanCount > 0) {
+      const i = context.SIMParameterLesson.getPeakDataFor(lesson).sampleIndex;
+      const rotated = zOf(get('data-get-peak-ramp-vector'));
+      near(rotated.re, peak.shifted.re[i]); near(rotated.im, peak.shifted.im[i]);
+    }
+    near(get('data-get-peak-image', 'shift-output').attrs.opacity, 0, 1e-12);
+    const sumPrefix = get('data-get-peak-sum-prefix');
+    assert.equal(+sumPrefix.attrs['data-count'], state.count);
+    const width = 176, pieces = [...sumPrefix.attrs.d.matchAll(/h ([\d.e+-]+) v ([\d.e+-]+)/g)];
+    near(pieces.reduce((area, m) => area + +m[1] * +m[2], 0) / (width / peak.n) ** 2, state.count);
+    if (snapshots.has(p)) assert.deepEqual(snapshot(), snapshots.get(p)); else snapshots.set(p, snapshot());
   }
-  assert.equal(h.work.canvas, canvases, 'fit reuses spectra; no new exposure or stripe raster');
+  assert.equal(h.work.canvas, canvases, 'replay reuses the actual field rasters');
+  assert.equal(get('data-fit-cloud'), undefined); assert.equal(get('data-fit-residual'), undefined);
   assert.equal(get('data-illumination-preview'), undefined);
-  assert.ok(!flow.scenes.some(s => ['parameters.geometry', 'parameters.conjugate', 'parameters.fit', 'parameters.read'].includes(s.id)));
+  assert.ok(get('data-get-peak-field', 'sum-energy-source'), 'reference energy has its own source channel');
+  const captions = nodes.filter(n => n.textContent.includes('自身 OTF 可靠且成对筛选'));
+  assert.deepEqual(captions.map(n => +(n.textContent.match(/保留 (\d+)/)[1])), Array.from(peak.supportCounts));
+  for (const beat of L.getPeakBeats) assert.ok(!L.formulas[beat[0]].includes('arg\\,min'));
+  assert.doesNotMatch(L.formulas.finalPrepare, /\\frac|\/H/);
   assert.deepEqual(h.errors, []);
+});
+
+test('the opening equation holds and fades with the old overview before the preparation equation enters', () => {
+  let view, lesson;
+  const h = boot({ beforeRenderer(ctx) { const create=ctx.SIMParameterLesson.createView; ctx.SIMParameterLesson.createView=(container,data,options)=>{lesson=data;return(view=create(container,data,options));}; } });
+  const host=h.byId.get('equation'), formula=h.context.SIMParameterLesson.createFormulaView(host,{lesson});
+  const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
+  view.drawScene('refine',1);
+  const previous=L.formulaAt(L.stateForScene('refine',1));
+  const snapshots=new Map(), samples=[0,.001,.014,.025,.04,.055,.06,.069,.07,.08,.10,.119];
+  for (const p of [...samples,...samples.toReversed()]) {
+    const state=L.stateForScene('least-squares-fit',p), target=L.leastSquaresState(lesson,p);
+    view.drawScene('least-squares-fit',p); const result=formula.draw(state), group=host.children[0];
+    if(p<.07) {
+      assert.equal(result.equation,previous.equation);assert.equal(result.note,previous.note);
+      near(group.style.opacity,target.overview);
+    } else {
+      assert.equal(result.equation,L.formulas.finalPrepare);near(group.style.opacity,target.textAlpha);
+    }
+    if(+group.style.opacity>0&&p>=.07) near(get('data-frequency-map').attrs.opacity,0);
+    const snapshot=[host.attrs['data-formula-mode'],group.innerHTML,group.style.opacity,get('data-frequency-map').attrs.opacity];
+    if(snapshots.has(p))assert.deepEqual(snapshot,snapshots.get(p));else snapshots.set(p,snapshot);
+  }
+  assert.deepEqual(h.errors,[]);
 });
 
 test('the adopted matrix receives measured phases before its inverse is revealed', () => {

@@ -7,7 +7,7 @@
   <title>SIM Motion · 从样品到超分辨重建</title>
   <link rel="stylesheet" href="web/motion/sim-motion.css?v=centered-observation-expansion-8">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=fit-story-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=fairsim-getpeak-1">
 </head>
 <body>
 <div class="app" id="app">
@@ -369,14 +369,14 @@
   <div class="theory-equation" data-equation="$$\widetilde A_{\pm1}(\mathbf f)=m e^{\pm i\phi_\Delta}A_{\pm1}(\mathbf f)$$"></div>
   <p>0 级在 q 与 +1 级在 q+k 都记录了 S(q)。第 15 步先筛选可靠公共区，再对每份记录先乘自身 OTF 的共轭，随后除以自身的模平方。星号表示复共轭；对非零 H：</p>
   <div class="theory-equation" data-equation="$$H^*(HS)=|H|^2S,\qquad\frac{H^*(HS)}{|H|^2}=\frac{HS}{H}=S,\quad H\ne0$$"></div>
-  <p>第一步抵消 OTF 的相位，但仍留下 |H|² 的幅度因子。动画在这里停留，再引入分母，让相同的模平方约去；完成两步后才将校正结果收成 U、V。补偿幅条已移除。</p>
+  <p>第一步抵消 OTF 的相位，但仍留下 |H|² 的幅度因子。动画在这里停留，再引入分母，让相同的模平方约去；完成两步后才将校正结果收成 U、V。这是把一次复数除法展开来讲：本地 fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java</a> 第 278—286 行对保留频点直接调用 div(weight0/weight1)；<a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/linalg/Cplx.java">Cplx.java</a> 第 378—386 行以“乘倒数”实现除法，倒数正是 H*/|H|²。</p>
   <div class="theory-equation" data-equation="$$\begin{aligned}U(\mathbf q)&=\frac{H^*(\mathbf q)\widetilde A_0(\mathbf q)}{|H(\mathbf q)|^2},\\V_{\mathbf k'}(\mathbf q)&=\frac{H^*(\mathbf q+\mathbf k')\widetilde A_{+1}(\mathbf q+\mathbf k')}{|H(\mathbf q+\mathbf k')|^2}.\end{aligned}$$"></div>
   <p>U、V 在这里表示完成自身 OTF 校正的标量频谱值；前面的 Ũ 表示临时分离矩阵。固定 q 处的 U 不变，改变候选时重新取旁带与其 OTF，并重新筛选公共区。记 H₀=H(q)、H₁=H(q+k)，在正确候选、无噪声模型下：</p>
   <div class="theory-equation" data-equation="$$\begin{aligned}U(\mathbf q)&=\frac{H_0^*(H_0S)}{|H_0|^2}=S(\mathbf q),\\V_{\mathbf k}(\mathbf q)&=\frac{H_1^*(m e^{i\phi_\Delta}H_1S)}{|H_1|^2}=m e^{i\phi_\Delta}S(\mathbf q)=m e^{i\phi_\Delta}U(\mathbf q).\end{aligned}$$"></div>
   <p>这个等价关系对一般非零复 OTF 也成立。本页采集使用实数非负 OTF，但公式保留共轭符号。只在两边 |H| 都达到阈值的公共区内相除；含噪声观测 HS+N 校正后仍有 N/H，不能理解成去除了噪声。</p>
-  <p>先用归一化复数相关寻找波矢并在峰附近细化，再用锁定位移后的校正值拟合共同幅相：</p>
-  <div class="theory-equation" data-equation="$$\widehat m e^{i\widehat\phi_\Delta}=\frac{\sum_{\mathbf q\in\Omega}U^*(\mathbf q)V_{\widehat{\mathbf k}}(\mathbf q)}{\sum_{\mathbf q\in\Omega}|U(\mathbf q)|^2}$$"></div>
-  <p>这里对 U 取共轭，是为累计两份校正数据的相关；第 15 步对 H 取共轭，是为展开自身 OTF 校正。后面的 Wiener 重建还会用 H* 加权后合并多个频带，并使用总模平方与正则项作分母；不能把那一阶段的分母替换成本步的逐频带 |H|²。</p>
+  <p>先用教学归一化复数相关寻找波矢并在峰附近细化。第 19 步另按本地 fairSIM 的最终 getPeak 路径准备工作副本，在空域计算共同幅相：</p>
+  <div class="theory-equation" data-equation="$$\widehat\alpha=\frac{\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r)}{\sum_{\mathbf r}|u(\mathbf r)|^2},\qquad\widehat m=|\widehat\alpha|,\quad\widehat\phi_\Delta=\arg\widehat\alpha$$"></div>
+  <p>第 19 步对空域参考场 u 取共轭，是为累计两路计算场的相关；第 15 步对 H 取共轭，是为展开自身 OTF 校正。后面的 Wiener 重建还会用 H* 加权后合并多个频带，并使用总模平方与正则项作分母；不能把那一阶段的分母替换成本步的逐频带 |H|²。</p>
   <p>临时分离已补偿余弦展开的 1/2，因此模长直接给 m。非等间隔相移需要另估各帧相位；弱公共区、噪声和 OTF 误差会影响估计。</p>
   <p>第 16 步只演示直接计算：每选一个候选 k′，扫过其可靠公共区，把对应复数值共轭相乘再求和；取模并按两边能量归一化，得到该格的匹配分数。先逐格看清，再加速填满图。主线不再展开最小二乘目标、最优系数和残差推导。</p>
   <div class="theory-equation" data-equation="$$C(\mathbf k')=\sum_{\mathbf q\in\Omega(\mathbf k')}U^*(\mathbf q)V_{\mathbf k'}(\mathbf q),\qquad\rho(\mathbf k')=\frac{|C(\mathbf k')|}{\sqrt{\sum_{\Omega}|U|^2\sum_{\Omega}|V_{\mathbf k'}|^2}}$$"></div>
@@ -414,13 +414,16 @@
     <div class="theory-equation" data-equation="$$k'_{r,a}=c_{r,a}+\frac{j-2}{2}s_r,\quad j=0,\ldots,4,\quad a\in\{x,y\},\qquad s_r\in\{0.50,0.10,0.02\},\quad h_r=\frac{s_r}{2}\in\{0.25,0.05,0.01\}$$"></div>
     <p>每轮最高分成为下一轮中心，范围缩小 5 倍。0.01 格是最后一轮搜索步长，不是测量误差保证。推导采用 <a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">NumPy 的正逆 DFT 定义</a>；实现对应 <a href="web/atlas/sim-atlas-core.js">sim-atlas-core.js 的 shift</a> 和 <a href="web/shared/sim-parameter-estimation.js">教学估计器 compare、estimate</a>。原版 fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">fitPeak</a> 同样逐候选移频后计算相关，但使用三轮 10×10 与不同半宽、预处理和评分。</p>
   </details>
-  <details class="parameter-correlation-detail"><summary>第 19 步：为什么相位是旋转，调制度是伸缩？</summary>
-    <p>位置正确对齐并完成各自的 OTF 校正后，两边包含相同的 S(q)。以下省略已锁定位移的下标；无噪声模型给出：</p>
-    <div class="theory-equation" data-equation="$$U_j=S(\mathbf q_j),\qquad V_j=m e^{i\phi_\Delta}U_j$$"></div>
-    <p>用欧拉公式展开复数乘法，可见它正好对应实部–虚部平面的旋转矩阵，再乘实数 m：</p>
-    <div class="theory-equation" data-equation="$$e^{i\phi_\Delta}=\cos\phi_\Delta+i\sin\phi_\Delta,\qquad\begin{bmatrix}\operatorname{Re}V_j\\\operatorname{Im}V_j\end{bmatrix}=m\begin{bmatrix}\cos\phi_\Delta&-\sin\phi_\Delta\\\sin\phi_\Delta&\cos\phi_\Delta\end{bmatrix}\begin{bmatrix}\operatorname{Re}U_j\\\operatorname{Im}U_j\end{bmatrix}$$"></div>
-    <p>指数因子的模为 1，只把角度加上 φΔ；非负实数 m 只把长度乘 m。各个点自身的相位 θⱼ 可以不同，但角度差与长度比相同。有噪声时这个关系近似成立，用全部可靠点拟合；动画主线的拟合相位接近 0，所以先展示带明确标注的试探角度，再回到实测拟合值。</p>
-    <p>第 18 步的空间相位斜坡随像素位置变化，用于小数频移；第 19 步的共同相位处处相同，改变复数值。在照明中，φΔ 控制条纹位置、m 控制对比度；在复平面中，它们对应旋转与伸缩，频点 q 和条纹方向保持固定。</p>
+  <details class="parameter-correlation-detail"><summary>第 19 步：fairSIM 的最终 getPeak 实际计算什么？</summary>
+    <p>位置锁定后，从未校正的临时频带重新复制两路工作数据。按最终位移筛选可靠 OTF 并执行源码的径向排除；只在保留位置除以各自 H，其他位置直接置零，得到各自原生检测坐标中的 B₀、B₁。准备的是新副本，没有对前面已校正的 U、V 再除一次 H。最终掩膜与前面位置搜索的教学公共区不同，频域保留点数也不同。</p>
+    <div class="theory-equation" data-equation="$$B_b(\mathbf f)=\begin{cases}\widetilde A_b(\mathbf f)/H(\mathbf f),&amp;M_b(\mathbf f;\widehat{\mathbf k})=1,\\0,&amp;\text{其他},\end{cases}\quad b\in\{0,+1\}$$"></div>
+    <p>接着两路逆 FFT；旁带空域场乘已锁定位移对应的单位模相位斜坡。这里 r=(x,y) 是空域像素索引。本页 y 向下、正变换用负指数，转换后斜坡为负号；源码的峰参数为 (−k̂ₓ,+k̂ᵧ)。</p>
+    <div class="theory-equation" data-equation="$$u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\},\qquad v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}$$"></div>
+    <p>在同一个 r 处，分别形成共轭乘积 z 和参考能量 e。两路遍历全部 N² 个空域位置，包括零贡献项。完整累计结束后再相除，并由同一个复系数读取模长和相角。</p>
+    <div class="theory-equation" data-equation="$$z(\mathbf r)=u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r),\quad e(\mathbf r)=|u(\mathbf r)|^2,\quad C=\sum_{\mathbf r}z(\mathbf r),\quad E_0=\sum_{\mathbf r}e(\mathbf r),\quad\widehat\alpha=\frac C{E_0}$$"></div>
+    <div class="theory-equation" data-equation="$$\widehat m=|\widehat\alpha|,\qquad\widehat\phi_\Delta=\arg\widehat\alpha,\qquad\widehat\phi_j=\phi'_j+\widehat\phi_\Delta$$"></div>
+    <p>三相相对步进必须已知且准确；临时旁带权重的 2/3 已补偿余弦的 1/2，所以模长直接给出调制度，不再乘 2。图像显示实际数组的对数模长与复数相角，用于计算的 u、v 不是最终样品强度图。主线相位为 0 时显示实际 0，不编造试探旋转。</p>
+    <p>本轮只迁移最终幅相路径，前面的固定预处理评分、整数峰和三轮 5×5 仍是教学位置搜索，不能据此称整个 fairSIM 估计器已移植。依据本地 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java</a> 第 199—217、242—297 行（复制、commonRegion、逆 FFT、fourierShift、timesConj、sumElements/norm2），以及 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 第 290—308 行（最终阈值 0.05、dist=0.15、phase/hypot）。计算使用本页 OTF 与双精度 FFT，保留源码对小数位移的整数索引径向排除规则。完整分镜与坐标约定见<a href="web/motion/plans/2026-10-17-fairsim-getpeak-storyboard.md">最终 getPeak 分镜</a>。</p>
   </details>
   <p>横纵分量组成同一个二维候选。小数频移通过傅里叶平移定理计算，对应 OTF 也在小数坐标取值。这里 N 为每轴采样数，频率单位为 DFT 格：</p>
   <div class="theory-equation" data-equation="$$a=\mathcal F_N^{-1}\{\widetilde A_{+1}\},\qquad\mathcal F_N\left\{a[x,y]e^{-\frac{2\pi i}{N}(k'_x x+k'_y y)}\right\}(\mathbf q)=\widetilde A_{+1}(\mathbf q+\mathbf k')$$"></div>
@@ -430,12 +433,10 @@
     <p>峰的位置 2 给出这个教学例的位移，峰高 21 是原始乘积和。下一步直接回到原来的二维频谱、公共区和 P、Q、R：位置有横纵两个分量，频点值由实际观测计算，还需处理 OTF 衰减和复数相位。教学位移与分数不带入原图。</p>
   </details>
   <p>此处运行的是教学估计器：固定预处理后由 FFT 批量计算整数候选的相关与归一化分数，再以 5×5 网格逐轮细化。第 16 步的逐点扫描用于讲清同一计算的直接定义，并用独立数值对照验证。固定 fairSIM 源码的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">commonRegion</a> 对保留数据直接除以各自的 OTF；本页将这一除法展开为先乘 H*、再除以 |H|² 的等价演示，并非源码中顺次调用两个函数。本页的预处理、掩膜、分数与 fitPeak 网格不完全相同，不是原版的逐行复刻。成像模型依据：<a href="https://doi.org/10.1038/ncomms10980" target="_blank" rel="noopener">Müller et al. (2016)，Supplementary Note 1 ↗</a>。源码调用顺序见 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 的临时分离、参数拟合和正式重建；项目内有<a href="Wiener-SIM/fairSIM-论文/fairSIM_参数估计逐步推导与代码实操.md">推导与源码对照</a>及<a href="scripts/fairsim-parameter-estimation/README.md">原版估计器实操</a>。</p>
-  <details class="parameter-correlation-detail"><summary>第 19 步：共同复系数为什么是最小二乘解？</summary>
-    <p>锁定波矢后，在同一个可靠公共区定义 C=ΣU*V、Eᵤ=Σ|U|²、Eᵥ=Σ|V|²。把残差平方和展开并配平方，第一项只在 α=C/Eᵤ 时为零：</p>
-    <div class="theory-equation" data-equation="$$J(\alpha)=\sum_\Omega|V-\alpha U|^2=E_U\left|\alpha-\frac C{E_U}\right|^2+E_V-\frac{|C|^2}{E_U}$$"></div>
-    <div class="theory-equation" data-equation="$$\widehat\alpha=\frac C{E_U},\qquad\widehat m=|\widehat\alpha|,\qquad\widehat\phi_\Delta=\arg C,\qquad\frac{J(\widehat\alpha)}{E_V}=1-\rho^2$$"></div>
-    <p>临时旁带权重中的 2/3 已补偿余弦展开的 1/2，所以模长直接给出调制度。关系 V=αU 在理想对齐、无噪声时严格成立；实际拟合保留噪声和错位残差。此处已假设三帧相对相移准确，不能把任意逐帧误差吸收到一个共同相位中。</p>
-    <p>fairSIM 的 getPeak 在最终位移处重新处理公共区，计算共轭乘积和并除以零级能量，再由 SimAlgorithm 读取相角和模长。旋转动画只解释复数乘法，不是源码迭代求解的轨迹。<a href="web/motion/plans/2026-10-17-fairsim-common-coefficient-fit.md">查看本轮审阅、推导与分镜</a>。</p>
+  <details class="parameter-correlation-detail"><summary>理论补充：同一个比值为何也是复数最小二乘解？</summary>
+    <p>固定已准备的空域计算场，令 E₁=Σ|vₖ|²。展开残差平方和再配平方：</p>
+    <div class="theory-equation" data-equation="$$J(\alpha)=\sum_{\mathbf r}|v_{\widehat{\mathbf k}}-\alpha u|^2=E_0\left|\alpha-\frac C{E_0}\right|^2+E_1-\frac{|C|^2}{E_0}$$"></div>
+    <p>E₀&gt;0 时，唯一最小值在 α̂=C/E₀ 取得。这是对同一比值的代数解释；主线按源码直接计算乘积和、参考能量和与除法，不把动画画成试探角度或反复优化残差的轨迹。噪声、OTF 和位置误差仍会影响结果。</p>
   </details>
   <h3>从样品 Sample 到样品频谱 Spectrum</h3>
   <p>s(r) = s(x, y) 表示像素位置 r = (x, y) 处的样品强度。二维离散傅里叶变换（Discrete Fourier Transform，DFT）把这些像素展开到不同频率的基函数上；S(q) = S(qₓ, qᵧ) 是频率 q 对应的复数系数，包含幅度和相位。FFT（Fast Fourier Transform）是计算 DFT 的快速算法。</p>
@@ -566,18 +567,18 @@
 <script src="web/shared/sim-experiment.js"></script>
 <script src="web/shared/sim-band-formulas.js?v=inline-coefficients-6"></script>
 <script src="web/atlas/sim-atlas-core.js"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=scan-fft-1"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=fairsim-getpeak-1"></script>
 <script src="web/parameter-demo/sim-parameter-model.js?v=scan-fft-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=fit-story-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=fairsim-getpeak-1"></script>
 <script src="web/parameter-demo/sim-parameter-refinement-view.js?v=fit-story-1"></script>
 <script src="web/parameter-demo/sim-parameter-line-view.js?v=return-2d-1"></script>
-<script src="web/parameter-demo/sim-parameter-fit-view.js?v=fit-story-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=fit-story-2"></script>
+<script src="web/parameter-demo/sim-parameter-fit-view.js?v=fairsim-getpeak-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=fairsim-getpeak-1"></script>
 <script src="web/motion/sim-motion-parameter-chapter.js?v=fit-story-1"></script>
 <script src="web/motion/sim-motion-parameter-view.js?v=fit-story-1"></script>
 <script src="web/motion/sim-motion-model.js?v=actual-weight-extraction-4"></script>
 <script src="web/motion/sim-motion-stages.js?v=order-symbols-1"></script>
 <script src="web/motion/sim-motion-fourier.js?v=fourier-pair-3"></script>
-<script src="web/motion/sim-motion.js?v=fit-story-1"></script>
+<script src="web/motion/sim-motion.js?v=fairsim-getpeak-1"></script>
 </body>
 </html>

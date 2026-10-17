@@ -39,7 +39,7 @@
       if(s.id==='refine'||s.id==='least-squares-fit') {
         const copy=root.SIMParameterLesson[s.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.progress);
         $('pe-title').textContent=copy.title;$('pe-copy').textContent=copy.copy;
-        $('pe-svg-title').textContent=copy.title;$('pe-svg-description').textContent=copy.copy+' '+data.note;
+        $('pe-svg-title').textContent=copy.title;$('pe-svg-description').textContent=copy.copy+' '+(copy.note||P.formulaAt(s).note);
       }
       const formula = formulaView.draw(s);
       if (note !== formula.note) { note = formula.note; $('pe-note').textContent = note; }

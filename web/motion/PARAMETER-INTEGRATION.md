@@ -12,13 +12,13 @@
 | 12 | parameters.shared | 真实 k 的推导，频谱重叠、分开、框出公共区，浮现 P、Q、R |
 | 13 | parameters.line-shift | 一维移动与逐列乘积和 |
 | 14—18 | parameters.shift 至 parameters.refine | 二维频谱、OTF、可靠公共区、相关峰、局部细化 |
-| 19 | parameters.least-squares-fit | 共同系数、同步旋转伸缩、全部可靠点最小二乘、参数卡片 |
+| 19 | parameters.least-squares-fit | 最终工作频带、两路逆 FFT、空间位移斜坡、共轭乘积与能量、全场累计、相除、读取幅相 |
 | 20 | adopted-weights | 汇合三个方向的估计，回填 M 并计算实际 U |
 | 21 | separate-bands | 三行实际权重作用于同一组三帧，形成正式频带 |
 | 22—23 | relocate-bands、recover-high-frequency | 按估计波矢归位，回到高频点 |
 | 24—33 | directions 至 frequency-audit | 三方向覆盖、OTF 融合、逆 FFT、图像与频率评价 |
 
-第 19—20 幕以[2026-10-17 审阅与实现](plans/2026-10-17-fairsim-common-coefficient-fit.md)为准：原四幕合为一个 64 秒的最小二乘场景；28 秒回填矩阵后直接正式分离，删除回看条纹。
+第 19 幕以[2026-10-17 fairSIM getPeak 分镜](plans/2026-10-17-fairsim-getpeak-storyboard.md)为准：80 秒七拍，按本地源码的最终幅相计算顺序推进。内部 ID 保持兼容；第 20 幕仍用 28 秒回填矩阵后直接正式分离，删除回看条纹。此前的最小二乘分镜作为历史记录保留，不再是当前主线。
 
 ## 数据连接
 
@@ -40,6 +40,8 @@ const lesson = SIMMotion.createLesson({ capture, pipeline: reconstruction.pipeli
 估计器只接收观测像素、名义相对相移和 OTF 配置；不读生成图像时的波矢、调制度、相位元数据或样品真值。各方向估计的相位、调制度和波矢实际进入 `SIMAtlas.pipeline`。归位动画、覆盖圆及参数表读取这份 pipeline。物理成像说明可以使用模拟采集真值；样品真值不进入估计或融合，只用于最终评价。
 
 主线详细解释方向 1，计算全部三个方向。章节的临时频带来自 `chapter.lesson.estimate.context.separated.bands`；正式频带来自 `reconstruction.pipeline`。`pipeline.raw` 中仍引用原相机像素；校准层可以产生自己的计算数组。
+
+最终幅相使用 `estimate.finalPeak`：`prepared` 是从原始临时频带重新准备的工作副本，`spatial` 是两路逆 FFT，`shifted` 是旁带乘已知位移斜坡后的场，`product/energy/sums` 提供逐点乘积、参考能量及完整空域前缀和。`estimate.m/phase/phases` 直接取自这个结果，因此第 19 幕读数、第 20 幕矩阵和后续重建一致。旧 `estimate.fit` 仍属于位置搜索的可靠公共区比较，不与最终累计量混用。
 
 缺少方向、失败估计、观测不一致或调制度触发核心回退时，初始化报错，不悄悄改回预设参数。
 
@@ -156,7 +158,7 @@ $$
 
 理论依据：[fairSIM 2016 Supplementary Note 1](https://doi.org/10.1038/ncomms10980)。源码顺序见 [SimAlgorithm.java](../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java) 181—190 行的临时分离、601—603 行的正式分离及后续归位；[BandSeparation.java](../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java) 构建矩阵并累加加权观测。
 
-当前运行教学估计器：公共区自身 OTF 校正（先乘 H* 再除以 |H|²）、FFT 批量归一化相关、整数峰定位和 5×5 局部细化。FFT 计算与直接定义逐格等价；预处理、掩膜及 fitPeak 网格不是 fairSIM 原版的逐行复刻。详见[参数估计推导与源码对照](../../Wiener-SIM/fairSIM-论文/fairSIM_参数估计逐步推导与代码实操.md)。
+位置搜索仍采用教学实现：公共区自身 OTF 校正、FFT 批量归一化相关、整数峰定位和 5×5 局部细化。最终幅相则按本地 `commonRegion/getPeak` 实现，包括二维两束分支的 0.05 OTF 阈值、0.15 径向排除及整数旁带索引规则。页面沿用自己的圆形 OTF 和双精度 FFT；不能把整套估计器声称为原版逐行复刻。详见[源码分镜与数值核验](plans/2026-10-17-fairsim-getpeak-storyboard.md)。
 
 `npm run check` 包含生产 HTML 全部脚本的模拟 DOM 接线测试：33 步往返、完整估计动画、暂停与重播、减少动态效果、同一批原始像素及估计参数进入重建、相关分数与图坐标、连续比例箭头、实际逆矩阵权重、逐行高亮、系数与说明互斥、恢复与收拢、临时旁带的正负相位和符号跳动与说明互斥、标称值对照的真实重建、负值和误差主频、矩阵重现与单个权重抽出、系数分步展开及双色因子路径、同一权重归位、矩阵项飞入与观测配对、飞入节点保留、局部系数原位替换及临时输出同步、三行临时矩阵重组与向量收拢、主舞台与公式栏同步、中央公式的观测代入及对角响应、同一批 H/S/系数展开为频带、单一 132 秒分镜，以及独立 Demo 的既有测试。原 24 场景的详细几何测试通过测试替身隔离时间轴；生产时间轴直接跳过证明段，进入正式解混面板后再淡入，避免跳过的证明闪现。按项目约定不启动浏览器、不截图、不做视觉或布局验收。
 
@@ -172,8 +174,8 @@ $$
 
 第 18 步为 68 秒的 gridLimit / phaseRamp / zoomCascade / returnSpectrum 四段，边界为 0.22、0.56、0.935。整数格放大后的等高线来自同一观测的 21×21 局部实际分数，不读取真值或绘制人为偏移靶心。三栏用同一候选驱动空域相位斜坡、FFT 后复数频谱、同移 OTF、可靠公共区与第一轮评分。后半段局部网格移到中央，按实际三轮 5×5 数据与赢家继续缩进；第二、三轮边界为 0.70、0.85，第三轮在 0.915 完成。最终 0.01 格标注为搜索步长。锁定后局部网格退场，复用原 `frequency`、`sharedRoot`、OTF、公共点及复数箭头展开完整图像，结束时与第 19 步 least-squares-fit(0) 的位置和数值一致；全过程 k̂ 固定，不重新估计或替换纹理。顶部标题、说明、公式、画面和独立参数页共用相同状态；第 17 步的共轭乘积与第 18 步的旁带相位调制在公式及注文中明确区分。专用视图为 `sim-parameter-refinement-view.js`，复数调制和有限 Fourier 求和经过独立数值对照。
 
-第 19 步固定波矢与公共区，保留原频谱并缩成参考图。P、Q、R 先各自显示实际 U、V，再合入同一个 Re–Im 平面，同步试探旋转与伸缩；展开全部可靠点，累计 C 与 E_U，显示闭式解和真实残差，最后拆出参数卡片。第 20 步直接回填矩阵，原来的条纹回看已删除。
+第 19 步从第 18 步的完整概览开始，旧概览退出后显示两份最终工作频带，分别逆 FFT，再按锁定波矢对旁带应用空间相位斜坡。取同一个实际空域位置解释共轭乘积和参考能量，然后累计全部 N² 个位置；全部累加完成才显示相除结果，再读取模长和相角。公式和讲解跟随同一七拍状态。P/Q/R、试探旋转、残差点云、arg min 和归一化残差恒等式均退出主线。第 20 步直接回填矩阵。
 
-主线原有采集的共同相位约为 0，独立页为 0.35 rad；两个入口保持各自原观测。旋转幕明确区分试探角度与实际拟合角度，不为制造转动而伪造观测相位。
+主线原有采集的共同相位约为 0，独立页为 0.35 rad；两个入口保持各自原观测。相位斜坡中的示例位置和复数箭头来自实际空域数组，不为制造转动而修改观测相位。
 
-生产定义和纯状态位于 `../parameter-demo/sim-parameter-two-stage.js`，图形和持久公式位于 `sim-parameter-two-stage-view.js`，共同系数拟合视图位于 `sim-parameter-fit-view.js`，桌面样式位于 `sim-parameter-two-stage.css`。`sim-parameter-line-view.js` 恢复主线中的一维教学，复用已经校验过的教学数值计算；完整页「原理与数值」保留相应手算表。详细依据与分镜见[方案](plans/2026-10-16-parameter-estimation-two-stage-story.md)。
+生产定义和纯状态位于 `../parameter-demo/sim-parameter-two-stage.js`，图形和持久公式位于 `sim-parameter-two-stage-view.js`，最终 getPeak 视图位于 `sim-parameter-fit-view.js`，桌面样式位于 `sim-parameter-two-stage.css`。`sim-parameter-line-view.js` 恢复主线中的一维教学，复用已经校验过的教学数值计算；完整页「原理与数值」保留相应手算表。第 19 幕依据与分镜见[最新方案](plans/2026-10-17-fairsim-getpeak-storyboard.md)。

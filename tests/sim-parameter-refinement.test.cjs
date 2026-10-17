@@ -169,5 +169,15 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   lessonView.drawScene('least-squares-fit',0);
   assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'18 ends in the exact frequency and complex-value pose used by 19 at entry');
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined),originalImages,'the handoff never replaces spectrum nodes');
+  for(const p of [.2,.32,.52,.82]) {
+    lessonView.drawScene('least-squares-fit',p);
+    near(get('data-frequency-map').attrs.opacity,0);
+    for(const name of ['P','Q','R']) near(nodes.find(n=>n.attrs['data-complex-plane']===name).attrs.opacity,0);
+  }
+  assert.equal(nodes.find(n=>n.attrs['data-fit-cloud']!==undefined),undefined,'obsolete P/Q/R fit actors are removed');
+  const peak=get('data-get-peak');
+  assert.equal(+peak.attrs['data-total'],chapter.lesson.estimate.finalPeak.count,'final accumulation uses the full spatial grid');
+  lessonView.drawScene('refine',1);
+  assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'reverse restores all overview actors');
   assert.deepEqual(h.errors,[]);
 });

@@ -42,21 +42,28 @@
     local: String.raw`$$k'_{r,a}=c_{r,a}+\frac{j-2}{2}s_r,\quad j=0,\ldots,4,\quad a\in\{x,y\},\qquad s_r\in\{0.50,0.10,0.02\}\ \text{格}$$`,
     lockedAddresses: String.raw`$$\mathbf k'=\widehat{\mathbf k},\qquad\widetilde A_0(\mathbf q)\ \longleftrightarrow\ \widetilde A_{+1}(\mathbf q+\widehat{\mathbf k})$$`,
     coefficient: String.raw`$$U_j=S(\mathbf q_j),\qquad V_j=m e^{i\phi_\Delta}U_j$$`,
-    relationModel: String.raw`$$\begin{gathered}U_j=\frac{\widetilde A_0(\mathbf q_j)}{H(\mathbf q_j)}=S(\mathbf q_j),\qquad V_j=\frac{\widetilde A_{+1}(\mathbf q_j+\widehat{\mathbf k})}{H(\mathbf q_j+\widehat{\mathbf k})},\\V_j\simeq\alpha U_j,\qquad\alpha={\color{#efb879}m}e^{i{\color{#b7a5eb}\phi_\Delta}},\quad\mathbf q_j\in\Omega\end{gathered}$$`,
-    complexPlaneTransform: String.raw`$$e^{i\phi_\Delta}=\cos\phi_\Delta+i\sin\phi_\Delta,\qquad\begin{bmatrix}\operatorname{Re}V_j\\\operatorname{Im}V_j\end{bmatrix}\simeq {\color{#efb879}m}\underbrace{\begin{bmatrix}\cos\phi_\Delta&-\sin\phi_\Delta\\\sin\phi_\Delta&\cos\phi_\Delta\end{bmatrix}}_{\text{同步旋转 }\phi_\Delta}\begin{bmatrix}\operatorname{Re}U_j\\\operatorname{Im}U_j\end{bmatrix}$$`,
-    leastSquaresFit: String.raw`$$\widehat\alpha=\operatorname*{arg\,min}_{\alpha\in\mathbb C}\underbrace{\sum_{\mathbf q\in\Omega}|V(\mathbf q)-\alpha U(\mathbf q)|^2}_{J(\alpha)}=\frac{\overbrace{\sum_\Omega U^*V}^{C}}{\underbrace{\sum_\Omega|U|^2}_{E_U}}$$`,
-    fit: String.raw`$$J(\alpha)=E_U\left|\alpha-\frac C{E_U}\right|^2+E_V-\frac{|C|^2}{E_U},\qquad\frac{J(\widehat\alpha)}{E_V}=1-\rho^2$$`,
-    readParameters: String.raw`$$\widehat\alpha={\color{#efb879}\widehat m}e^{i{\color{#b7a5eb}\widehat\phi_\Delta}},\quad {\color{#efb879}\widehat m}=|\widehat\alpha|,\quad {\color{#b7a5eb}\widehat\phi_\Delta}=\arg C,\qquad\widehat\phi_j=\frac{2\pi j}{3}+\widehat\phi_\Delta$$`,
+    // Final getPeak is a separate source-faithful pass over fresh band copies.
+    // It deliberately does not reuse the location search's corrected pairs.
+    finalPrepare: String.raw`$$\bigl(\widetilde A_0,\widetilde A_{+1}\bigr)\xrightarrow[\text{最终位移 }\widehat{\mathbf k}]{\text{复制、筛选与校正}}\bigl(B_0,B_1\bigr)$$`,
+    finalInverse: pairFormula(String.raw`u=\mathcal F_N^{-1}\{B_0\}`, String.raw`v=\mathcal F_N^{-1}\{B_1\}`),
+    finalShift: String.raw`$$v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)\,{\color{#efb879}e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}}$$`,
+    finalProduct: String.raw`$$ {\color{#efb879}z(\mathbf r)}={\color{#7ad5cd}u^*(\mathbf r)}\,{\color{#b7a5eb}v_{\widehat{\mathbf k}}(\mathbf r)},\qquad {\color{#7ad5cd}e(\mathbf r)}=|u(\mathbf r)|^2$$`,
+    finalSum: String.raw`$$ {\color{#efb879}C}=\sum_{\mathbf r}z(\mathbf r),\qquad {\color{#7ad5cd}E_0}=\sum_{\mathbf r}e(\mathbf r),\qquad \mathbf r\in\{0,\ldots,N-1\}^2$$`,
+    finalDivide: String.raw`$$\widehat\alpha=\frac{{\color{#efb879}C}}{{\color{#7ad5cd}E_0}}$$`,
+    finalRead: String.raw`$$ {\color{#efb879}\widehat m}=|\widehat\alpha|,\qquad {\color{#b7a5eb}\widehat\phi_\Delta}=\arg\widehat\alpha,\qquad \widehat\phi_j=\phi'_j+\widehat\phi_\Delta$$`,
+    // Optional theory only; never a trial-solving trajectory in scene 19.
+    fit: String.raw`$$J(\alpha)=E_0\left|\alpha-\frac C{E_0}\right|^2+E_1-\frac{|C|^2}{E_0}$$`,
+
   };
   const definitions = [
     ['shared', '找公共区', '同一样品频率，在两个级次中记录在哪里？', '0 级在检测坐标 f=q 记录 S(q)，+1 级在 f=q+k 记录同一分量。真实 k 尚未知；试用 k′ 时，比较 Ã₀(q) 与 Ã₊₁(q+k′)，并只保留两处 OTF 都达到阈值的频点。', 'region', 'k 是真实未知波矢，k′ 是候选，k̂ 是估计值。画面用 k′=k 演示正确对应，不能由单个点的示意确定 k；后面会用公共区内多个频点的复数匹配搜索。OTF 阈值只筛选可比较的通带，还须检查有效点数与信号能量。', 28000],
     ['line-shift', '沿一行对齐', '沿一行移动，找出对齐的位置。', '一维示例中，同一组 1、4、2 在两份记录里相差两格。不同位移下，将对应格的数值相乘再求和；三项对齐时，乘积和达到峰值。', 'real', '教学值不替代原图三个点的读数。这里 H=1、m=1、共同相位为 0；范围外补零。原始乘积和用于讲运算，实际搜索还会做能量归一化。', 26000],
     ['shift', '回到二维', '回到二维，横纵一起对齐。', '每个频率有横纵两个坐标。用候选位移 −k′ 搬回旁带时，频谱与 OTF 一起换坐标，在 q+k′ 处取值。只有 k′=k 时，两边才对应同一样品频率。', 'shift', '逐点比较从一行扩展到整个二维公共区。教学位移 2 不带入原图。移回后旁带取值对应 H(q+k′) 与 S(q+k′−k)；画面仅示意 k′=k，真实 k 仍待后续搜索。', 16000],
-    ['otf', '共轭与归一', '先乘自己的 H*，再除以 |H|²。', '保留可靠公共点。每一行先乘自身 OTF 的共轭，让 H*H 合成 |H|²；此时仍带衰减，再除以相同的 |H|²，才得到可比较的 U、V。', 'correct', '两步合起来等价于除以自身 H。只乘 H* 时仍有 |H|²；完成归一化且位移正确时，两边才只差共同幅相 α。筛掉弱 H，可避免不稳定的除法。', 32000],
+    ['otf', '共轭与归一', '先乘自己的 H*，再除以 |H|²。', '将可靠公共区内的 OTF 校正拆开看：先乘自身 H*，再除以 |H|²。这两步合成一次除以自身 H，校正后的值记为 U、V。', 'correct', 'fairSIM 的 commonRegion 在可靠区域直接除以各自 H；动画将同一次除法展开为乘 H*、除 |H|²。只乘 H* 仍有 |H|²；两步完成后才得到校正值。', 32000],
     ['match', '逐格填分数', '试一个位移，算一个分数，填一个格。', '保持 0 级固定。每换一个 k′，就在公共区逐点共轭相乘、累计，再把分数送入右侧对应格。先看清几次计算，再加速填满候选图。', 'match', '主线只保留乘加与填图。匹配分数取乘积和的模并做能量归一化；越亮表示匹配越强，深色格未纳入搜索。', 36000],
     ['coarse', 'FFT 一次成图', '换到空域，只乘一次，算出整张图。', '原有元素先变暗。两个未平移频带各自校正、圈外置零，分别逆 FFT；在同一空域位置逐点共轭相乘，扫出乘积图，再正 FFT、归一化，让结果归位到同一评分图。', 'fftCorrelation', '图中 u、v 是固定预处理频谱的逆变换，仍为复数场。分数的能量与有效点数也用 FFT 批量计算，保持和逐格扫描相同的色标与结果。', 44000],
     ['refine', '细化位移', '整数峰只给出初值，波矢也可落在频率格之间。', '接住上一幕的整数峰，放大其周围 ±0.5 个 DFT 格。用空域相位斜坡计算小数位移处的频谱，再做三轮 5×5 局部搜索，最终搜索步长为 0.01 格；锁定后回到同一对完整频谱。', 'gridLimit', '教学实现采用三轮 5×5（步长 0.25 → 0.05 → 0.01 格）；原版 fairSIM fitPeak 采用三轮 10×10（半宽 2.5 → 0.5 → 0.1 格）。搜索步长不是测量精度。位置锁定后进入共同幅相估计。', 68000],
-    ['least-squares-fit', '共同幅相拟合', '位置对齐并除 H 后，所有公共点共享同一个复系数。', '固定波矢与可靠公共区，沿用 P、Q、R 的实际复数值。先解释同一次旋转和伸缩，再用全部可靠点拟合共同系数，并读出相位与调制度。', 'readParameters', '三相相对步进已知且准确；理想对齐、无噪声时 V=αU，实际拟合保留残差。相位斜坡用于小数频移，共同相位用于复数值旋转。', 64000],
+    ['least-squares-fit', '共同幅相估计', '按最终位移，准备两份幅相计算工作频带。', '从原始临时频带复制数据，在最终位移下筛选并做一次自身 OTF 校正；随后按 fairSIM 的 getPeak 顺序计算共同复系数。', 'finalPrepare', '本幕遵循本地 fairSIM 的最终 commonRegion/getPeak 路径；前面的评分和 5×5 搜索仍是教学实现。三相相对步进已知且准确。', 80000],
   ];
   const scenes = definitions.map(([id, label, title, copy, formula, note, duration], i) => ({ id, label, title, copy, equation: formulas[formula], note, duration,
     chapter: i < 7 ? '① 找位置 / 频率坐标' : '② 求幅相 / 复数值', phase: i < 7 ? 'position' : 'coefficient' }));
@@ -68,8 +75,7 @@
     return { id, step, progress: p, position: step + p, phase: s.phase,
       otfMultiply: id === 'otf' ? otfState(p).multiply : step > index('otf') ? 1 : 0,
       correction: id === 'otf' ? otfState(p).cancel : step > index('otf') ? 1 : 0,
-      rotation: id === 'least-squares-fit' ? ramp(p, .25, .43) : 0,
-      scaling: id === 'least-squares-fit' ? ramp(p, .43, .60) : 0 };
+      rotation: 0, scaling: 0 };
   }
   function reasoningAt(s) {
     const p = Math.round(s.progress*1e12)/1e12;
@@ -113,8 +119,8 @@
         region: '只在两边 |H| 都达到阈值的公共点上校正。H=0 不能相除；H 太小会放大噪声。本幕用 k′=k 示意，搜索时重新筛选。',
         otfSymbols: '省略频率自变量：上行用 H₀*=H*(q)，下行用 H₁*=H*(q+k′)。星号表示复共轭，两行都保留自己的 H。',
         otfMultiply: '一般恒等式 H*H=|H|²。只乘共轭后，原来的 OTF 相位被抵消，但幅度上还留有 |H|²；旁带的未知照明系数 α 保持不动。',
-        otfNormalize: '等式两边同除以各自的 |H|²；右侧分子分母相同，约去后为 1。两步合起来就是除以 H，对一般非零复数 H 也成立。',
-        correct: 'U=S；候选旁带 Vₖ′=m·exp(iφΔ)S(q−k+k′)，只有 k′=k 时样品频率相同。下一幕逐候选累计匹配分数。',
+        otfNormalize: 'H*/|H|²=1/H（H≠0）。两步合成同一次 OTF 校正；fairSIM 对保留频点直接执行这次除法。H=0 或太弱的点先排除。',
+        correct: 'OTF 校正后的值命名为 U、Vₖ′。无噪声时 U=S；只有 k′=k 时，两边才对应同一样品频率。后续用这些校正值比较候选并拟合幅相。',
       };
       return { equation: formulas[mode], note: notes[mode] };
     }
@@ -122,7 +128,7 @@
     if (reasoning) return { equation: reasoning.equation, note: reasoning.note };
     if (s.id === 'least-squares-fit') {
       const narrative = leastSquaresNarrative(p);
-      return { equation: formulas[narrative.mode], note: narrative.note };
+      return { equation: p < .07 ? formulas.lockedAddresses : formulas[narrative.mode], note: narrative.note };
     }
     return { equation: data.equation, note: data.note };
   }
@@ -177,7 +183,7 @@
   }
   function formulaMode(s) {
     const p = s.progress;
-    if (s.id === 'least-squares-fit') return s.id + '-' + leastSquaresNarrative(p).mode;
+    if (s.id === 'least-squares-fit') return s.id + '-' + (p < .07 ? 'handoff' : leastSquaresNarrative(p).mode);
     const reasoning = reasoningAt(s);
     if (reasoning) return reasoning.key;
     return s.id + (s.id === 'shared' ? p < .78 ? '-derive' : p < .94 ? '-common' : '-reliable'
@@ -328,41 +334,88 @@
       }};
     refinementCache.set(lesson,result);return result;
   }
-  // Geometric exploration does not run the estimator: it moves only copies
-  // of U. The measured targets, q addresses, fit and raw frames stay fixed.
+  // Names retain the old scene API for the 33/13-stop host timelines.
+  // Every value below comes from finalPeak, independently of the search pairs.
+  const getPeakBeats = Object.freeze([
+    ['finalPrepare', 0, .12, '准备工作副本', '按最终位移，准备两份幅相计算工作频带。',
+      '先收起位置搜索的概览。从未校正的临时频带复制数据，按锁定波矢准备 B₀、B₁；两张图仍各用自己的检测频率坐标。',
+      'M₀、M₁ 按最终位移筛选两路可靠 OTF，并执行源码的径向排除；保留处各除自身 H，其他位置置零。这是从原始临时频带开始的新工作副本，不是把前面的 U、V 再除一次 H。',
+      '最终工作副本 · 原生检测坐标 · 一次自身 OTF 校正'],
+    ['finalInverse', .12, .28, '两路逆 FFT', '分别逆 FFT，得到两张空域复数计算场。',
+      'B₀、B₁ 在各自原位执行逆 FFT，变成 u、v。亮度显示模长，颜色显示复数相位；计算保留全部实部和虚部。',
+      'F⁻¹ 把每一路完整 N×N 工作频谱变为空域数组。u、v 是用于幅相计算的复数场，不是新的曝光，也不是最终重建的样品强度图。',
+      '两路各自逆 FFT · 数组仍为复数'],
+    ['finalShift', .28, .42, '空间位移斜坡', '旁带乘空间相位斜坡，落实已锁定的位移。',
+      'u 保持不变。先用一个实际位置的箭头解释单位模指数；这个位置的旋转演示完成后，再按行处理整张 v，逐点形成 vₖ。',
+      '指数的相角随 r 线性变化，模长恒为 1。本页 y 向下、正变换用负指数，因此使用 −2π k̂·r/N；它实现已知频移，还没有读取共同照明相位。',
+      'k̂ 已固定 · 单位模乘法改变相角，不改变该像素模长'],
+    ['finalProduct', .42, .58, '同点共轭相乘', '取同一个空域位置，同时算乘积与参考能量。',
+      '两个光标指向同一个实际 r。u 取共轭后乘 vₖ 得到 z；同一位置的 |u|² 得到 e。它们分别送往分子与分母。',
+      'u* 只把虚部变号。z=u*vₖ 保留两路的相对复数关系；e=|u|² 是非负参考能量。动画箭头与读数直接来自当前空域数组，没有试探角度。',
+      '相同 r · 橙色 z 进入分子 · 青色 e 进入分母'],
+    ['finalSum', .58, .80, '全场双路累计', '扫过全部 N² 个位置，分别累计 C 与 E₀。',
+      '先慢看第一个像素的贡献，再按行遍历整张空域网格。复数乘积进入 C，参考能量进入 E₀；两条累计通道分开显示。',
+      'Σ 的范围是完整空域网格，共 N² 个位置，包含零贡献项。C 累加 z 的实部和虚部，E₀ 累加非负的 e；屏幕计数与数值读取同一个完整前缀和，不把频域掩膜点数当成累计次数。',
+      '完整空域网格 · 每个位置参与一次 · 累计完成后才相除'],
+    ['finalDivide', .80, .90, '除以参考能量', '全部累加完成，C 除以 E₀ 得到一个复系数。',
+      '分子保留复数乘积和，分母是实数参考能量。两路进入同一次除法，输出 α̂；这一步才揭示共同复系数箭头。',
+      'E₀>0 时，α̂=C/E₀。分母归一化参考场的能量；没有再除 H，也没有对角度做迭代试探。源码 getPeak 返回这个复数，下一拍才读取相角和模长。',
+      'N² 项已累计 · C ÷ E₀ · 一个共同复系数'],
+    ['finalRead', .90, 1, '读取幅相', '从同一个复系数，读取调制度与共同相位。',
+      '箭头长度给出 m̂，相角给出 φ̂Δ。把共同偏移加到已知相对相移 φ′ⱼ 上，得到各帧相位；锁定波矢独立进入结果卡，接着回填矩阵。',
+      'm̂=|α̂|，φ̂Δ=arg α̂。临时旁带的 2/3 权重已补偿余弦展开的 1/2，模长直接给调制度，不再乘 2。相对步进必须已知且准确；这些参数来自同一组三帧观测。',
+      '模长 → 调制度 · 相角 → 共同相位 · 参数交给解混矩阵'],
+  ].map(row => Object.freeze(row)));
   function leastSquaresNarrative(progress) {
     const p = Math.round(clamp(progress) * 1e12) / 1e12;
-    const mode = p < .25 ? 'relationModel' : p < .60 ? 'complexPlaneTransform' : p < .85 ? 'leastSquaresFit' : 'readParameters';
-    const copy = {
-      relationModel: ['位置对齐并除 H 后，所有公共点共享同一个复系数。', '每个点有自己的样品相位和长度；对应的 Uⱼ、Vⱼ 却应有相同的角度差与长度比。P、Q、R 仍是刚才公共区里的实际频点。', '理想对齐、无噪声时 Vⱼ=αUⱼ；使用估计波矢与带噪观测时近似成立。两边各除自己的 H，且仅使用可靠公共区。'],
-      complexPlaneTransform: ['在复平面上，共同相位是旋转，调制度是伸缩。', p < .43 ? '橙色副本先试探共同角度，再回到拟合方向。三个副本同步转动，长度保持不变；青色参考与紫色观测始终固定。' : '方向对齐后，三个副本同步乘同一个长度比例。白色虚线连接预测与观测，表示残差；有噪声时它不一定消失。', '试探仅演示复数乘法，数值解由后面的闭式拟合给出。主线相位接近 0，不把演示角度当成实测相位。频率坐标 q 与锁定波矢均不变。'],
-      leastSquaresFit: ['用全部可靠公共点做复数最小二乘，一次算出 m̂ 与 φ̂Δ。', '将 P、Q、R 扩展到完整公共区。所有点共用一个 α；累计 C=ΣU*V 与参考能量 Eᵤ，再相除。最小化的是全部残差的平方和。', 'U*V 消去各点自身的样品相位。配平方得 J(α)=Eᵤ|α−C/Eᵤ|²+Eᵥ−|C|²/Eᵤ，因此 α̂=C/Eᵤ；用相同公共区和权重时，J(α̂)/Eᵥ=1−ρ²。'],
-      readParameters: ['取模长得到调制度 m̂，取相角得到共同相位偏移 φ̂Δ。', '临时分离的 2/3 已补偿余弦展开的 1/2，所以 |α̂| 直接给出 m̂。加上已知相对相移，得到各帧相位，再将估计值填回解混矩阵。', '第 18 步的相位斜坡随像素位置变化，用于小数频移；这里的共同相位对所有公共频点相同。采用等间隔三相模型，下面填回正式解混权重。'],
-    }[mode];
-    return { mode, title: copy[0], copy: copy[1], note: copy[2] };
+    const beat = getPeakBeats.find((row, i) => p < row[2] || i === getPeakBeats.length - 1);
+    const [mode, start, end, action, title, copy, note, footer] = beat;
+    return { mode, start, end, action, title, copy, note, footer, beat: getPeakBeats.indexOf(beat),
+      ...(p < .07 ? { title: refinementNarrative(1).title, copy: refinementNarrative(1).copy,
+        action: '位置锁定 · 收起搜索概览', note: reasoningAt({id:'refine',progress:1}).note,
+        footer: 'k̂ 已锁定 · 回到同一对完整频谱 · 下一步比较公共点的共同幅相。' } : {}) };
+  }
+  const peakCache = new WeakMap();
+  function getPeakDataFor(lesson) {
+    if (peakCache.has(lesson)) return peakCache.get(lesson);
+    const peak = lesson.estimate.finalPeak;
+    if (!peak || !peak.valid) throw new Error('共同幅相动画需要有效的 fairSIM finalPeak。');
+    const { n } = peak;
+    // Choose one REAL location with signal and a visible known ramp angle.
+    // This is a teaching cursor, never the subset used for accumulation.
+    let sampleIndex = 0, maximum = -1;
+    for (let i = 0; i < peak.count; i++) {
+      const angle = -2 * Math.PI * (peak.kx * (i % n) + peak.ky * Math.floor(i / n)) / n;
+      const weight = peak.energy[i] * (.05 + Math.abs(Math.sin(angle / 2)));
+      if (weight > maximum) { maximum = weight; sampleIndex = i; }
+    }
+    const value = { peak, sampleIndex };
+    peakCache.set(lesson, value); return value;
   }
   function leastSquaresState(lesson, progress) {
-    const p = Math.round(clamp(progress) * 1e12) / 1e12, e = lesson.estimate;
-    const trialAngle = e.phase + .65;
-    const phase = p < .32 ? trialAngle * ramp(p, .25, .32)
-      : trialAngle + (e.phase - trialAngle) * ramp(p, .32, .43);
-    const m = 1 + (e.m - 1) * ramp(p, .43, .60);
-    const alpha = { re: m * Math.cos(phase), im: m * Math.sin(phase) };
-    const best = dataFor(lesson).best;
-    // Sum the actual residuals (stable near a perfect fit), not E_V-|C|²/E_U.
-    const loss = z => best.points.reduce((sum, point) => {
-      const re = point.y.re - (z.re * point.x.re - z.im * point.x.im);
-      const im = point.y.im - (z.re * point.x.im + z.im * point.x.re);
-      return sum + re * re + im * im;
-    }, 0);
-    return { ...leastSquaresNarrative(p), progress: p, phase, m, alpha,
-      trial: p >= .25 && p < .43, gather: ramp(p, .02, .14), merge: ramp(p, .25, .29),
-      prediction: ramp(p, .25, .27), cloud: ramp(p, .60, .66),
-      count: Math.min(best.count, Math.floor((ramp(p, .64, .75) + 1e-12) * best.count)),
-      divide: ramp(p, .76, .82), read: ramp(p, .85, .91), cards: ramp(p, .91, .97),
-      residual: loss(alpha), minimum: loss(best.alpha), energy: best.yy,
-      k: [e.kx, e.ky] };
+    const p = Math.round(clamp(progress) * 1e12) / 1e12;
+    const narrative = leastSquaresNarrative(p), { peak, sampleIndex } = getPeakDataFor(lesson);
+    const beatAlpha = (start, end) => ramp(p, start === 0 ? .07 : start + .003, start === 0 ? .10 : start + .013)
+      * (end === 1 ? 1 : 1 - ramp(p, end - .012, end - .003));
+    const panels = getPeakBeats.map(row => beatAlpha(row[1], row[2]));
+    // The first location is shown slowly, then EVERY remaining row-major item.
+    const count = p < .60 ? 0 : p < .63 ? 1
+      : Math.min(peak.count, 1 + Math.floor((ramp(p, .63, .79) + 1e-12) * (peak.count - 1)));
+    const solved = p >= .86, read = p >= .90;
+    const sample = p >= .58 && p < .80 ? Math.max(0, count - 1) : sampleIndex;
+    return { ...narrative, progress: p, panels, textAlpha: panels[narrative.beat],
+      overview: 1 - ramp(p, .015, .055), body: ramp(p, .07, .10),
+      inverse: ramp(p, .16, .25), shift: ramp(p, .305, .35),
+      shiftOutput: ramp(p, .35, .36), shiftScan: ramp(p, .36, .395),
+      conjugate: ramp(p, .45, .50), multiply: ramp(p, .50, .55),
+      count, total: peak.count, sum: peak.sums[count], sample, r: [sample % peak.n, Math.floor(sample / peak.n)],
+      divide: ramp(p, .825, .86), solved, read: read ? 1 : 0,
+      alpha: solved ? { ...peak.alpha } : null,
+      m: read ? peak.m : null, phase: read ? peak.phase : null,
+      phaseRead: ramp(p, .91, .94), lengthRead: ramp(p, .94, .97),
+      cards: ramp(p, .965, .995), k: [peak.kx, peak.ky] };
   }
-  const api = { scenes, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, sharedState, sharedPointState, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, leastSquaresNarrative, leastSquaresState };
+
+  const api = { scenes, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, sharedState, sharedPointState, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, getPeakBeats, getPeakDataFor, leastSquaresNarrative, leastSquaresState };
   if (node) module.exports = api; else root.SIMParameterLesson = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

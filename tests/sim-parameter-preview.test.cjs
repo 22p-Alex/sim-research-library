@@ -14,7 +14,7 @@ test('the standalone draft brackets the eight production scenes without changing
   assert.equal(P.scenes.length, 13);
   assert.deepEqual(P.scenes.map(s => s.id), ['pending', 'temporary', ...L.scenes.map(s => s.id), 'refill', 'solve', 'relocation']);
   assert.equal(P.durations.length, 13);
-  assert.equal(P.durations[P.index('least-squares-fit')], 64000);
+  assert.equal(P.durations[P.index('least-squares-fit')], 80000);
   assert.equal(P.durations[P.index('solve')], 11000);
   assert.equal(M.durations[M.index('fit')], 8000, 'presentation timing does not mutate the base chapter model');
   assert.match(P.scenes[P.index('refine')].note, /5×5.*10×10/);
@@ -42,10 +42,11 @@ test('the scan writes actual valid candidate scores and ends at the coarse peak,
   }
   for (let i = 0; i <= 100; i++) {
     const f = P.leastSquaresState(lesson, i / 100);
-    if (f.divide > 0) assert.equal(f.count, lesson.estimate.fit.count, 'the ratio never uses unfinished sums');
+    if (f.divide > 0) assert.equal(f.count, lesson.estimate.finalPeak.count, 'the ratio never uses unfinished sums');
   }
-  const count = lesson.estimate.fit.count, from = P.leastSquaresState(lesson, .84), to = P.leastSquaresState(lesson, .85);
-  assert.equal(from.count, to.count); assert.equal(from.divide, to.divide);
+  const from = P.leastSquaresState(lesson, .84), to = P.leastSquaresState(lesson, .85);
+  assert.equal(from.count, to.count); assert.ok(to.divide > from.divide);
+  assert.equal(from.alpha,null); assert.equal(to.alpha,null);
   const p = .73;
   assert.deepEqual(P.leastSquaresState(lesson, p), P.leastSquaresState(lesson, p), 'state has no independent timer');
 });

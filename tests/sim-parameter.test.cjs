@@ -454,7 +454,7 @@ test('standalone production renderer and controls run through all thirteen stops
   player.seek(P.index('least-squares-fit') + .9); const endpoint = ratio.attrs.d;
   player.seek(P.index('least-squares-fit') + 1); assert.equal(ratio.attrs.d, endpoint);
   player.seek(P.index('least-squares-fit') + .62); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
-  player.seek(P.index('least-squares-fit') + .80); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
+  player.seek(P.index('least-squares-fit') + .75); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
   player.seek(P.index('refill') + 1); byId.get('pe-replay').dispatch('click'); assert.equal(player.state().playing, true);
   player.pause(); player.seek(0);
   doc.dispatch('click', { target: byId.get('pe-stage'), clientX: 1100, button: 0 }); assert.equal(player.state().playing, true);

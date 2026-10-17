@@ -721,11 +721,12 @@
       } else if(frame.sceneId==='refine'||frame.sceneId==='least-squares-fit') {
         const copy=window.SIMParameterLesson[frame.sceneId==='refine'?'refinementNarrative':'leastSquaresNarrative'](frame.progress);
         setText($('scene-title'),copy.title);setText($('scene-description'),copy.copy);
-        setText($('scene-svg-description'),copy.copy+' '+window.SIMParameterLesson.scene(frame.sceneId).note);
-        setText($('stage-caption'),frame.sceneId==='least-squares-fit'?'共同复系数 → 全部公共点拟合 → 参数回填':copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
+        setText($('scene-svg-description'),copy.copy+' '+(copy.note||window.SIMParameterLesson.formulaAt(state).note));
+        setText($('stage-caption'),frame.sceneId==='least-squares-fit'?`${copy.beat+1}/7 · ${copy.action}`:copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
       }
       const useEntryFormula = split && split.progress < 1;
       const formula = useEntryFormula ? bridgeView.drawEntryFormula(frame.progress) : parameterFormulaView.draw(state);
+      if(frame.sceneId==='least-squares-fit') setText($('equation-domain'),frame.progress<.12?'频域 · 最终工作副本':frame.progress<.80?'空域 · 幅相计算':'复系数 · 参数读出');
       setText($('equation-note'), formula.note); $('equation-note').hidden = !formula.note;
     } else if (frame.id === 'separate-bands' && frame.progress < .12) {
       adoptedAlpha = 1 - enter; motionAlpha = enter; bridgeView.draw('adopted-weights', 1);
