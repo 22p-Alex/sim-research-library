@@ -23,13 +23,15 @@
     }
     const fusionOperator1 = label(fusion, 540, 263, '×', 'operation-sign');
     const fusionOperator2 = label(fusion, 900, 263, '=', 'operation-sign');
-    const fusionDetail = label(fusion, 720, 470, '', 'svg-small');
-    const fusionFoot = label(fusion, 720, 510, '', 'svg-muted');
+    const fusionDetail = label(fusion, 720, 492, '', 'svg-small');
+    const fusionFoot = label(fusion, 720, 532, '', 'svg-muted');
+    const responseReadout = label(fusion, 720, 450, '', 'svg-small');
+    attr(responseReadout, 'data-fusion-response', '');
     const inverse = create('g', {}, fusion);
     label(inverse, 720, 245, 'ℱ⁻¹', 'large-operator'); label(inverse, 720, 290, '完整复数 → 实值图像', 'svg-small');
     const sumRail = [], rail = create('g', {}, fusion);
     for (let i = 0; i < 9; i++) {
-      const group = create('g', { transform: `translate(${440 + i * 70} 421)` }, rail);
+      const group = create('g', { transform: `translate(${440 + i * 70} 450)` }, rail);
       create('circle', { r: 10, fill: 'none', stroke: directionColors[Math.floor(i / 3)], 'stroke-width': 1 }, group);
       label(group, 0, 4, ['0', '+', '−'][i % 3], 'axis-tick'); sumRail.push(group);
     }
@@ -41,6 +43,10 @@
       if (view.kind === 'scalar' && view.log) {
         if (!scalarRanges.has(view.values)) scalarRanges.set(view.values, view.values.reduce((max, value) => Math.max(max, value), 1));
         scalarMaximum = scalarRanges.get(view.values);
+        if (view.to) {
+          if (!scalarRanges.has(view.to)) scalarRanges.set(view.to, view.to.reduce((max, value) => Math.max(max, value), 1));
+          scalarMaximum = Math.max(scalarMaximum, scalarRanges.get(view.to));
+        }
       }
       const scalarLogMax = Math.log1p(scalarMaximum);
       const color = view.kind === 'scalar' ? [175, 151, 107] : gray;
@@ -55,6 +61,8 @@
 
     function drawFusion(time) {
       const t = M.stageTime(time), frame = M.fusionFrame(lesson, time), inverseProgress = frame.inverseProgress;
+      attr(fusion, 'data-fusion-mode', frame.mode || frame.phase);
+      attr(fusion, 'data-fusion-index', frame.index);
       const signature = `${frame.phase}:${frame.index}:${Math.min(t, 20).toFixed(4)}`;
       if (signature !== lastFusionSignature) { panels.forEach((pane, i) => paint(pane, frame.views[i])); lastFusionSignature = signature; }
       const titles = frame.titles;
@@ -66,13 +74,25 @@
         const z = M.pixel(frame.views[i], A.idx(14, 0, p.spectrumSize));
         pane.caption.textContent = i === 2 && inverseProgress > .5 ? '256 × 256 · 固定 0—1 标尺' : frame.views[i].kind === 'scalar' ? `q = 14：${compact(z.re)}` : `q = 14：|·| = ${compact(Math.hypot(z.re, z.im) / 128 ** 2)}`;
       });
-      opacity(inverse, inverseProgress); opacity(fusionOperator1, 1 - inverseProgress); opacity(fusionOperator2, 1 - inverseProgress);
-      fusionOperator1.textContent = frame.phase === 'sum' ? '→' : '×';
+      const operators = frame.mode==='normalEquation'||(frame.phase==='wiener'&&frame.mode!=='normalize') ? 0 : 1-inverseProgress;
+      opacity(inverse, inverseProgress); opacity(fusionOperator1, operators); opacity(fusionOperator2, operators);
+      fusionOperator1.textContent = frame.operator || (frame.phase === 'sum' ? '→' : '×');
       fusionOperator2.textContent = frame.phase === 'sum' ? '→' : '=';
       opacity(rail, frame.phase === 'sum' ? 1 : 0);
-      sumRail.forEach((el, i) => opacity(el, i <= frame.index ? 1 : .2));
+      sumRail.forEach((el, i) => opacity(el, i < (frame.completed ?? frame.index + 1) ? 1 : i === frame.index ? .6 : .2));
+      const q = A.idx(0, 0, p.spectrumSize);
+      opacity(responseReadout, frame.phase === 'wiener' ? 1 : 0);
+      attr(responseReadout,'data-response-q','0,0');
+      attr(responseReadout,'data-response-R0',p.signalResponse[q]);
+      attr(responseReadout,'data-response-R',p.denominator[q]);
+      const responsePrefix=`直流 q = (0, 0)：R₀ = ${compact(p.signalResponse[q])}`;
+      responseReadout.textContent = frame.mode==='normalize'
+        ? `Wiener 幅度传递：q=(14,0) 为 ${(100*lesson.audit.preApoTransfer).toFixed(2)}% · 直流为 ${(100*p.preApoTransfer[q]).toFixed(2)}%`
+        : frame.mode==='sourceDenominator'
+          ? `${responsePrefix} · 当前 R₀ + 额外零级 = ${compact(M.pixel(frame.views[1],q).re)}`
+          : `${responsePrefix} · 每条频带只计一次，分子尚未归一化`;
       fusionDetail.textContent = frame.detail;
-      fusionFoot.textContent = inverseProgress > .5 ? '从 128² 采集到 256² 输出：视野保持不变，固定乘 4 恢复强度标度。' : '频谱统一 log(1 + 幅度) 标尺 · 中间过渡用于讲解 · 终点对应真实计算';
+      fusionFoot.textContent = frame.foot || (inverseProgress > .5 ? '从 128² 采集到 256² 输出：视野保持不变，固定乘 4 恢复强度标度。' : '频谱统一 log(1 + 幅度) 标尺 · 中间过渡用于讲解 · 终点对应真实计算');
     }
     return { draw: drawFusion };
   };

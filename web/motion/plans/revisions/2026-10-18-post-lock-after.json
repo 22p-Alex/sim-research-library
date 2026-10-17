@@ -1,0 +1,872 @@
+{
+  "version": "post-lock-after-20261018",
+  "baselineTag": "codex/post-lock-before-20261018",
+  "afterTag": "codex/post-lock-after-20261018",
+  "baselineCommit": "1bee96b",
+  "userDecision": "保留当前采集；仅修正叙事、公式及动画",
+  "review": "2026-10-17-post-lock-coherence-review.md",
+  "scenes": [
+    {
+      "id": "parameters.least-squares-fit",
+      "title": "按最终位移，准备两份幅相计算工作频带。",
+      "copy": "先收起位置搜索的概览。从未校正的临时频带复制数据，按锁定波矢准备 B₀、B₁；两张图仍各用自己的检测频率坐标。",
+      "note": "M₀、M₁ 按最终位移筛选两路可靠 OTF，并执行源码的径向排除；保留处各除自身 H，其他位置置零。这是从原始临时频带开始的新工作副本，不是把前面的 U、V 再除一次 H。",
+      "equation": "$$\\bigl(\\widetilde A_0,\\widetilde A_{+1}\\bigr)\\xrightarrow[\\text{最终位移 }\\widehat{\\mathbf k}]{\\text{复制、筛选与校正}}\\bigl(B_0,B_1\\bigr)$$",
+      "duration": 80000
+    },
+    {
+      "id": "adopted-weights",
+      "title": "参数填回去，正式解混权重就能算出来。",
+      "copy": "工作副本只提供参数；现在回到同一批完整观测正式解混。三个方向分别估计，将方向 1 的相位和调制度填入 M 得到 U，波矢供后面归位。",
+      "note": "估计时筛选、除 H 的工作副本不进入正式融合；完整三帧重新分离，输出仍带 H。矩阵与权重来自实际估计值；波矢另供归位。下文 m、φⱼ、k 指采用的估计值，频带继续记为 A。",
+      "equation": "$$\\begin{gathered}\\widehat\\phi_j=\\phi'_j+\\widehat\\phi_\\Delta,\\qquad U=M^{-1}\\\\M_{j,:}=\\begin{bmatrix}1&\\frac{\\widehat m}{2}e^{i\\widehat\\phi_j}&\\frac{\\widehat m}{2}e^{-i\\widehat\\phi_j}\\end{bmatrix}\\end{gathered}$$",
+      "duration": 28000
+    },
+    {
+      "id": "separate-bands",
+      "title": "同一行权重，作用于每一个检测频率。",
+      "copy": "三份观测 Dⱼ(f) 分别乘对应权重，再相加。对每个频率重复这一运算，并分别使用逆矩阵的三行，就得到三份频带。",
+      "note": "使用刚才估计出的相位与调制度计算权重；频带图来自同一批观测的正式解混，仍含 OTF，也尚未归位。",
+      "equation": "$$A_\\ell(\\mathbf f)=\\sum_{j=0}^{2}u_{\\ell,j}D_j(\\mathbf f),\\qquad\\ell\\in\\{0,+1,-1\\}$$",
+      "duration": 9500
+    },
+    {
+      "id": "relocate-bands",
+      "title": "带着 OTF，一起回到原处。",
+      "copy": "+1 级向左 8 格，−1 级向右 8 格。每个频带、OTF 轮廓和选中分量同步移动。",
+      "note": "虚线是原检测支撑，彩色轮廓是归位后的 OTF 支撑。坐标改变，同一分量的复数值不变。",
+      "equation": "$$\\mathbf q=\\mathbf f-\\ell\\mathbf k,\\qquad C_\\ell(\\mathbf q)=A_\\ell(\\mathbf q+\\ell\\mathbf k)$$",
+      "duration": 11000,
+      "beats": [
+        {
+          "key": "embedGrid",
+          "duration": 4500,
+          "action": "先扩展计算网格",
+          "title": "先把 128² 频谱嵌入 256² 零数组。",
+          "copy": "按原来的有符号频率地址放入更大的数组，新增位置为零。DFT 格间隔和视野不变；网格准备好以后才移动频带。",
+          "equation": "$$A_\\ell^{128}\\xrightarrow{\\text{按频率地址嵌入}}A_\\ell^{256},\\qquad\\Delta q\\ \\text{不变}$$",
+          "note": "扩展网格给归位后的高频腾出地址，不会凭零填充产生新信息。示意框的大小表示数组范围，不改变谱图显示窗口。",
+          "cues": {
+            "embed": [
+              0.1,
+              0.75
+            ]
+          },
+          "index": 0,
+          "start": 0,
+          "end": 0.4090909090909091
+        },
+        {
+          "key": "relocate",
+          "duration": 6500,
+          "action": "再按估计波矢归位",
+          "title": "带着 OTF，一起回到样品频率坐标。",
+          "copy": "+1 级沿 −k̂、−1 级沿 +k̂ 移动；每个频带、OTF 轮廓和选中分量同步归位。实际计算使用已经扩展的 256² 数组。",
+          "equation": "$$\\mathbf q=\\mathbf f-\\ell\\widehat{\\mathbf k},\\qquad C_\\ell(\\mathbf q)=A_\\ell^{256}(\\mathbf q+\\ell\\widehat{\\mathbf k})$$",
+          "note": "位置变了，同一分量的复数值不变，OTF 衰减仍在。新高频来自照明搬入检测通带的观测。最终逆 FFT 的因子 4 来自输出与采集网格点数之比。",
+          "cues": {
+            "relocate": [
+              0.08,
+              0.88
+            ]
+          },
+          "index": 1,
+          "start": 0.4090909090909091,
+          "end": 1
+        }
+      ]
+    },
+    {
+      "id": "recover-high-frequency",
+      "title": "高频找回来了，衰减还在。",
+      "copy": "橙色分量回到最初的样品高频 q，超出宽场截止。它仍带着检测位置 f 处的 OTF 衰减，后面才进入融合。",
+      "note": "解混与归位完成。下一步加入其余方向，扩大覆盖，再对实际复数频带做融合。",
+      "equation": "$$\\mathbf q=\\mathbf f+\\mathbf k,\\qquad C_{-1}(\\mathbf q)=A_{-1}(\\mathbf f)=H(\\mathbf f)S(\\mathbf q)$$",
+      "duration": 1900
+    },
+    {
+      "id": "directions",
+      "title": "汇合三个方向，各自使用估计参数。",
+      "copy": "回看同一批九帧：每个方向均独立完成临时分离、参数估计与正式解混。60.3° 来自方向 2 的估计波矢换算；三个方向都用各自估计结果归位。",
+      "note": "方向标签读取估计结果，θ = atan2(kᵧ, kₓ) 表示波矢方向（条纹法线）。采集使用整数频率格，当前无噪声估计可回到这些位置。",
+      "equation": "$$\\theta_d=\\operatorname{atan2}(k_{y,d},k_{x,d}),\\qquad\\theta_2=\\operatorname{atan2}(7,4)\\approx60.3^\\circ$$",
+      "duration": 1800
+    },
+    {
+      "id": "single-direction-support",
+      "title": "一个方向，先覆盖两侧。",
+      "copy": "先把方向 1 的三个归位 OTF 放在同一张样品频率坐标纸上。0 级居中，+1、−1 级扩展左右覆盖。",
+      "note": "圆的位置表示可传递的几何范围。圈内信号仍受 OTF 衰减，边界不等于稳定恢复质量。",
+      "equation": "$$H_{d,\\ell}(\\mathbf q)=H(\\mathbf q+\\ell\\mathbf k_d)$$",
+      "duration": 2400
+    },
+    {
+      "id": "combined-support",
+      "title": "加入其余方向，补齐频率覆盖。",
+      "copy": "同一个样品频率 q，经不同频带到达不同检测位置 f。物镜在这些位置的传递强弱不同；搬回 q 只改坐标，原来乘上的 H 仍留在数据里。",
+      "note": "C=HS 是参数准确、匹配 OTF、无噪声的理想模型。青色 q 为多带重叠例，橙色高频仅由方向 1 的 −1 级传递；支撑圆不表示圈内 H=1。",
+      "equation": "$$C_{d,\\ell}(\\mathbf q)=H_{d,\\ell}(\\mathbf q)S(\\mathbf q)$$",
+      "duration": 1700
+    },
+    {
+      "id": "otf-weight",
+      "title": "为什么乘 H*？先看同一频率的正规方程。",
+      "copy": "把各条归位频带写成 Cᵦ≈HᵦS。等权二次正则化拟合的正规方程，在右侧产生 Hᵦ*Cᵦ，左侧产生 |Hᵦ|²；因此两者一起出现。",
+      "note": "这是说明共轭乘数来源的基础模型，未声称解混后的噪声独立、等方差或该实现无条件统计最优。第 29 幕再说明固定源码的额外零级计数。",
+      "equation": "$$(\\sum_b|H_b|^2+w^2)\\widehat S=\\sum_b H_b^*C_b$$",
+      "duration": 20000,
+      "beats": [
+        {
+          "key": "normalEquation",
+          "action": "共轭权重的来源",
+          "duration": 8000,
+          "title": "为什么乘 H*？先看同一频率的正规方程。",
+          "copy": "把各条归位频带写成 Cᵦ≈HᵦS。等权二次正则化拟合的正规方程，在右侧产生 Hᵦ*Cᵦ，左侧产生 |Hᵦ|²；因此两者一起出现。",
+          "equation": "$$(\\sum_b|H_b|^2+w^2)\\widehat S=\\sum_b H_b^*C_b$$",
+          "note": "这是说明共轭乘数来源的基础模型，未声称解混后的噪声独立、等方差或该实现无条件统计最优。第 29 幕再说明固定源码的额外零级计数。",
+          "index": 0,
+          "start": 0,
+          "end": 0.4
+        },
+        {
+          "key": "conjugateWeight",
+          "action": "一条频带乘 H*",
+          "duration": 8000,
+          "title": "已有 H，再乘自身 H*，形成一条加权贡献。",
+          "copy": "左图是归位频带 C₁,₋₁，中图是对应 H*。右图逐复数频点执行乘法，理想成像关系下留下 |H|²S。",
+          "equation": "$$B_{d,\\ell}={\\color{#7ad5cd}H_{d,\\ell}^*}C_{d,\\ell}=|H_{d,\\ell}|^2S$$",
+          "note": "本拍只完成一条贡献，不除 H。完整融合权重还包含后续分母，且不同于三帧解混的逆矩阵权重 u。",
+          "cues": {
+            "weight": [
+              0.12,
+              0.82
+            ]
+          },
+          "index": 1,
+          "start": 0.4,
+          "end": 0.8
+        },
+        {
+          "key": "weightReady",
+          "action": "保留加权结果",
+          "duration": 4000,
+          "title": "一条贡献算好，再收集全部九条。",
+          "copy": "右图保留同一条实际加权频带。三个方向、每方向三个级次，下一幕把九条贡献分别计算后相加。",
+          "equation": "$$B_{d,\\ell}=H_{d,\\ell}^*C_{d,\\ell},\\qquad F_{\\rm sum}=\\sum_{d,\\ell}B_{d,\\ell}$$",
+          "note": "所有贡献使用同一频率坐标 q；先计算复数，再取模长显示。",
+          "index": 2,
+          "start": 0.8,
+          "end": 1
+        }
+      ]
+    },
+    {
+      "id": "sum-contributions",
+      "title": "先慢看第 1 项：归位频带乘自己的 H*。",
+      "copy": "从方向 1 的零级开始。左图给输入，中图逐点形成 H*C；右侧累计频谱 F_sum 先保持为零。",
+      "note": "F_sum 专指融合累计频谱，与前面的逆矩阵 U 及 OTF 校正参考频谱 U 区分。",
+      "equation": "$$B_{1,0}=H_{1,0}^*C_{1,0},\\qquad F_{\\rm sum}^{(0)}=0$$",
+      "duration": 32000,
+      "beats": [
+        {
+          "key": "firstWeight",
+          "action": "慢看第一项乘法",
+          "duration": 6500,
+          "title": "先慢看第 1 项：归位频带乘自己的 H*。",
+          "copy": "从方向 1 的零级开始。左图给输入，中图逐点形成 H*C；右侧累计频谱 F_sum 先保持为零。",
+          "equation": "$$B_{1,0}=H_{1,0}^*C_{1,0},\\qquad F_{\\rm sum}^{(0)}=0$$",
+          "note": "F_sum 专指融合累计频谱，与前面的逆矩阵 U 及 OTF 校正参考频谱 U 区分。",
+          "cues": {
+            "firstWeight": [
+              0.12,
+              0.82
+            ]
+          },
+          "index": 0,
+          "start": 0,
+          "end": 0.203125
+        },
+        {
+          "key": "firstAdd",
+          "action": "慢看第一项累加",
+          "duration": 6500,
+          "title": "再慢看加法：把第 1 项加入累计结果。",
+          "copy": "中图的 H*C 已完成，保持不动；右图从零累计到第 1 项，明确先乘、后加。",
+          "equation": "$$F_{\\rm sum}^{(1)}=F_{\\rm sum}^{(0)}+B_{1,0}$$",
+          "note": "右图使用该项真实复数数组的前后累计值。中间帧是讲解用插值，终点就是实际加法。",
+          "cues": {
+            "firstAdd": [
+              0.12,
+              0.82
+            ]
+          },
+          "index": 1,
+          "start": 0.203125,
+          "end": 0.40625
+        },
+        {
+          "key": "remainingBands",
+          "action": "累计其余八项",
+          "duration": 14000,
+          "title": "其余八项执行同样的乘法与加法。",
+          "copy": "按方向与级次逐项读取完整频带，先形成 H*C，再加入同一个 F_sum。下方九个标记记录当前项与已完成项。",
+          "equation": "$$F_{\\rm sum}^{(j+1)}=F_{\\rm sum}^{(j)}+H_j^*C_j$$",
+          "note": "每一项只计一次，包括每方向零级。全部九项完成后，才引入它们留下的传递系数。",
+          "cues": {
+            "remaining": [
+              0.04,
+              0.92
+            ]
+          },
+          "index": 2,
+          "start": 0.40625,
+          "end": 0.84375
+        },
+        {
+          "key": "basicResponse",
+          "action": "辨认基础传递系数 R₀",
+          "duration": 5000,
+          "title": "九项之和是 F_sum，基础传递系数记作 R₀。",
+          "copy": "理想且参数准确时，各项共享同一个 S(q)，所以 F_sum=R₀S。R₀ 对每条频带的 |H|² 都只计一次；下一幕再对照源码分母。",
+          "equation": "$$F_{\\rm sum}=\\sum_{d,\\ell}H_{d,\\ell}^*C_{d,\\ell}=R_0S,\\qquad R_0=\\sum_{d,\\ell}|H_{d,\\ell}|^2$$",
+          "note": "含噪声或参数失配时不把 F_sum=R₀S 当作精确数据恒等式。F_sum 与 R₀ 从实际重建数组读取。",
+          "index": 3,
+          "start": 0.84375,
+          "end": 1
+        }
+      ]
+    },
+    {
+      "id": "wiener",
+      "title": "先接住 R₀：它是分子的理想传递系数。",
+      "copy": "左图保持 F_sum，中图显示每条频带只计一次的 R₀。若采用基础等权推导，分母本应是 R₀+w²；固定 fairSIM 版本还多计一份零级。",
+      "note": "R₀ 解释分子，并不是本页实际使用的 R。此拍尚未做归一化，右图继续保留 F_sum。",
+      "equation": "$$F_{\\rm sum}\\approx R_0S,\\qquad R_0=\\sum_{d,\\ell}|H_{d,\\ell}|^2$$",
+      "duration": 24000,
+      "beats": [
+        {
+          "key": "basicDenominator",
+          "action": "接住基础 R₀",
+          "duration": 6000,
+          "title": "先接住 R₀：它是分子的理想传递系数。",
+          "copy": "左图保持 F_sum，中图显示每条频带只计一次的 R₀。若采用基础等权推导，分母本应是 R₀+w²；固定 fairSIM 版本还多计一份零级。",
+          "equation": "$$F_{\\rm sum}\\approx R_0S,\\qquad R_0=\\sum_{d,\\ell}|H_{d,\\ell}|^2$$",
+          "note": "R₀ 解释分子，并不是本页实际使用的 R。此拍尚未做归一化，右图继续保留 F_sum。",
+          "index": 0,
+          "start": 0,
+          "end": 0.25
+        },
+        {
+          "key": "sourceDenominator",
+          "action": "源码额外计入零级",
+          "duration": 9000,
+          "title": "固定源码在分母额外计入每方向零级，得到 R。",
+          "copy": "中图从 R₀ 加上各方向的 |H_d,0|²，逐渐形成实际 R。分子保持不动；这是固定源码的计数行为，不是前一基础拟合式自然推出的额外项。",
+          "equation": "$$R={\\color{#7ad5cd}R_0}+{\\color{#efb879}\\sum_d|H_{d,0}|^2}$$",
+          "note": "零级在分子计一次，在分母计两次。本页保留本地 WienerFilter.addWienerDenominator 的原行为；不删除额外项，也不将 R 当作 R₀。",
+          "cues": {
+            "extraZero": [
+              0.12,
+              0.82
+            ]
+          },
+          "index": 1,
+          "start": 0.25,
+          "end": 0.625
+        },
+        {
+          "key": "normalize",
+          "action": "加正则项后归一化",
+          "duration": 9000,
+          "title": "使用实际 R+w² 归一化，抑制弱传递处的增益。",
+          "copy": "中图改为实际 1/(R+w²)，右图逐复数频点形成 Wiener 频谱。理想数据下总传递率为 R₀/(R+w²)，不会自动等于 1。",
+          "equation": "$$\\widehat S_{\\rm W}=\\frac{F_{\\rm sum}}{R+w^2}\\approx\\frac{R_0}{R+w^2}S,\\qquad w=0.05$$",
+          "note": "w² 限制传递很弱时的反演增益；无法传递的频率不能凭除法产生。后续切趾还会进一步改变幅度。",
+          "cues": {
+            "normalize": [
+              0.12,
+              0.82
+            ]
+          },
+          "index": 2,
+          "start": 0.625,
+          "end": 1
+        }
+      ]
+    },
+    {
+      "id": "apodization",
+      "title": "把频谱边缘，平缓收尾。",
+      "copy": "平滑切趾窗让有限频谱支撑的边缘缓慢收尾，减少截断造成的振铃；代价是边缘信号和高频锐度也被削弱。继续跟踪同一个 q=(14,0)。",
+      "note": "本例使用截止倍数 1.9、指数 β=0.8，它们不是普适常数。中图是 0—1 实数窗；右图实际乘该窗。平滑边缘与高频幅度保留需要取舍。",
+      "equation": "$$\\widehat S(\\mathbf q)=P_{\\mathrm{apo}}(\\mathbf q)\\,\\widehat S_{\\mathrm W}(\\mathbf q)$$",
+      "duration": 2100
+    },
+    {
+      "id": "inverse-fft",
+      "title": "把融合后的频谱，变成最终样品图像。",
+      "copy": "对切趾后的完整复数频谱做逆 FFT，得到最终样品图像。前面幅相估计的 u、v 只是空域计算场；这里输出的是最终重建。",
+      "note": "输出 256 × 256，视野不变。固定因子 4 补偿零填充后的 FFT 归一化；更密采样本身不增加分辨率。",
+      "equation": "$$\\widehat s=4\\operatorname{Re}\\!\\left[\\mathcal F_{256}^{-1}\\{\\widehat S\\}\\right]$$",
+      "duration": 1700
+    },
+    {
+      "id": "image-comparison",
+      "title": "沿同一条线，比较找回的结构。",
+      "copy": "剖面只看 y=80 一行，RMSE 比较整幅图。本例 SIM 的 RMSE 反而更大：额外零级分母、正则化和切趾共同抑制幅度；恢复部分高频不等于全图强度更准确。",
+      "note": "误差平方 → 全图平均 → 开方。输出在 (2x,2y) 与 128² 真值对齐；使用未截断强度，不另行拉伸亮度。RMSE 不是分辨率指标，真值只在重建结束后用于评价。",
+      "equation": "$$\\mathrm{RMSE}=\\sqrt{\\frac1{128^2}\\sum_{x,y}\\big[\\widehat s(2x,2y)-s(x,y)\\big]^2}$$",
+      "duration": 1700
+    },
+    {
+      "id": "frequency-audit",
+      "title": "回到最初那一点，检查恢复了多少。",
+      "copy": "同一个 q=(14,0)：宽场传递为零；依次核对 Wiener 后的幅度保留率、切趾窗值和最终保留率。三者来自实际数组，最终保留率等于前两者相乘。",
+      "note": "真值只用于评价，不参与解混或融合。恢复了部分高频信息，不等于精确恢复全部样品幅度；单点不能代替整幅图的分辨率评价。",
+      "equation": "$$\\eta=\\frac{|\\widehat S(\\mathbf q)|}{|S(\\mathbf q)|},\\qquad\\Delta\\theta=\\arg\\!\\left[\\widehat S(\\mathbf q)S^*(\\mathbf q)\\right]$$",
+      "duration": 1700
+    }
+  ],
+  "getPeak": {
+    "entry": {
+      "id": "locked-spectrum",
+      "from": "refine",
+      "title": "位置已锁定，回到两张完整频谱。",
+      "copy": "波矢已经锁定，两路记录的对应地址已经确定。接下来从原始临时频带准备最终工作副本，用已知位移计算共同幅相。",
+      "note": "锁定的是位移参数和对应关系。下一幕收起搜索概览，从原始临时频带复制并按最终规则筛选；工作掩膜与搜索公共区可以不同，随后遍历全部 N² 个空域位置。",
+      "footer": "k̂ 已锁定 · 对应地址已确定 · 原始临时频带 → 最终幅相工作副本。",
+      "action": "位置锁定 · 收起搜索概览",
+      "equation": "$$\\mathbf k'=\\widehat{\\mathbf k},\\qquad\\widetilde A_0(\\mathbf q)\\ \\longleftrightarrow\\ \\widetilde A_{+1}(\\mathbf q+\\widehat{\\mathbf k})$$"
+    },
+    "beats": [
+      {
+        "key": "finalPrepare",
+        "duration": 9600,
+        "action": "准备工作副本",
+        "title": "按最终位移，准备两份幅相计算工作频带。",
+        "copy": "先收起位置搜索的概览。从未校正的临时频带复制数据，按锁定波矢准备 B₀、B₁；两张图仍各用自己的检测频率坐标。",
+        "note": "M₀、M₁ 按最终位移筛选两路可靠 OTF，并执行源码的径向排除；保留处各除自身 H，其他位置置零。这是从原始临时频带开始的新工作副本，不是把前面的 U、V 再除一次 H。",
+        "footer": "最终工作副本 · 原生检测坐标 · 一次自身 OTF 校正",
+        "domain": "频域 · 最终工作副本",
+        "layout": "pair",
+        "formula": {
+          "parts": [
+            {
+              "key": "prepare",
+              "tex": "\\bigl(\\widetilde A_0,\\widetilde A_{+1}\\bigr)\\xrightarrow[\\text{最终位移 }\\widehat{\\mathbf k}]{\\text{复制、筛选与校正}}\\bigl(B_0,B_1\\bigr)"
+            }
+          ],
+          "join": "",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "prepare"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.5833333333333334,
+            0.8333333333333334
+          ],
+          "exit": [
+            0.9,
+            0.975
+          ]
+        },
+        "cues": {
+          "overviewExit": [
+            0.125,
+            0.4583333333333333
+          ],
+          "body": [
+            0.5833333333333334,
+            0.8333333333333334
+          ],
+          "handoffEnd": [
+            0.5833333333333334,
+            0.5833333333333334
+          ]
+        },
+        "index": 0,
+        "start": 0,
+        "end": 0.12
+      },
+      {
+        "key": "finalInverse",
+        "duration": 12800,
+        "action": "两路逆 FFT",
+        "title": "分别逆 FFT，得到两张空域复数计算场。",
+        "copy": "B₀、B₁ 在各自原位执行逆 FFT，变成 u、v。亮度显示模长，颜色显示复数相位；计算保留全部实部和虚部。",
+        "note": "F⁻¹ 把每一路完整 N×N 工作频谱变为空域数组。u、v 是用于幅相计算的复数场，不是新的曝光，也不是最终重建的样品强度图。",
+        "footer": "两路各自逆 FFT · 数组仍为复数",
+        "domain": "空域 · 幅相计算",
+        "layout": "pair",
+        "formula": {
+          "parts": [
+            {
+              "key": "inverse0",
+              "tex": "u=\\mathcal F_N^{-1}\\{B_0\\}"
+            },
+            {
+              "key": "inverse1",
+              "tex": "v=\\mathcal F_N^{-1}\\{B_1\\}"
+            }
+          ],
+          "join": ",\\qquad ",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "inverse0",
+                "inverse1"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.018749999999999996,
+            0.08124999999999998
+          ],
+          "exit": [
+            0.925,
+            0.98125
+          ]
+        },
+        "cues": {
+          "inverse": [
+            0.25,
+            0.8125
+          ]
+        },
+        "index": 1,
+        "start": 0.12,
+        "end": 0.28
+      },
+      {
+        "key": "finalShift",
+        "duration": 11200,
+        "action": "空间位移斜坡",
+        "title": "旁带乘空间相位斜坡，落实已锁定的位移。",
+        "copy": "u 保持不变。先用一个实际位置的箭头解释单位模指数；这个位置的旋转演示完成后，再按行处理整张 v，逐点形成 vₖ。",
+        "note": "斜坡落实已锁定的频移；OTF 校正和对应掩膜准确时，理想模型给出 vₖ=αu，其中 α=m exp(iφΔ) 处处相同。实际估计写为近似关系。这不是再次移动已归位的工作数组：本拍输入来自原始检测坐标的工作副本。",
+        "footer": "k̂ 已固定 · 单位模乘法改变相角，不改变该像素模长",
+        "domain": "空域 · 幅相计算",
+        "layout": "shift",
+        "formula": {
+          "parts": [
+            {
+              "key": "target",
+              "tex": "v_{\\widehat{\\mathbf k}}(\\mathbf r)=v(\\mathbf r)"
+            },
+            {
+              "key": "ramp",
+              "tex": "e^{-2\\pi i\\widehat{\\mathbf k}\\cdot\\mathbf r/N}"
+            },
+            {
+              "key": "model",
+              "tex": "\\qquad v_{\\widehat{\\mathbf k}}\\approx\\alpha u,\\quad\\alpha=m e^{i\\phi_\\Delta}"
+            }
+          ],
+          "join": "",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "ramp"
+              ]
+            },
+            {
+              "at": 0.82,
+              "parts": [
+                "model"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.021428571428571436,
+            0.09285714285714287
+          ],
+          "exit": [
+            0.9142857142857143,
+            0.9785714285714285
+          ]
+        },
+        "cues": {
+          "shift": [
+            0.17857142857142858,
+            0.5
+          ],
+          "shiftOutput": [
+            0.5,
+            0.5714285714285714
+          ],
+          "shiftScan": [
+            0.5714285714285714,
+            0.8214285714285714
+          ]
+        },
+        "index": 2,
+        "start": 0.28,
+        "end": 0.42
+      },
+      {
+        "key": "finalProduct",
+        "duration": 12800,
+        "action": "同点共轭相乘",
+        "title": "取同一个空域位置，同时算乘积与参考能量。",
+        "copy": "若 vₖ≈αu，两边乘 u* 就有 u*vₖ≈α|u|²。两个光标取同一个实际 r，分别形成复数乘积 z 和非负参考能量 e。",
+        "note": "共轭使 u*u=|u|²，因此每个位置都在用同一 α 乘参考能量。这解释了为何分子要取共轭乘积、分母要取能量。精确等式限于正确波矢、匹配 OTF 和掩膜、准确相对步进及无噪声模型。",
+        "footer": "相同 r · 橙色 z 进入分子 · 青色 e 进入分母",
+        "domain": "空域 · 幅相计算",
+        "layout": "product",
+        "formula": {
+          "parts": [
+            {
+              "key": "productName",
+              "tex": "z(\\mathbf r)="
+            },
+            {
+              "key": "conjugate",
+              "tex": "u^*(\\mathbf r)"
+            },
+            {
+              "key": "multiply",
+              "tex": "v_{\\widehat{\\mathbf k}}(\\mathbf r)"
+            },
+            {
+              "key": "energy",
+              "tex": "\\approx\\alpha\\underbrace{|u(\\mathbf r)|^2}_{e(\\mathbf r)}"
+            }
+          ],
+          "join": "",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "conjugate"
+              ]
+            },
+            {
+              "at": 0.5,
+              "parts": [
+                "multiply",
+                "energy",
+                "productName"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.018750000000000003,
+            0.08125
+          ],
+          "exit": [
+            0.925,
+            0.98125
+          ]
+        },
+        "cues": {
+          "conjugate": [
+            0.1875,
+            0.5
+          ],
+          "multiply": [
+            0.5,
+            0.8125
+          ]
+        },
+        "index": 3,
+        "start": 0.42,
+        "end": 0.58
+      },
+      {
+        "key": "finalSum",
+        "duration": 17600,
+        "action": "全场双路累计",
+        "title": "扫过全部 N² 个位置，分别累计 C 与 E₀。",
+        "copy": "先慢看第一个像素的贡献，再按行遍历整张空域网格。复数乘积进入 C，参考能量进入 E₀；两条累计通道分开显示。",
+        "note": "每个位置有 z≈αe，同一个 α 可提出求和，所以 C≈αE₀。Σ 遍历完整 N² 空域位置，包含零贡献项；两路读数使用同一前缀和，不把搜索公共点数或工作掩膜点数当成累计次数。",
+        "footer": "完整空域网格 · 每个位置参与一次 · 累计完成后才相除",
+        "domain": "空域 · 幅相计算",
+        "layout": "sum",
+        "formula": {
+          "parts": [
+            {
+              "key": "cross",
+              "tex": "C=\\sum_{\\mathbf r}z(\\mathbf r)"
+            },
+            {
+              "key": "energySum",
+              "tex": "E_0=\\sum_{\\mathbf r}e(\\mathbf r)"
+            },
+            {
+              "key": "domain",
+              "tex": "\\mathbf r\\in\\{0,\\ldots,N-1\\}^2"
+            }
+          ],
+          "join": ",\\qquad ",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "cross",
+                "energySum"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.013636363636363632,
+            0.05909090909090907
+          ],
+          "exit": [
+            0.9454545454545454,
+            0.9863636363636363
+          ]
+        },
+        "cues": {
+          "sumFirst": [
+            0.09090909090909091,
+            0.09090909090909091
+          ],
+          "sumSweep": [
+            0.22727272727272727,
+            0.9545454545454546
+          ],
+          "contribution": [
+            0.09090909090909091,
+            0.20454545454545456
+          ],
+          "sumScan": [
+            0.22727272727272727,
+            0.22727272727272727
+          ]
+        },
+        "index": 4,
+        "start": 0.58,
+        "end": 0.8
+      },
+      {
+        "key": "finalDivide",
+        "duration": 8000,
+        "action": "除以参考能量",
+        "title": "全部累加完成，C 除以 E₀ 得到一个复系数。",
+        "copy": "先看 C≈αE₀：共同复比例乘参考能量，得到分子。E₀>0 时，把两路完整累计量相除，读出 α̂；箭头在除法完成后揭示。",
+        "note": "相除的原因是消去参考能量，留下共同复比例。理想比例下 C=αE₀；有误差时 C/E₀ 仍是给定两场的单个复比例最小二乘解。完整推导留在原理区；本拍不再除 H，也不试探旋转。",
+        "footer": "N² 项已累计 · C ÷ E₀ · 一个共同复系数",
+        "domain": "复系数 · 参数读出",
+        "layout": "result",
+        "formula": {
+          "parts": [
+            {
+              "key": "reason",
+              "tex": "C\\approx\\alpha E_0\\quad\\Longrightarrow\\quad"
+            },
+            {
+              "key": "divide",
+              "tex": "\\widehat\\alpha=\\frac{{\\color{#efb879}C}}{{\\color{#7ad5cd}E_0}}"
+            }
+          ],
+          "join": "",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "reason"
+              ]
+            },
+            {
+              "at": 0.25,
+              "parts": [
+                "divide"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.030000000000000006,
+            0.13000000000000003
+          ],
+          "exit": [
+            0.88,
+            0.97
+          ]
+        },
+        "cues": {
+          "resultEnter": [
+            0.03,
+            0.13
+          ],
+          "divide": [
+            0.25,
+            0.6
+          ],
+          "divideExit": [
+            0.88,
+            0.97
+          ]
+        },
+        "index": 5,
+        "start": 0.8,
+        "end": 0.9
+      },
+      {
+        "key": "finalRead",
+        "duration": 8000,
+        "action": "读取幅相",
+        "title": "从同一个复系数，读取调制度与共同相位。",
+        "copy": "箭头长度给出 m̂，相角给出 φ̂Δ。把共同偏移加到已知相对相移 φ′ⱼ 上，得到各帧相位；锁定波矢独立进入结果卡，接着回填矩阵。",
+        "note": "m̂=|α̂|，φ̂Δ=arg α̂。临时旁带的 2/3 权重已补偿余弦展开的 1/2，模长直接给调制度，不再乘 2。相对步进必须已知且准确；这些参数来自同一组三帧观测。",
+        "footer": "模长 → 调制度 · 相角 → 共同相位 · 参数交给解混矩阵",
+        "domain": "复系数 · 参数读出",
+        "layout": "result",
+        "formula": {
+          "parts": [
+            {
+              "key": "modulation",
+              "tex": "\\widehat m=|\\widehat\\alpha|"
+            },
+            {
+              "key": "phase",
+              "tex": "\\widehat\\phi_\\Delta=\\arg\\widehat\\alpha"
+            },
+            {
+              "key": "frames",
+              "tex": "\\widehat\\phi_j=\\phi'_j+\\widehat\\phi_\\Delta"
+            }
+          ],
+          "join": ",\\qquad ",
+          "emphasis": [
+            {
+              "at": 0,
+              "parts": [
+                "phase"
+              ]
+            },
+            {
+              "at": 0.4,
+              "parts": [
+                "modulation"
+              ]
+            },
+            {
+              "at": 0.7,
+              "parts": [
+                "frames"
+              ]
+            }
+          ]
+        },
+        "visibility": {
+          "enter": [
+            0.030000000000000006,
+            0.13000000000000003
+          ]
+        },
+        "cues": {
+          "readReady": [
+            0,
+            0
+          ],
+          "readEnter": [
+            0.03,
+            0.13
+          ],
+          "phaseRead": [
+            0.1,
+            0.4
+          ],
+          "lengthRead": [
+            0.4,
+            0.7
+          ],
+          "cards": [
+            0.65,
+            0.95
+          ]
+        },
+        "index": 6,
+        "start": 0.9,
+        "end": 1
+      }
+    ]
+  },
+  "numerical": {
+    "audit": {
+      "truthAmplitude": 0.006070178298029883,
+      "outputAmplitude": 0.001328599222243195,
+      "ratio": 0.21887317917406163,
+      "phaseError": -1.5363832812370703e-13,
+      "widefieldAmplitude": 0,
+      "widefieldRMSE": 0.20591967618569454,
+      "simRMSE": 0.26425194029678645,
+      "dcTransfer": 0.5048372613276196,
+      "preApoTransfer": 0.9700909337784506,
+      "window": 0.22562130162536315,
+      "finalTransfer": 0.218873179174058
+    },
+    "highFrequency": {
+      "preApo": 0.9700909337784506,
+      "window": 0.22562130162536315,
+      "final": 0.218873179174058
+    },
+    "dc": 0.5048372613276196,
+    "directions": [
+      {
+        "index": 0,
+        "kx": 8,
+        "ky": 0,
+        "phase": 3.4303749791850743e-16,
+        "m": 0.7999999999999979,
+        "phases": [
+          3.4303749791850743e-16,
+          2.0943951023931957,
+          4.1887902047863905
+        ],
+        "angle": 0,
+        "period": 16
+      },
+      {
+        "index": 1,
+        "kx": 4,
+        "ky": 7,
+        "phase": -2.058100293037345e-16,
+        "m": 0.8000000000000012,
+        "phases": [
+          -2.058100293037345e-16,
+          2.0943951023931953,
+          4.1887902047863905
+        ],
+        "angle": 60.25511870305779,
+        "period": 15.876446027418684
+      },
+      {
+        "index": 2,
+        "kx": -4,
+        "ky": 7,
+        "phase": 6.688598757685447e-17,
+        "m": 0.7999999999999917,
+        "phases": [
+          6.688598757685447e-17,
+          2.0943951023931953,
+          4.1887902047863905
+        ],
+        "angle": 119.74488129694224,
+        "period": 15.876446027418684
+      }
+    ]
+  },
+  "comparison": {
+    "maxRecordedAuditDifference": 0,
+    "scope": "修改前快照记录的幅度、相位误差与 RMSE 指标；不等同于保存全部像素的逐位快照"
+  }
+}

@@ -4,9 +4,9 @@
   const scene = {
     label: "乘切趾窗",
     title: "把频谱边缘，平缓收尾。",
-    copy: "最后乘上平滑切趾窗，压低频谱边缘。窗外的频率置零，边缘的信号也会被进一步削弱。",
+    copy: "平滑切趾窗让有限频谱支撑的边缘缓慢收尾，减少截断造成的振铃；代价是边缘信号和高频锐度也被削弱。继续跟踪同一个 q=(14,0)。",
     equation: String.raw`$$\widehat S(\mathbf q)=P_{\mathrm{apo}}(\mathbf q)\,\widehat S_{\mathrm W}(\mathbf q)$$`,
-    note: "切趾截止为检测截止的 1.9 倍，指数 β = 0.8。频谱共用亮度标尺；中图是 0—1 的实数窗。",
+    note: "本例使用截止倍数 1.9、指数 β=0.8，它们不是普适常数。中图是 0—1 实数窗；右图实际乘该窗。平滑边缘与高频幅度保留需要取舍。",
     stageIndex: 19,
     id: "apodization",
     theoryTopic: "weights",

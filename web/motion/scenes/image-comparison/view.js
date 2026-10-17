@@ -8,6 +8,8 @@
     const results = [sampleURL, wfURL, simURL].map((url, i) => panel(comparison, 360 + i * 360, 207, ['样品真值', '宽场参考', 'SIM 重建'][i], url, 210));
     results[0].caption.textContent = '仅用于评价'; results[1].caption.textContent = `全图 RMSE ${lesson.audit.widefieldRMSE.toFixed(4)}`; results[2].caption.textContent = `全图 RMSE ${lesson.audit.simRMSE.toFixed(4)}`;
     const profiles = create('g', {}, comparison);
+    const transferNote = label(profiles,720,345,`直流最终传递 ${(100*lesson.audit.dcTransfer).toFixed(2)}% · 幅度抑制会进入全图 RMSE；高频非零不保证误差更小。`,'svg-small');
+    attr(transferNote,'data-postlock-dc',lesson.audit.dcTransfer);
     const profileData = [truth.sample, truth.widefield, p.pixels];
     const profileColors = ['#b6c5cc', '#7ad5cd', '#efb879'];
     const lineY = (80 / 128 - .5) * 210;
@@ -30,14 +32,15 @@
     const validation = create('g', {}, comparison);
     label(validation, 250, 351, 'q = (14, 0)', 'svg-title', 'start');
     label(validation, 250, 392, `幅度保留 ${(lesson.audit.ratio * 100).toFixed(2)}%`, 'validation-big', 'start');
-    label(validation, 250, 428, `相位误差 ${lesson.audit.phaseError.toFixed(4)}°`, 'svg-small', 'start');
-    label(validation, 250, 465, '非零输出，与真实高频相位一致。', 'svg-muted', 'start');
-    [1, 0, lesson.audit.ratio].forEach((ratio, i) => {
-      const y = 350 + i * 56;
-      label(validation, 775, y + 6, ['真值', '宽场', 'SIM'][i], 'svg-small', 'end');
+    label(validation, 250, 428, `${(100*lesson.audit.preApoTransfer).toFixed(2)}% × ${lesson.audit.window.toFixed(4)} = ${(100*lesson.audit.finalTransfer).toFixed(2)}%`, 'svg-small', 'start');
+    label(validation, 250, 465, `最终相位误差 ${lesson.audit.phaseError.toFixed(4)}° · 相对于同一真值`, 'svg-muted', 'start');
+    [0, lesson.audit.preApoTransfer, lesson.audit.window, lesson.audit.ratio].forEach((ratio, i) => {
+      const y = 350 + i * 44;
+      label(validation, 775, y + 6, ['宽场保留', 'Wiener 保留', '切趾窗值 ×', '最终保留'][i], 'svg-small', 'end');
       create('rect', { x: 805, y: y - 9, width: 340, height: 17, rx: 2, fill: '#1d303a' }, validation);
-      create('rect', { x: 805, y: y - 9, width: 340 * ratio, height: 17, rx: 2, fill: profileColors[i] }, validation);
-      label(validation, 1170, y + 6, `${(ratio * 100).toFixed(1)}%`, 'svg-small', 'start');
+      const bar=create('rect', { x: 805, y: y - 9, width: 340 * ratio, height: 17, rx: 2, fill: ['#7ad5cd','#b7a5eb','#a79876','#efb879'][i] }, validation);
+      attr(bar,'data-transfer-step',['widefield','wiener','window','final'][i]);attr(bar,'data-transfer-value',ratio);
+      label(validation, 1170, y + 6, i===2?ratio.toFixed(4):`${(ratio * 100).toFixed(2)}%`, 'svg-small', 'start');
     });
     label(validation, 720, 526, '完整复数与公式计算可在“原理与数值”中核对。', 'svg-muted');
 

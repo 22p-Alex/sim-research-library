@@ -2,6 +2,23 @@
 (function(root){
   'use strict';
   (root.SIMMotionHostViews ||= {}).relocation = function({ arrowPath, M, A, $, lesson, create, attr, style, setText, opacity, compact, complex, math, imageURL, spectrumURL, spatialURL, maximum, formulaBox, canvasLayer, sources }) {
+  const grid = create('g', {'data-relocation-grid':'', opacity:0}, $('sources'));
+  create('rect', {x:470,y:487,width:24,height:24,fill:'none',stroke:'#7ad5cd'}, grid);
+  const expanded=create('rect', {x:630,y:475,width:48,height:48,fill:'none',stroke:'#efb879'}, grid);
+  create('rect', {x:642,y:487,width:24,height:24,fill:'#7ad5cd','fill-opacity':.2,stroke:'#7ad5cd'}, grid);
+  const label=(x,y,value)=>create('text',{x,y,'text-anchor':'middle',class:'svg-small'},grid,value);
+  label(482,543,'128²'); const outputLabel=label(654,543,'256² · 外围补零'); label(561,505,'→');
+  label(1000,504,'DFT 格间隔不变 · 视野不变'); label(1000,535,'新信息来自观测，零填充只扩展地址');
+  function drawGrid(time) {
+    const t=M.story(time).demixTime;
+    const s=M.scenes.find(scene=>scene.id==='relocate-bands').present(M.clamp(t-4)),embed=s.cues.embed;
+    const side=M.lerp(24,48,embed);
+    attr(expanded,'x',654-side/2);attr(expanded,'y',499-side/2);attr(expanded,'width',side);attr(expanded,'height',side);
+    attr(grid,'data-grid-embedded',embed);
+    setText(outputLabel,embed===1?'256² · 外围补零':'扩展至 256²');
+    opacity(grid, M.ramp(t,4,4.04)*(1-M.ramp(t,4.94,5)));
+    attr(grid,'data-grid-input',lesson.capture.raw.n); attr(grid,'data-grid-output',lesson.pipeline.spectrumSize);
+  }
   function buildSources() {
     const max = maximum(lesson.group.separated), tints = [[110, 211, 200], [174, 157, 226], [235, 170, 103]];
     for (let b = 0; b < 3; b++) {
@@ -36,6 +53,6 @@
     }
   }
 
-    return { buildSources };
+    return { buildSources, drawGrid };
   };
 })(typeof globalThis!=='undefined'?globalThis:this);

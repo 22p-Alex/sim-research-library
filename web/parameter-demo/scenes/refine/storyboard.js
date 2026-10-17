@@ -23,7 +23,7 @@
       [.22, 'gridLimit', 'gridLimit', '放大整数峰附近的一格。背景来自本组观测的实际局部分数采样，标记来自局部拟合；本组峰可恰在整数点，不预设格间真值。这里的亚像素指小数 DFT 频率格，不是样品空间像素。'],
       [.56, 'phaseRamp', 'subpixel', '先逆 FFT，乘单位模的线性相位斜坡，再正 FFT；按离散傅里叶模型计算非整数频率值，不做频域像素插值。仅在两边 H 可靠的公共区各除自身 H，再算归一化相关分数。单位模乘法可逆且保持复场能量；它不会增加观测信息。'],
       [.935, 'zoomCascade', 'local', scene.note],
-      [1.01, 'returnSpectrum', 'lockedAddresses', '0.01 格的搜索已完成，k̂ 保持锁定。恢复同一对完整频谱、对应 OTF 与可靠公共点；两圆中心保持频带归位后的间距，公共点已按同一 q 对齐。下一步保持这些频率位置，比较公共点的复数值。'],
+      [1.01, 'returnSpectrum', 'lockedAddresses', '锁定的是位移参数和对应关系。下一幕收起搜索概览，从原始临时频带复制并按最终规则筛选；工作掩膜与搜索公共区可以不同，随后遍历全部 N² 个空域位置。'],
   ];
   scene.beats = stages.map(([end,key,formula,note],i)=>({key,action:key,start:i?stages[i-1][0]:0,end:Math.min(1,end),formula,note}));
   scene.present = (p, context) => {

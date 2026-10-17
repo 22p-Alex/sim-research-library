@@ -1617,10 +1617,17 @@ test('every fusion stop matches all complex frequency bins from the existing pip
     }
   }
   for (let item = 0; item < 9; item++) {
-    const frame = M.fusionFrame(lesson, 17 + (item + .75) / 9);
+    const scene=M.scenes.find(scene=>scene.id==='sum-contributions');
+    const inverseSmooth=value=>{let lo=0,hi=1;for(let j=0;j<55;j++){const p=(lo+hi)/2;if(p*p*(3-2*p)<value)lo=p;else hi=p;}return(lo+hi)/2;};
+    const progress=item===0?scene.timeline.progressFor('firstAdd',.47)
+      :scene.timeline.progressFor('remainingBands',.04+.88*inverseSmooth((item-1+.75)/8));
+    const frame = M.fusionFrame(lesson, 17 + progress);
+    assert.equal(frame.index,item);
     const index = A.idx(14, 0, p.spectrumSize), actual = M.pixel(frame.views[2], index), record = lesson.records[item];
-    near(actual.re, (record.before.re[index] + record.after.re[index]) / 2);
-    near(actual.im, (record.before.im[index] + record.after.im[index]) / 2);
+    // Clock.progressFor rounds the chosen UI position to 1e-12. Allow that
+    // presentation precision here; full stop arrays above retain strict checks.
+    near(actual.re, (record.before.re[index] + record.after.re[index]) / 2, 1e-8);
+    near(actual.im, (record.before.im[index] + record.after.im[index]) / 2, 1e-8);
   }
 });
 

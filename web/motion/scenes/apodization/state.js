@@ -9,7 +9,9 @@
     }
     function frame(lesson,progress) {
       const local=clamp(progress),frame=operation(lesson,local);
-      return {...frame,titles:["滤波频谱 ŜW", "切趾窗 Papo", "最终频谱 Ŝ"],detail:"每个频率乘以切趾窗的对应值。",inverseProgress:0};
+      const a=lesson.audit;
+      return {...frame,titles:["滤波频谱 ŜW", "切趾窗 Papo", "最终频谱 Ŝ"],detail:"平滑频谱边缘减少截断振铃，也会损失高频幅度。",inverseProgress:0,
+        foot:`q=(14,0)：${(100*a.preApoTransfer).toFixed(2)}% × ${a.window.toFixed(4)} → ${(100*a.finalTransfer).toFixed(2)}% · 数值来自实际传递数组`};
     }
     return frame;
   }

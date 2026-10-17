@@ -9,7 +9,7 @@
     }
     function frame(lesson,progress) {
       const local=clamp(progress),frame=operation(lesson,local);
-      return {...frame,titles:["最终复数频谱 Ŝ", "", "SIM 重建图像"],detail:"逆变换使用完整复数数组，显示图的对数亮度不参与运算。",inverseProgress:smooth(local)};
+      return {...frame,titles:["最终复数频谱 Ŝ", "", "SIM 重建图像"],detail:"得到最终样品图像；前面的 u、v 是用于估计的空域复数场。",inverseProgress:smooth(local)};
     }
     return frame;
   }

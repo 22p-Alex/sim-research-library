@@ -4,7 +4,7 @@
   const scene = {
     label: "核对高频",
     title: "回到最初那一点，检查恢复了多少。",
-    copy: "同一个 q = (14, 0)：宽场完全无法传递，SIM 得到非零信号。幅度保留比例由实际重建和真值计算。",
+    copy: "同一个 q=(14,0)：宽场传递为零；依次核对 Wiener 后的幅度保留率、切趾窗值和最终保留率。三者来自实际数组，最终保留率等于前两者相乘。",
     equation: String.raw`$$\eta=\frac{|\widehat S(\mathbf q)|}{|S(\mathbf q)|},\qquad\Delta\theta=\arg\!\left[\widehat S(\mathbf q)S^*(\mathbf q)\right]$$`,
     note: "真值只用于评价，不参与解混或融合。恢复了部分高频信息，不等于精确恢复全部样品幅度；单点不能代替整幅图的分辨率评价。",
     stageIndex: 22,

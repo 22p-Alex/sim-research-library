@@ -7,7 +7,7 @@
   <title>SIM Motion · 从样品到超分辨重建</title>
   <link rel="stylesheet" href="web/motion/sim-motion.css?v=centered-observation-expansion-8">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=scene-governance-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=post-lock-coherence-20261018">
   <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=scene-governance-1">
 </head>
 <body>
@@ -348,7 +348,7 @@
   <p>第 12 幕先固定一个样品频率 q，随后把它记作 P。0 级在检测地址 f=q 记录它；要在 +1 级找到同一份 S(q)，令旁带的样品频率自变量 f−k=q，得到对应检测地址 f=q+k：</p>
   <div class="theory-equation" data-equation="$$\underbrace{\mathbf f_0=\mathbf q}_{\text{0 级地址}},\qquad\underbrace{\mathbf f_{+1}-\mathbf k=\mathbf q\ \Longrightarrow\ \mathbf f_{+1}=\mathbf q+\mathbf k}_{\text{+1 级地址}},\qquad(\mathbf q+\mathbf k)-\mathbf k=\mathbf q$$"></div>
   <p>动画先用虚线光标沿 +k 找地址，频谱保持不动；再把两个检测原点叠放到一起，明确区分画面排布与实际频移；随后固定 0 级，将 +1 级、它的 OTF 和对应标记一起移动 −k。两处标记重合后，再从这个点扩展到整个公共区。用于说明对应关系的 k 仍是模型中的真实差距，参数搜索在后面进行。</p>
-  <p>这里平移的是频率坐标，频点携带的复数值不变。“含同一份 S(q)”也不表示读数相同：两边仍有不同的 OTF 衰减和照明幅相。相位差在后面的 Re–Im 平面中，用固定参考箭头、旋转其副本来表示；不要把频谱图的平移理解成共同相位校正。</p>
+  <p>这里平移的是频率坐标，频点携带的复数值不变。“含同一份 S(q)”也不表示读数相同：两边仍有不同的 OTF 衰减和照明幅相。最终幅相由工作频带的逆 FFT、已知位移斜坡、共轭乘积与参考能量求出；不要把频谱图的平移理解成共同相位校正。</p>
   <p>求逆得到的是含参数的权重表达式，无法同时给出其中未知的调制度与共同相位数值。已知的帧间相对相移仍不足以确定真实幅相，因此需要从观测估计。这里利用 0 级与 +1 级公共区的同一样品信息估计参数；−1 级仍用于后面的正式重建。</p>
   <p>以一个方向为例，假设三帧相对相移准确，未知的是共同相位偏移 φΔ、波矢 k 和调制度 m。正式分离 A=UD 的权重依赖真实调制度与相位：</p>
   <div class="theory-equation" data-equation="$$u_{0,j}=\frac13,\qquad u_{\pm1,j}=\frac{2}{3m}e^{\mp i\phi_j},\qquad\phi_j=\phi'_j+\phi_\Delta$$"></div>
@@ -499,6 +499,7 @@
   <p>矩阵乘法的每一行就是三帧的加权求和；同一个逆矩阵用于所有检测频率，不需要对每个像素重新求逆。解混得到三个来源，各自仍带检测 OTF，下一步再用波矢归位。</p>
   <div class="theory-equation" data-equation="$$A_\ell(\mathbf f)=\sum_{j=0}^{2}u_{\ell,j}D_j(\mathbf f),\qquad A_\ell(\mathbf f)=H(\mathbf f)S(\mathbf f-\ell\mathbf k)$$"></div>
   <p>源码依据：fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java">BandSeparation.java</a> 构造复数混合矩阵，三相位时调用 M.inverse()，再用返回的权重乘各帧频谱并累加。观测帧多于分量时使用伪逆。参数估计负责获得照明参数，求逆本身完成频带解混。</p>
+  <p>正式解混读取原始完整三帧；估计中筛选、除 H 的工作副本只提供参数。归位前按有符号频率地址将 128² 频谱嵌入 256² 零数组，保持 DFT 格间隔和视野。最终逆 FFT 乘 (256/128)²=4 恢复强度标度，零填充本身不创造高频信息。</p>
   <h3>实际读数 · 选定的检测频率 f</h3><p class="subtle">复数均除以 128²，便于阅读。内部计算保留完整精度。</p>
   <table><thead><tr><th>观测</th><th>复数值</th><th>−1 级解混权重</th></tr></thead><tbody id="observed-values"></tbody></table>
   <h3>解混结果与归位位置</h3><table><thead><tr><th>级次</th><th>归位后的 q</th><th>复数值</th></tr></thead><tbody id="component-values"></tbody></table>
@@ -541,6 +542,7 @@
   <div class="theory-equation" data-equation="$$R=R_0+\sum_d|H_{d,0}|^2=\sum_d\left(2|H_{d,0}|^2+|H_{d,+1}|^2+|H_{d,-1}|^2\right)$$"></div>
   <div class="theory-equation" data-equation="$$\widehat S=\frac{\sum_{d,\ell}H_{d,\ell}^{*}C_{d,\ell}}{R+w^2}P_{\mathrm{apo}}$$"></div>
   <p>所以本版本的分母与分子的传递系数并非处处相同，即使 w = 0，也不能断言所有已传递频率都恢复单位幅度。页面保留这一计数行为，详见<a href="sim_pipeline_atlas.html#source-fairsim">固定 fairSIM 版本的源码对照</a>。本例采用 w = 0.05、切趾截止 1.9、β = 0.8；图像显示亮度的对数变换不参与复数重建计算。</p>
+  <p>主动画将融合累计量统一记作 F_sum=ΣH*C；基础传递系数是 R₀，源码实际分母使用 R。F_sum 不再复用逆矩阵或搜索参考频谱的记号 U。</p>
   <h3>同一频率 q = (14, 0) 的完整核对</h3>
   <table><thead><tr><th>阶段</th><th>复数值 / 数值</th></tr></thead><tbody id="fusion-audit"></tbody></table>
   <p id="final-audit" class="validation-note"></p>
@@ -565,94 +567,94 @@
 <div id="fatal-error" class="fatal-error" role="alert" hidden></div>
 <noscript><div class="fatal-error">这个动画需要启用 JavaScript。也可以返回 <a href="sim_pipeline_atlas.html">重建图谱</a> 阅读公式。</div></noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js?v=scene-governance-1"></script>
-<script src="web/shared/sim-experiment.js?v=scene-governance-1"></script>
-<script src="web/shared/sim-band-formulas.js?v=scene-governance-1"></script>
-<script src="web/atlas/sim-atlas-core.js?v=scene-governance-1"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=scene-governance-1"></script>
-<script src="web/shared/animation/beat-clock.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/get-peak/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/shared/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/shift/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/otf/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/match/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/refine/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/comparison-data.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/shared/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/line-shift/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/shift/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/otf/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/match/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/coarse/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/refine/state.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/refine/view.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/line-shift/view.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/get-peak/layout.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/get-peak/view.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/provisional-split/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/adopted-weights/storyboard.js?v=scene-governance-1"></script>
-<script src="web/parameter-demo/scenes/shared/entry.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion-parameter-view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/sample/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/widefield/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/illumination/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/encoding-sum/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/detection/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/frequency-probe/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/mixed-sources/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/inverse-demix/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/verify-demix/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/separate-bands/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/relocate-bands/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/directions/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/single-direction-support/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/combined-support/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/otf-weight/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/sum-contributions/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/wiener/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/apodization/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/inverse-fft/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/image-comparison/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/frequency-audit/storyboard.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/index.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/inverse-demix/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/mixed-sources/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/separate-bands/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/phase-acquisition/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/detection/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/encoding-sum/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/frequency-encoding/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/otf-weight/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/sum-contributions/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/wiener/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/apodization/state.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/inverse-fft/state.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion-model.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/sample/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/encoding-sum/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/detection/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/directions/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/otf-weight/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/image-comparison/view.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion-stages.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion-fourier.js?v=scene-governance-1"></script>
-<script src="web/shared/animation/scene-registry.js?v=scene-governance-1"></script>
-<script src="web/shared/animation/rehearsal.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/frequency-encoding/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/phase-acquisition/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/relocate-bands/view.js?v=scene-governance-1"></script>
-<script src="web/motion/scenes/mixed-sources/view.js?v=scene-governance-1"></script>
-<script src="web/motion/sim-motion.js?v=scene-governance-1"></script>
+<script src="web/shared/sim-core.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/sim-experiment.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/sim-band-formulas.js?v=post-lock-coherence-20261018"></script>
+<script src="web/atlas/sim-atlas-core.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/animation/beat-clock.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/comparison-data.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion-parameter-view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/sample/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/widefield/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/illumination/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/encoding-sum/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/detection/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/frequency-probe/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/mixed-sources/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/inverse-demix/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/verify-demix/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/separate-bands/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/relocate-bands/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/directions/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/single-direction-support/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/combined-support/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/otf-weight/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/sum-contributions/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/wiener/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/apodization/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/inverse-fft/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/image-comparison/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/frequency-audit/storyboard.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/index.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/inverse-demix/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/mixed-sources/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/separate-bands/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/phase-acquisition/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/detection/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/encoding-sum/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/frequency-encoding/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/otf-weight/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/sum-contributions/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/wiener/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/apodization/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/inverse-fft/state.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion-model.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/sample/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/encoding-sum/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/detection/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/directions/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/otf-weight/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/image-comparison/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion-stages.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion-fourier.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/animation/scene-registry.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/animation/rehearsal.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/frequency-encoding/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/phase-acquisition/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/relocate-bands/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/scenes/mixed-sources/view.js?v=post-lock-coherence-20261018"></script>
+<script src="web/motion/sim-motion.js?v=post-lock-coherence-20261018"></script>
 </body>
 </html>

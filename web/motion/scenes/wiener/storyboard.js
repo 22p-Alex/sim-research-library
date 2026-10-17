@@ -1,25 +1,72 @@
-/* Scene unit: Wiener 滤波. Narration, formula and duration are edited here. */
+/* Scene-owned beats: narration, equations and operation cues share one timeline. */
 (function(root) {
   'use strict';
-  const scene = {
-    label: "Wiener 滤波",
-    title: "补偿衰减，同时限制反演增益。",
-    copy: "前一步留下了 OTF 模平方的累计系数，因此需要归一化。本页按 fairSIM 的计数约定累计分母，记作 R；再加 w²，避免传递很弱时产生过大的反演增益。",
-    equation: String.raw`$$\begin{gathered}R(\mathbf q)\coloneqq\sum_d\left(2|H_{d,0}|^2+|H_{d,+1}|^2+|H_{d,-1}|^2\right)\\\widehat S_{\mathrm W}(\mathbf q)=\frac{U(\mathbf q)}{R(\mathbf q)+w^2},\qquad w=0.05\end{gathered}$$`,
-    note: "等权基础推导各频带计一次；本页固定 fairSIM 分母额外计入各方向的 0 级模平方。中图显示实际的 1 / (R + w²)。",
-    stageIndex: 18,
-    id: "wiener",
-    theoryTopic: "weights",
-    encodingFormula: false,
-    demixFormula: false,
-    detectionFormula: false,
-    acquisitionFormula: false,
-    domainPair: null,
-    formulaDomain: "频域 · 覆盖与融合",
-    chapterIndex: 6,
-    chapter: "07 / Wiener 融合",
-    duration: 2300
+  const node = typeof module !== 'undefined' && module.exports;
+  const Clock = node ? require('../../../shared/animation/beat-clock.js') : root.SIMBeatClock;
+  const definitions = [
+  {
+    "key": "basicDenominator",
+    "action": "接住基础 R₀",
+    "duration": 6000,
+    "title": "先接住 R₀：它是分子的理想传递系数。",
+    "copy": "左图保持 F_sum，中图显示每条频带只计一次的 R₀。若采用基础等权推导，分母本应是 R₀+w²；固定 fairSIM 版本还多计一份零级。",
+    "equation": "$$F_{\\rm sum}\\approx R_0S,\\qquad R_0=\\sum_{d,\\ell}|H_{d,\\ell}|^2$$",
+    "note": "R₀ 解释分子，并不是本页实际使用的 R。此拍尚未做归一化，右图继续保留 F_sum。"
+  },
+  {
+    "key": "sourceDenominator",
+    "action": "源码额外计入零级",
+    "duration": 9000,
+    "title": "固定源码在分母额外计入每方向零级，得到 R。",
+    "copy": "中图从 R₀ 加上各方向的 |H_d,0|²，逐渐形成实际 R。分子保持不动；这是固定源码的计数行为，不是前一基础拟合式自然推出的额外项。",
+    "equation": "$$R={\\color{#7ad5cd}R_0}+{\\color{#efb879}\\sum_d|H_{d,0}|^2}$$",
+    "note": "零级在分子计一次，在分母计两次。本页保留本地 WienerFilter.addWienerDenominator 的原行为；不删除额外项，也不将 R 当作 R₀。",
+    "cues": {
+      "extraZero": [
+        0.12,
+        0.82
+      ]
+    }
+  },
+  {
+    "key": "normalize",
+    "action": "加正则项后归一化",
+    "duration": 9000,
+    "title": "使用实际 R+w² 归一化，抑制弱传递处的增益。",
+    "copy": "中图改为实际 1/(R+w²)，右图逐复数频点形成 Wiener 频谱。理想数据下总传递率为 R₀/(R+w²)，不会自动等于 1。",
+    "equation": "$$\\widehat S_{\\rm W}=\\frac{F_{\\rm sum}}{R+w^2}\\approx\\frac{R_0}{R+w^2}S,\\qquad w=0.05$$",
+    "note": "w² 限制传递很弱时的反演增益；无法传递的频率不能凭除法产生。后续切趾还会进一步改变幅度。",
+    "cues": {
+      "normalize": [
+        0.12,
+        0.82
+      ]
+    }
+  }
+];
+  const timeline = Clock.define(definitions);
+  const {key, action, cues, ...opening} = definitions[0];
+  const scene = { ...{
+  "label": "Wiener 滤波",
+  "stageIndex": 18,
+  "id": "wiener",
+  "theoryTopic": "weights",
+  "encodingFormula": false,
+  "demixFormula": false,
+  "detectionFormula": false,
+  "acquisitionFormula": false,
+  "domainPair": null,
+  "formulaDomain": "频域 · 覆盖与融合",
+  "chapterIndex": 6,
+  "chapter": "07 / Wiener 融合"
+}, ...opening,
+    timeline, beats: timeline.beats, duration: timeline.duration,
+    present(progress, clock = timeline) {
+      const state = clock.at(progress);
+      return { ...state.definition, mode: state.mode, beat: state.beat, beatCount: clock.beats.length,
+        local: state.local, cues: state.cues, progress: state.progress };
+    }
   };
-  if (typeof module !== 'undefined' && module.exports) module.exports = scene;
+  if (node) module.exports = scene;
   else (root.SIMMotionUnits ||= {})[scene.id] = scene;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

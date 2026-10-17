@@ -39,7 +39,8 @@
   // Introduce the next explanation before its operation, including on replay.
   // One index is shared by the heading, formula group and transport.
   const sceneIndex = time => time >= 2 && time < 3 ? (time < 2.02 ? 2 : 3)
-    : time >= 7 && time < 11 ? Math.floor(time) + (time % 1 >= .12 - 1e-9 ? 1 : 0) : Math.round(time);
+    : time >= 7 && time < 11 ? Math.floor(time) + (time % 1 >= .12 - 1e-9 ? 1 : 0)
+    : time > 11 ? Math.ceil(time - 1e-9) : Math.round(time);
   // Local playhead progress → elapsed milliseconds. Keep symbol movements short
   // and give the completed equations reading time, on the same reversible clock.
   const transitionPacing = Object.freeze(Object.fromEntries(scenes.slice(1).flatMap((s,i)=>s.pacing?[[i,s.pacing]]:[])));
@@ -99,7 +100,8 @@
     const truthAmplitude = amplitude(capture.truth.spectrum, qTruth), outputAmplitude = amplitude(pipeline.spectrum, qIndex);
     const phaseError = Math.atan2(pipeline.spectrum.im[qIndex] * capture.truth.spectrum.re[qTruth] - pipeline.spectrum.re[qIndex] * capture.truth.spectrum.im[qTruth], pipeline.spectrum.re[qIndex] * capture.truth.spectrum.re[qTruth] + pipeline.spectrum.im[qIndex] * capture.truth.spectrum.im[qTruth]) * 180 / Math.PI;
     const rmse = pixels => Math.sqrt(pixels.reduce((s, value, i) => s + (value - capture.truth.sample[i]) ** 2, 0) / pixels.length);
-    const audit = { truthAmplitude, outputAmplitude, ratio: outputAmplitude / truthAmplitude, phaseError, widefieldAmplitude: A.otf(14, 0) * truthAmplitude, widefieldRMSE: rmse(capture.truth.widefield), simRMSE: rmse(pipeline.pixels) };
+    const audit = { truthAmplitude, outputAmplitude, ratio: outputAmplitude / truthAmplitude, phaseError, widefieldAmplitude: A.otf(14, 0) * truthAmplitude, widefieldRMSE: rmse(capture.truth.widefield), simRMSE: rmse(pipeline.pixels),
+      dcTransfer: pipeline.effectiveTransfer[0], preApoTransfer: pipeline.preApoTransfer[qIndex], window: pipeline.apodization[qIndex], finalTransfer: pipeline.effectiveTransfer[qIndex] };
     // Compare three actual exposure states at one fixed specimen pixel.
     // The UI selects these records directly, never interpolating the phase.
     const point = { x: 100, y: 80 }, pointIndex = A.idx(point.x, point.y);
@@ -115,7 +117,8 @@
   function sample(time) {
     const t = clamp(time, 0, 6), derivation = demixState(t + DEMIX_START + (t > 3 ? 1 : 0));
     const reveal = ramp(t, 1, 1.12);
-    const bands = derivation.bands, shifted = ramp(t, 4, 5), focus = ramp(t, 5, 6);
+    const relocation = scenes.find(scene => scene.id === 'relocate-bands');
+    const bands = derivation.bands, shifted = relocation.movement ? relocation.movement(clamp(t - 4)) : ramp(t, 4, 5), focus = ramp(t, 5, 6);
     return {
       ...derivation, t, reveal, bands, shifted, focus, spectrum: ramp(t, 0, 1),
       frames: orders.map((_, i) => ({
@@ -152,8 +155,12 @@
     return fusionScenes[index].frame(lesson,local-index);
   }
   function pixel(view, index) {
-    if (view.kind === 'scalar') return { re: view.values[index], im: 0 };
+    if (view.kind === 'scalar') return { re: view.to ? lerp(view.values[index], view.to[index], view.mix) : view.values[index], im: 0 };
     return { re: lerp(view.from.re[index], view.to.re[index], view.mix), im: lerp(view.from.im[index], view.to.im[index], view.mix) };
+  }
+  function scenePresentation(id, progress) {
+    const scene = scenes.find(scene => scene.id === id);
+    return scene?.present ? scene.present(progress) : null;
   }
   /* No independent element clocks: every visual is a pure function of time.
    * Scrubbing, reversing and jumping all sample exactly the same state. */
@@ -252,6 +259,6 @@
   function clickDirection(x, width, interactive = false, selectedText = false) {
     return interactive || selectedText || width <= 0 ? 0 : x < width / 2 ? -1 : 1;
   }
-  const api = { scenes, chapters, sceneIds, parameterSlot, bandFormulas: F, DEMIX_START, orders, colors, phaseLabels, timelineGeometry, legacyTime, stageTime, sceneIndex, transitionDurations, transitionPacing, inverseEquations, inverseWeightTex, inverseState, sourceAnchors, sourceOriginState, sourceOriginPixel, demixState, encodingSumState, encodingSumPixel, detectionState, detectionPixel, acquisitionState, acquisitionPixel, createLesson, sample, story, encodingFormulaTokens, encodingFormulaKeyframes, encodingDerivationStages, encodingDerivationState, encodingFrame, encodingFormulaValues, encodingNotationState, fusionFrame, pixel, createPlayer, clickDirection, clamp, lerp, ramp };
+  const api = { scenes, chapters, sceneIds, parameterSlot, bandFormulas: F, DEMIX_START, orders, colors, phaseLabels, timelineGeometry, legacyTime, stageTime, sceneIndex, transitionDurations, transitionPacing, inverseEquations, inverseWeightTex, inverseState, sourceAnchors, sourceOriginState, sourceOriginPixel, demixState, encodingSumState, encodingSumPixel, detectionState, detectionPixel, acquisitionState, acquisitionPixel, createLesson, sample, story, encodingFormulaTokens, encodingFormulaKeyframes, encodingDerivationStages, encodingDerivationState, encodingFrame, encodingFormulaValues, encodingNotationState, fusionFrame, pixel, scenePresentation, createPlayer, clickDirection, clamp, lerp, ramp };
   if (node) module.exports = api; else root.SIMMotion = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

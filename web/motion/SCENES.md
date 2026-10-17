@@ -25,21 +25,21 @@
 | 19 | `parameters.least-squares-fit` | 共同幅相估计 | 80 秒 | 7 | [分镜](../parameter-demo/scenes/get-peak/storyboard.js) · [formula-view](../parameter-demo/scenes/get-peak/formula-view.js) · [layout](../parameter-demo/scenes/get-peak/layout.js) · [state](../parameter-demo/scenes/get-peak/state.js) · [view](../parameter-demo/scenes/get-peak/view.js) · [共用 sim-parameter-two-stage-view](../parameter-demo/sim-parameter-two-stage-view.js) |
 | 20 | `adopted-weights` | 填回参数 | 28 秒 | 1 | [分镜](scenes/adopted-weights/storyboard.js) · [共用 sim-motion-parameter-view](sim-motion-parameter-view.js) |
 | 21 | `separate-bands` | 逐点解混 | 9.5 秒 | 1 | [分镜](scenes/separate-bands/storyboard.js) · [state](scenes/separate-bands/state.js) · [共用 view](scenes/mixed-sources/view.js) |
-| 22 | `relocate-bands` | 搬回原处 | 1.65 秒 | 1 | [分镜](scenes/relocate-bands/storyboard.js) · [view](scenes/relocate-bands/view.js) |
+| 22 | `relocate-bands` | 搬回原处 | 11 秒 | 2 | [分镜](scenes/relocate-bands/storyboard.js) · [view](scenes/relocate-bands/view.js) |
 | 23 | `recover-high-frequency` | 找回高频 | 1.9 秒 | 1 | [分镜](scenes/recover-high-frequency/storyboard.js) · [共用 view](scenes/relocate-bands/view.js) |
 | 24 | `directions` | 三个方向 | 1.8 秒 | 1 | [分镜](scenes/directions/storyboard.js) · [view](scenes/directions/view.js) |
 | 25 | `single-direction-support` | 一个方向 | 2.4 秒 | 1 | [分镜](scenes/single-direction-support/storyboard.js) · [共用 view](scenes/directions/view.js) |
 | 26 | `combined-support` | 多方向覆盖 | 1.7 秒 | 1 | [分镜](scenes/combined-support/storyboard.js) · [共用 view](scenes/directions/view.js) |
-| 27 | `otf-weight` | OTF 加权 | 6.3 秒 | 1 | [分镜](scenes/otf-weight/storyboard.js) · [state](scenes/otf-weight/state.js) · [view](scenes/otf-weight/view.js) |
-| 28 | `sum-contributions` | 九项相加 | 2.3 秒 | 1 | [分镜](scenes/sum-contributions/storyboard.js) · [state](scenes/sum-contributions/state.js) · [共用 view](scenes/otf-weight/view.js) |
-| 29 | `wiener` | Wiener 滤波 | 2.3 秒 | 1 | [分镜](scenes/wiener/storyboard.js) · [state](scenes/wiener/state.js) · [共用 view](scenes/otf-weight/view.js) |
+| 27 | `otf-weight` | OTF 加权 | 20 秒 | 3 | [分镜](scenes/otf-weight/storyboard.js) · [state](scenes/otf-weight/state.js) · [view](scenes/otf-weight/view.js) |
+| 28 | `sum-contributions` | 九项相加 | 32 秒 | 4 | [分镜](scenes/sum-contributions/storyboard.js) · [state](scenes/sum-contributions/state.js) · [共用 view](scenes/otf-weight/view.js) |
+| 29 | `wiener` | Wiener 滤波 | 24 秒 | 3 | [分镜](scenes/wiener/storyboard.js) · [state](scenes/wiener/state.js) · [共用 view](scenes/otf-weight/view.js) |
 | 30 | `apodization` | 乘切趾窗 | 2.1 秒 | 1 | [分镜](scenes/apodization/storyboard.js) · [state](scenes/apodization/state.js) · [共用 view](scenes/otf-weight/view.js) |
 | 31 | `inverse-fft` | 逆 FFT | 1.7 秒 | 1 | [分镜](scenes/inverse-fft/storyboard.js) · [state](scenes/inverse-fft/state.js) · [共用 view](scenes/otf-weight/view.js) |
 | 32 | `image-comparison` | 图像对照 | 1.7 秒 | 1 | [分镜](scenes/image-comparison/storyboard.js) · [view](scenes/image-comparison/view.js) |
 | 33 | `frequency-audit` | 核对高频 | 1.7 秒 | 1 | [分镜](scenes/frequency-audit/storyboard.js) · [共用 view](scenes/image-comparison/view.js) |
 
-当前完整页 33 幕；独立参数页 13 幕。仅在独立测试保留的 verify-demix 不进入主线。简单过渡以一个完整分镜为单位；频率编码、临时分离、评分、FFT、细化与 getPeak 提供内部拍定位。
+当前完整页 33 幕；独立参数页 13 幕。仅在独立测试保留的 verify-demix 不进入主线。简单过渡以一个完整分镜为单位；频率编码、临时分离、评分、FFT、细化、getPeak、归位、加权、累加与 Wiener 提供内部拍定位。
 
-标注“共用”的链接来自 animation-assets.json 的 sceneTemplates；修改前查看该模板的全部使用者。模板共享画面对象，各幕单独拥有内容定义。参数前半段共用持续存在的频谱几何模板 sim-parameter-two-stage-view.js；各幕状态和公式定义已独立。getPeak 已采用拍内时序，其余旧场景仍保留原有内部时序，详见治理约定。
+标注“共用”的链接来自 animation-assets.json 的 sceneTemplates；修改前查看该模板的全部使用者。模板共享画面对象，各幕单独拥有内容定义。参数前半段共用持续存在的频谱几何模板 sim-parameter-two-stage-view.js；各幕状态和公式定义已独立。getPeak、归位、加权、累加与 Wiener 已采用拍内时序，其余旧场景仍保留原有内部时序，详见治理约定。
 
 验证状态：数值、公式状态和可逆转场纳入自动检查；实际视觉与字体基线由用户验收，尚未登记通过。

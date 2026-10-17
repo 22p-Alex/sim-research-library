@@ -659,7 +659,7 @@
         text(cue,refinement.title);
         text(footer,refinement.mode==='gridLimit'?'整数格限制初值；背景与准星来自同一组观测。'
           :refinement.mode==='phaseRamp'?'17：空域共轭乘积求整张相关图；18：旁带乘相位斜坡，计算一个小数位移候选。'
-          :refinement.mode==='returnSpectrum'?'k̂ 已锁定 · 回到同一对完整频谱 · 下一步比较公共点的共同幅相。'
+          :refinement.mode==='returnSpectrum'?'k̂ 已锁定 · 对应地址已确定 · 原始临时频带 → 最终幅相工作副本。'
           :'每轮最高分作为下一轮中心 · 范围缩小 5 倍 · 0.01 格是最终搜索步长。');
         opacity(footer,1);
         refineView.draw(p,refinement,{x:gx+(e.coarseBest.kx+e.extent+.5)*cell,y:gy+(e.coarseBest.ky+e.extent+.5)*cell,cell});

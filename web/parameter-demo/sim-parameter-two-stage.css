@@ -52,3 +52,4 @@
 .pe-peak-formula [data-formula-part=get-peak-conjugate],.pe-peak-formula [data-formula-part=get-peak-energy],.pe-peak-formula [data-formula-part=get-peak-energySum]{color:#7ad5cd}
 .pe-peak-formula [data-formula-part=get-peak-multiply],.pe-peak-formula [data-formula-part=get-peak-phase]{color:#b7a5eb}
 .pe-peak-formula [data-formula-part=get-peak-domain]{font-size:13px;color:#8eabb6}
+.pe-peak-formula [data-formula-part=get-peak-model]{flex-basis:100%;text-align:center}

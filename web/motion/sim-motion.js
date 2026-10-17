@@ -7,7 +7,7 @@
   const Chapter = window.SIMMotionParameterChapter;
   let Flow, rehearsal;
   let buildDemixMatrix, buildDemixProof, drawDemix;
-  let buildSources;
+  let buildSources, drawRelocationGrid;
   let buildFrames, paintAcquisition;
   let buildEncodingAlgebra;
   const $ = id => document.getElementById(id);
@@ -18,6 +18,7 @@
   let timeline = null, scrubbing = false;
   let parameterChapter, parameterView, parameterFormulaView, bridgeView, reconstruction;
   const stopButtons = [];
+  const motionFormulaNodes = new Map();
   const create = (tag, attrs = {}, parent, text) => {
     const el = document.createElementNS(ns, tag);
     for (const [name, value] of Object.entries(attrs)) el.setAttribute(name, value);
@@ -140,6 +141,7 @@
       attr(source.sourceFrequency, 'y', 199);
       opacity(source.result, s.shifted);
     });
+    drawRelocationGrid(time);
     opacity($('opening-labels'), (1 - s.reveal) * acquisition.completed);
     acquisitionArrows.forEach((arrow, i) => {
       opacity(arrow.group, acquisition.arrows[i]); attr(arrow.path, 'stroke-dashoffset', 1 - acquisition.arrows[i]);
@@ -217,6 +219,23 @@
     drawMotion(frame.baseTime);
     bridgeView.resetEntry();
     if (index !== currentScene) showScene(index, animateCopy);
+    const beat = frame.owner === 'motion' ? M.scenePresentation(frame.id, frame.progress) : null;
+    if (beat) {
+      setText($('scene-title'), beat.title); setText($('scene-description'), beat.copy);
+      setText($('scene-svg-description'), beat.copy + ' ' + beat.note);
+      setText($('equation-note'), beat.note); $('equation-note').hidden = !beat.note;
+      setText($('stage-caption'), `${beat.beat + 1} / ${beat.beatCount} · ${beat.action}`);
+      const host = $('equation'), key = frame.id + ':' + beat.mode;
+      if (host.getAttribute('data-motion-formula-mode') !== key) {
+        if (!motionFormulaNodes.has(key)) {
+          const group = document.createElement('span');
+          group.setAttribute('data-motion-formula-beat', key);
+          math(group, beat.equation); motionFormulaNodes.set(key, group);
+        }
+        host.innerHTML = ''; host.appendChild(motionFormulaNodes.get(key));
+        attr(host, 'data-motion-formula-mode', key);
+      }
+    }
     if (Flow.scenes[index].id === 'frequency-encoding') {
       const view = M.encodingDerivationState(frame.baseTime).view, copy = view || Flow.scenes[index];
       setText($('scene-title'), copy.title); setText($('scene-description'), copy.copy);
@@ -320,6 +339,7 @@
     $('scene-description').textContent = data.copy; $('scene-number').textContent = String(index + 1).padStart(2, '0');
     parameterFormulaView?.reset();
     math($('equation'), data.equation); $('equation-note').textContent = data.note;
+    attr($('equation'), 'data-motion-formula-mode', '');
     $('equation-note').hidden = !data.note;
     $('equation-domain').textContent = data.formulaDomain;
     const pair = data.domainPair;
@@ -388,7 +408,7 @@
     if(rehearsal){const frame=Flow.frame(state.position);rehearsal.sync(frame.id,frame.progress);}
     const index = Flow.sceneIndex(state.position), scene = Flow.scenes[index], stopped = !state.playing;
     const compareExposures = stopped && Math.abs(state.position - 2) < 1e-8;
-    $('chapter-replay').hidden = scene.owner === 'motion' || state.reduced;
+    $('chapter-replay').hidden = (scene.owner === 'motion' && !scene.beats) || state.reduced;
     $('chapter-replay').disabled = state.playing;
     $('encoding-replay').hidden = scene.id !== 'frequency-encoding' || state.reduced;
     $('encoding-replay').disabled = state.playing;
@@ -579,7 +599,7 @@
     const sceneContext = { arrowPath, M, A, $, lesson, create, attr, style, setText, opacity, compact, complex, math, imageURL, spectrumURL, spatialURL, maximum, formulaBox, canvasLayer };
     ({ buildEncodingAlgebra } = window.SIMMotionHostViews.algebra({ ...sceneContext, encodingAlgebraView }));
     ({ buildFrames, paintAcquisition } = window.SIMMotionHostViews.frames({ ...sceneContext, cameras, acquisitionArrows }));
-    ({ buildSources } = window.SIMMotionHostViews.relocation({ ...sceneContext, sources }));
+    ({ buildSources, drawGrid: drawRelocationGrid } = window.SIMMotionHostViews.relocation({ ...sceneContext, sources }));
     ({ buildDemixMatrix, buildDemixProof, drawDemix } = window.SIMMotionHostViews.matrix({ ...sceneContext, matrixView, inverseView, proofView, calculationView }));
     buildFrames(); buildSources(); buildDemixMatrix(); buildDemixProof(); buildEncodingAlgebra(); populateTheory();
     parameterView = window.SIMParameterLesson.createView($('parameter-stage'), parameterChapter.lesson,

@@ -1,5 +1,5 @@
 {
-  "version": "scene-governance-1",
+  "version": "post-lock-coherence-20261018",
   "sceneTemplates": [
     {
       "scenes": ["sample", "widefield", "illumination", "frequency-encoding"],

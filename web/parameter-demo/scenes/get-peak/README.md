@@ -28,6 +28,8 @@
 
 ## 数据与来源
 
+共同复比例的因果链与七拍同步：斜坡拍引入 vₖ≈αu，逐点拍说明 u*vₖ≈α|u|²，除法拍先说明 C≈αE₀，再读取 α̂。精确比例限于匹配的理想模型；最小二乘推导继续留在理论区。
+
 唯一最终计算入口是 `lesson.estimate.finalPeak`。`prepared`、`spatial`、`shifted`、`product`、`energy` 和 `sums` 分别对应各拍。`sums` 包含 N²+1 项，首项为零；屏幕累计计数指完整空域位置。`supportCounts` 仅说明最终频域掩膜保留点数，不能作为空域累计次数。
 
 $$

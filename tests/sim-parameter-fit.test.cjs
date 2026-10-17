@@ -71,7 +71,7 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
     const equation = byId.get(main ? 'equation' : 'pe-equation');
     assert.equal(equation.attrs['data-formula-mode'], L.formulaMode(L.stateForScene('least-squares-fit',p)));
     assert.equal(equation.children[0].attrs['data-get-peak-formula-beat'], p < .07 ? 'handoff' : state.mode);
-    assert.match(byId.get(main ? 'scene-svg-description' : 'pe-svg-description').textContent, new RegExp(state.note.slice(0, 8)));
+    assert.ok(byId.get(main ? 'scene-svg-description' : 'pe-svg-description').textContent.includes(state.note.slice(0, 8)));
     if (main) assert.equal(byId.get('stage-caption').textContent, `${state.beat + 1}/7 · ${state.action}`);
     const vector = zOf(get('data-get-peak-alpha-vector'));
     near(vector.re, p < .86 ? 0 : peak.alpha.re); near(vector.im, p < .86 ? 0 : peak.alpha.im);

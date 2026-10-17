@@ -45,14 +45,15 @@
       action: "空间位移斜坡",
       title: "旁带乘空间相位斜坡，落实已锁定的位移。",
       copy: "u 保持不变。先用一个实际位置的箭头解释单位模指数；这个位置的旋转演示完成后，再按行处理整张 v，逐点形成 vₖ。",
-      note: "指数的相角随 r 线性变化，模长恒为 1。本页 y 向下、正变换用负指数，因此使用 −2π k̂·r/N；它实现已知频移，还没有读取共同照明相位。",
+      note: "斜坡落实已锁定的频移；OTF 校正和对应掩膜准确时，理想模型给出 vₖ=αu，其中 α=m exp(iφΔ) 处处相同。实际估计写为近似关系。这不是再次移动已归位的工作数组：本拍输入来自原始检测坐标的工作副本。",
       footer: "k̂ 已固定 · 单位模乘法改变相角，不改变该像素模长",
       domain: "空域 · 幅相计算",
       layout: "shift",
       formula: { parts: [
         {key:"target", tex:String.raw`v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)`},
-        {key:"ramp", tex:String.raw`e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`}
-      ], join:"", emphasis:[{"at":0,"parts":["ramp"]}] },
+        {key:"ramp", tex:String.raw`e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`},
+        {key:"model", tex:String.raw`\qquad v_{\widehat{\mathbf k}}\approx\alpha u,\quad\alpha=m e^{i\phi_\Delta}`}
+      ], join:"", emphasis:[{"at":0,"parts":["ramp"]},{"at":0.82,"parts":["model"]}] },
       visibility: {"enter":[0.021428571428571436,0.09285714285714287],"exit":[0.9142857142857143,0.9785714285714285]},
       cues: {"shift":[0.17857142857142858,0.5],"shiftOutput":[0.5,0.5714285714285714],"shiftScan":[0.5714285714285714,0.8214285714285714]}
     },
@@ -61,8 +62,8 @@
       duration: 12800,
       action: "同点共轭相乘",
       title: "取同一个空域位置，同时算乘积与参考能量。",
-      copy: "两个光标指向同一个实际 r。u 取共轭后乘 vₖ 得到 z；同一位置的 |u|² 得到 e。它们分别送往分子与分母。",
-      note: "u* 只把虚部变号。z=u*vₖ 保留两路的相对复数关系；e=|u|² 是非负参考能量。动画箭头与读数直接来自当前空域数组，没有试探角度。",
+      copy: "若 vₖ≈αu，两边乘 u* 就有 u*vₖ≈α|u|²。两个光标取同一个实际 r，分别形成复数乘积 z 和非负参考能量 e。",
+      note: "共轭使 u*u=|u|²，因此每个位置都在用同一 α 乘参考能量。这解释了为何分子要取共轭乘积、分母要取能量。精确等式限于正确波矢、匹配 OTF 和掩膜、准确相对步进及无噪声模型。",
       footer: "相同 r · 橙色 z 进入分子 · 青色 e 进入分母",
       domain: "空域 · 幅相计算",
       layout: "product",
@@ -70,7 +71,7 @@
         {key:"productName", tex:String.raw`z(\mathbf r)=`},
         {key:"conjugate", tex:String.raw`u^*(\mathbf r)`},
         {key:"multiply", tex:String.raw`v_{\widehat{\mathbf k}}(\mathbf r)`},
-        {key:"energy", tex:String.raw`,\qquad e(\mathbf r)=|u(\mathbf r)|^2`}
+        {key:"energy", tex:String.raw`\approx\alpha\underbrace{|u(\mathbf r)|^2}_{e(\mathbf r)}`}
       ], join:"", emphasis:[{"at":0,"parts":["conjugate"]},{"at":0.5,"parts":["multiply","energy","productName"]}] },
       visibility: {"enter":[0.018750000000000003,0.08125],"exit":[0.925,0.98125]},
       cues: {"conjugate":[0.1875,0.5],"multiply":[0.5,0.8125]}
@@ -81,7 +82,7 @@
       action: "全场双路累计",
       title: "扫过全部 N² 个位置，分别累计 C 与 E₀。",
       copy: "先慢看第一个像素的贡献，再按行遍历整张空域网格。复数乘积进入 C，参考能量进入 E₀；两条累计通道分开显示。",
-      note: "Σ 的范围是完整空域网格，共 N² 个位置，包含零贡献项。C 累加 z 的实部和虚部，E₀ 累加非负的 e；屏幕计数与数值读取同一个完整前缀和，不把频域掩膜点数当成累计次数。",
+      note: "每个位置有 z≈αe，同一个 α 可提出求和，所以 C≈αE₀。Σ 遍历完整 N² 空域位置，包含零贡献项；两路读数使用同一前缀和，不把搜索公共点数或工作掩膜点数当成累计次数。",
       footer: "完整空域网格 · 每个位置参与一次 · 累计完成后才相除",
       domain: "空域 · 幅相计算",
       layout: "sum",
@@ -98,14 +99,15 @@
       duration: 8000,
       action: "除以参考能量",
       title: "全部累加完成，C 除以 E₀ 得到一个复系数。",
-      copy: "分子保留复数乘积和，分母是实数参考能量。两路进入同一次除法，输出 α̂；这一步才揭示共同复系数箭头。",
-      note: "E₀>0 时，α̂=C/E₀。分母归一化参考场的能量；没有再除 H，也没有对角度做迭代试探。源码 getPeak 返回这个复数，下一拍才读取相角和模长。",
+      copy: "先看 C≈αE₀：共同复比例乘参考能量，得到分子。E₀>0 时，把两路完整累计量相除，读出 α̂；箭头在除法完成后揭示。",
+      note: "相除的原因是消去参考能量，留下共同复比例。理想比例下 C=αE₀；有误差时 C/E₀ 仍是给定两场的单个复比例最小二乘解。完整推导留在原理区；本拍不再除 H，也不试探旋转。",
       footer: "N² 项已累计 · C ÷ E₀ · 一个共同复系数",
       domain: "复系数 · 参数读出",
       layout: "result",
       formula: { parts: [
+        {key:"reason", tex:String.raw`C\approx\alpha E_0\quad\Longrightarrow\quad`},
         {key:"divide", tex:String.raw`\widehat\alpha=\frac{{\color{#efb879}C}}{{\color{#7ad5cd}E_0}}`}
-      ], join:"", emphasis:[{"at":0,"parts":["divide"]}] },
+      ], join:"", emphasis:[{"at":0,"parts":["reason"]},{"at":0.25,"parts":["divide"]}] },
       visibility: {"enter":[0.030000000000000006,0.13000000000000003],"exit":[0.88,0.97]},
       cues: {"resultEnter":[0.03,0.13],"divide":[0.25,0.6],"divideExit":[0.88,0.97]}
     },
@@ -133,9 +135,9 @@
   "id": "locked-spectrum",
   "from": "refine",
   "title": "位置已锁定，回到两张完整频谱。",
-  "copy": "收起最终 0.01 格的局部搜索图，展开原来的 0 级与 +1 级频谱、OTF 和可靠公共区。旁带已按 −k̂ 归位；接着保持这些位置，比较公共点的相位与长度。",
-  "note": "0.01 格的搜索已完成，k̂ 保持锁定。恢复同一对完整频谱、对应 OTF 与可靠公共点；两圆中心保持频带归位后的间距，公共点已按同一 q 对齐。下一步保持这些频率位置，比较公共点的复数值。",
-  "footer": "k̂ 已锁定 · 回到同一对完整频谱 · 下一步比较公共点的共同幅相。",
+  "copy": "波矢已经锁定，两路记录的对应地址已经确定。接下来从原始临时频带准备最终工作副本，用已知位移计算共同幅相。",
+  "note": "锁定的是位移参数和对应关系。下一幕收起搜索概览，从原始临时频带复制并按最终规则筛选；工作掩膜与搜索公共区可以不同，随后遍历全部 N² 个空域位置。",
+  "footer": "k̂ 已锁定 · 对应地址已确定 · 原始临时频带 → 最终幅相工作副本。",
   "action": "位置锁定 · 收起搜索概览",
   "equation": "$$\\mathbf k'=\\widehat{\\mathbf k},\\qquad\\widetilde A_0(\\mathbf q)\\ \\longleftrightarrow\\ \\widetilde A_{+1}(\\mathbf q+\\widehat{\\mathbf k})$$"
 });
