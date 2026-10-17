@@ -1,3 +1,5 @@
+> 历史推导记录：以下最小二乘动画已退出主线。现行动作及公式定义见 [getPeak 单元](../../parameter-demo/scenes/get-peak/README.md)，维护规则见[治理约定](../GOVERNANCE.md)。
+
 > 当前实现以[最终 getPeak 七拍分镜](2026-10-17-fairsim-getpeak-storyboard.md)为准。下文旧 P 点旋转与最小二乘主线仅作历史记录；本轮已替换为实际 commonRegion/getPeak 数组与全场累计。
 
 # fairSIM 参数估计审阅与第 19—20 幕实现

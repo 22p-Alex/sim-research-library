@@ -3,6 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const A=require('../web/atlas/sim-atlas-core.js'),E=require('../web/shared/sim-parameter-estimation.js');
 const M=require('../web/parameter-demo/sim-parameter-model.js'),L=require('../web/parameter-demo/sim-parameter-two-stage.js');
 const boot=require('./helpers/motion-dom.cjs');
+const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); return alpha; };
 const near=(a,b,tol=1e-9)=>assert.ok(Number.isFinite(+a)&&Math.abs(+a-b)<=tol*Math.max(1,Math.abs(b)),`${a} != ${b}`);
 const capture=E.capture(),lesson=M.createLesson({raw:capture.raw,config:capture.config});
 
@@ -171,8 +172,8 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined),originalImages,'the handoff never replaces spectrum nodes');
   for(const p of [.2,.32,.52,.82]) {
     lessonView.drawScene('least-squares-fit',p);
-    near(get('data-frequency-map').attrs.opacity,0);
-    for(const name of ['P','Q','R']) near(nodes.find(n=>n.attrs['data-complex-plane']===name).attrs.opacity,0);
+    near(visibleAlpha(get('data-frequency-map')),0);
+    for(const name of ['P','Q','R']) near(visibleAlpha(nodes.find(n=>n.attrs['data-complex-plane']===name)),0);
   }
   assert.equal(nodes.find(n=>n.attrs['data-fit-cloud']!==undefined),undefined,'obsolete P/Q/R fit actors are removed');
   const peak=get('data-get-peak');

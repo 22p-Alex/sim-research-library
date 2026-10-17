@@ -12,7 +12,7 @@
     const lesson = chapter.lesson, view = P.createView($('pe-art'), lesson);
     const formulaView = P.createFormulaView($('pe-equation'),lesson);
     const reduced = root.matchMedia('(prefers-reduced-motion: reduce)');
-    let scene = -1, note = '', player, scrubbing = false;
+    let scene = -1, note = '', player, rehearsal, scrubbing = false;
     const shortLabels = { read: '估计结果', fit: '估计幅相', coarse: '相关峰' };
     $('pe-step-total').textContent = '/ ' + P.scenes.length;
     $('pe-progress').max = String(P.scenes.length);
@@ -27,6 +27,7 @@
     });
     function render(playback) {
       const s = view.draw(playback.position), data = P.scenes[s.step];
+      rehearsal?.sync(s.id,s.progress);
       if (scene !== s.step) {
         scene = s.step;
         $('pe-chapter').textContent = data.chapter; $('pe-title').textContent = data.title; $('pe-copy').textContent = data.copy;
@@ -85,9 +86,12 @@
     });
     reduced.addEventListener('change', event => player.setReducedMotion(event.matches));
     document.addEventListener('visibilitychange', () => { if (document.hidden) player.pause(); });
-    root.addEventListener('pagehide', () => player.pause());
+    root.addEventListener('pagehide', () => {rehearsal?.destroy();player.destroy();});
+    const registry=root.SIMSceneRegistry.create(P.scenes,{kind:'parameter',getPeak:root.SIMGetPeak,chapter:root.SIMMotionParameterChapter});
+    rehearsal=root.SIMRehearsal.mount({document,container:$('scene-rehearsal'),toggle:$('rehearsal-toggle'),registry,player,
+      current:()=>P.state(player.state().position)});
     $('pe-app').setAttribute('aria-busy', 'false'); player.seek(0);
-    root.SIMParameterDemo = { lesson, view, player, chapter, preview: P, formulaView };
+    root.SIMParameterDemo = { lesson, view, player, chapter, preview: P, formulaView, rehearsal };
   } catch (error) {
     $('pe-app').setAttribute('aria-busy', 'false'); $('pe-error').hidden = false;
     $('pe-error').textContent = '参数估计 Demo 未能完成初始化：' + error.message;

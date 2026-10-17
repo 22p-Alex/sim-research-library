@@ -6,6 +6,7 @@ const L = require('../web/parameter-demo/sim-parameter-two-stage.js');
 const Chapter = require('../web/motion/sim-motion-parameter-chapter.js');
 const boot = require('./helpers/motion-dom.cjs');
 const near = (a, b, eps = 1e-10) => assert.ok(Math.abs(+a - b) <= eps * Math.max(1, Math.abs(b)), `${a} != ${b}`);
+const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); return alpha; };
 const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
 const magnitude = z => Math.hypot(z.re, z.im);
 const zOf = node => ({ re: +node.attrs['data-re'], im: +node.attrs['data-im'] });
@@ -76,8 +77,8 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
     near(vector.re, p < .86 ? 0 : peak.alpha.re); near(vector.im, p < .86 ? 0 : peak.alpha.im);
     for (const key of ['m', 'phase']) assert.equal(get('data-fit-parameter', key).attrs['data-value'], state.cards > 0 ? String(key === 'm' ? peak.m : peak.phase) : '');
     if (p >= .055) {
-      near(get('data-frequency-map').attrs.opacity, 0);
-      for (const name of ['P', 'Q', 'R']) near(get('data-complex-plane', name).attrs.opacity, 0);
+      near(visibleAlpha(get('data-frequency-map')), 0);
+      for (const name of ['P', 'Q', 'R']) near(visibleAlpha(get('data-complex-plane', name)), 0);
     }
     if (p >= .50 && p < .58) {
       const i = state.sample, conj = zOf(get('data-get-peak-conjugate-vector'));
@@ -127,8 +128,8 @@ test('the opening equation holds and fades with the old overview before the prep
     } else {
       assert.equal(result.equation,L.formulas.finalPrepare);near(group.style.opacity,target.textAlpha);
     }
-    if(+group.style.opacity>0&&p>=.07) near(get('data-frequency-map').attrs.opacity,0);
-    const snapshot=[host.attrs['data-formula-mode'],group.innerHTML,group.style.opacity,get('data-frequency-map').attrs.opacity];
+    if(+group.style.opacity>0&&p>=.07) near(visibleAlpha(get('data-frequency-map')),0);
+    const snapshot=[host.attrs['data-formula-mode'],group.innerHTML,group.style.opacity,visibleAlpha(get('data-frequency-map'))];
     if(snapshots.has(p))assert.deepEqual(snapshot,snapshots.get(p));else snapshots.set(p,snapshot);
   }
   assert.deepEqual(h.errors,[]);

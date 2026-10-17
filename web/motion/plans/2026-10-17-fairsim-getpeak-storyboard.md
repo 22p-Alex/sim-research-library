@@ -1,3 +1,5 @@
+> 本文保留源码依据与首次实现记录。现行七拍的唯一可执行定义位于 [get-peak/storyboard.js](../../parameter-demo/scenes/get-peak/storyboard.js)，编辑指南见[场景说明](../../parameter-demo/scenes/get-peak/README.md)。本文进度表是初版时序；改时长后以拍定义编译结果为准。
+
 # fairSIM 最终幅相估计：源码分镜与实现约定
 
 2026-10-17。用户已授权按 fairSIM 重做不合适的现有内容，并指定 gpt-6.1-sol / xhigh 实现动画。本分镜替代旧第 19 幕的“P 点试探旋转 → 全点最小二乘”主线。采用本地固定 fairSIM 源码，不查询 GitHub。

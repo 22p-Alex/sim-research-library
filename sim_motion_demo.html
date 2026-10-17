@@ -7,15 +7,17 @@
   <title>SIM Motion · 从样品到超分辨重建</title>
   <link rel="stylesheet" href="web/motion/sim-motion.css?v=centered-observation-expansion-8">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=fairsim-getpeak-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=scene-governance-1">
+  <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=scene-governance-1">
 </head>
 <body>
 <div class="app" id="app">
   <header class="topbar">
     <a class="brand" href="sim_pipeline_atlas.html" aria-label="返回 SIM 重建图谱"><span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span><b>SIM</b><span class="brand-divider">/</span><span>MOTION STUDY</span></a>
     <div class="top-context"><span class="live-dot"></span> 从样品到超分辨重建 <span class="edition">FULL STORY</span></div>
-    <nav aria-label="演示工具"><button id="theory-open" type="button">原理与数值 <span>↗</span></button><button id="fullscreen" type="button" aria-label="进入全屏">⛶ <span>全屏</span></button></nav>
+    <nav aria-label="演示工具"><button id="rehearsal-toggle" type="button" aria-expanded="false" aria-controls="scene-rehearsal">分镜排练</button><button id="theory-open" type="button">原理与数值 <span>↗</span></button><button id="fullscreen" type="button" aria-label="进入全屏">⛶ <span>全屏</span></button></nav>
   </header>
+  <section id="scene-rehearsal" class="scene-rehearsal" aria-label="分镜排练" hidden></section>
   <main id="main">
     <section class="scene-heading" aria-labelledby="scene-title">
       <div class="heading-index"><span id="chapter">01 / 样品与边界</span><div class="heading-line"></div></div>
@@ -563,22 +565,94 @@
 <div id="fatal-error" class="fatal-error" role="alert" hidden></div>
 <noscript><div class="fatal-error">这个动画需要启用 JavaScript。也可以返回 <a href="sim_pipeline_atlas.html">重建图谱</a> 阅读公式。</div></noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js"></script>
-<script src="web/shared/sim-experiment.js"></script>
-<script src="web/shared/sim-band-formulas.js?v=inline-coefficients-6"></script>
-<script src="web/atlas/sim-atlas-core.js"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=fairsim-getpeak-1"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=scan-fft-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=fairsim-getpeak-1"></script>
-<script src="web/parameter-demo/sim-parameter-refinement-view.js?v=fit-story-1"></script>
-<script src="web/parameter-demo/sim-parameter-line-view.js?v=return-2d-1"></script>
-<script src="web/parameter-demo/sim-parameter-fit-view.js?v=fairsim-getpeak-1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=fairsim-getpeak-1"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=fit-story-1"></script>
-<script src="web/motion/sim-motion-parameter-view.js?v=fit-story-1"></script>
-<script src="web/motion/sim-motion-model.js?v=actual-weight-extraction-4"></script>
-<script src="web/motion/sim-motion-stages.js?v=order-symbols-1"></script>
-<script src="web/motion/sim-motion-fourier.js?v=fourier-pair-3"></script>
-<script src="web/motion/sim-motion.js?v=fairsim-getpeak-1"></script>
+<script src="web/shared/sim-core.js?v=scene-governance-1"></script>
+<script src="web/shared/sim-experiment.js?v=scene-governance-1"></script>
+<script src="web/shared/sim-band-formulas.js?v=scene-governance-1"></script>
+<script src="web/atlas/sim-atlas-core.js?v=scene-governance-1"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=scene-governance-1"></script>
+<script src="web/shared/animation/beat-clock.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/comparison-data.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=scene-governance-1"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion-parameter-view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/sample/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/widefield/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/illumination/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/encoding-sum/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/detection/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/frequency-probe/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/mixed-sources/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/inverse-demix/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/verify-demix/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/separate-bands/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/relocate-bands/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/directions/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/single-direction-support/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/combined-support/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/otf-weight/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/sum-contributions/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/wiener/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/apodization/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/inverse-fft/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/image-comparison/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/frequency-audit/storyboard.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/index.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/inverse-demix/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/mixed-sources/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/separate-bands/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/phase-acquisition/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/detection/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/encoding-sum/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/frequency-encoding/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/otf-weight/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/sum-contributions/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/wiener/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/apodization/state.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/inverse-fft/state.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion-model.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/sample/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/encoding-sum/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/detection/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/directions/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/otf-weight/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/image-comparison/view.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion-stages.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion-fourier.js?v=scene-governance-1"></script>
+<script src="web/shared/animation/scene-registry.js?v=scene-governance-1"></script>
+<script src="web/shared/animation/rehearsal.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/frequency-encoding/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/phase-acquisition/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/relocate-bands/view.js?v=scene-governance-1"></script>
+<script src="web/motion/scenes/mixed-sources/view.js?v=scene-governance-1"></script>
+<script src="web/motion/sim-motion.js?v=scene-governance-1"></script>
 </body>
 </html>

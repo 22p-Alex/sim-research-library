@@ -2,6 +2,8 @@
 
 [完整重建动画](../../sim_motion_demo.html) 现在包含 33 个停点。独立 [参数 Demo](../../sim_parameter_demo.html) 保留，主页面直接复用其八幕模型与视图；不嵌入 iframe，不打开新页，不加载独立页启动器。
 
+现行维护入口为[分镜目录](SCENES.md)和[治理约定](GOVERNANCE.md)。本文说明数据交接与理论；动作定义以各幕 `storyboard.js` 为准。
+
 ## 实际顺序
 
 | 停点 | 场景 ID | 内容 |
@@ -18,7 +20,7 @@
 | 22—23 | relocate-bands、recover-high-frequency | 按估计波矢归位，回到高频点 |
 | 24—33 | directions 至 frequency-audit | 三方向覆盖、OTF 融合、逆 FFT、图像与频率评价 |
 
-第 19 幕以[2026-10-17 fairSIM getPeak 分镜](plans/2026-10-17-fairsim-getpeak-storyboard.md)为准：80 秒七拍，按本地源码的最终幅相计算顺序推进。内部 ID 保持兼容；第 20 幕仍用 28 秒回填矩阵后直接正式分离，删除回看条纹。此前的最小二乘分镜作为历史记录保留，不再是当前主线。
+第 19 幕现行定义位于 [getPeak 单元](../parameter-demo/scenes/get-peak/README.md)，源码依据见[七拍说明](plans/2026-10-17-fairsim-getpeak-storyboard.md)：80 秒七拍，按本地源码的最终幅相计算顺序推进。内部 ID 保持兼容；第 20 幕仍用 28 秒回填矩阵后直接正式分离，删除回看条纹。此前的最小二乘分镜作为历史记录保留，不再是当前主线。
 
 ## 数据连接
 
@@ -172,10 +174,10 @@ $$
 
 第 16 步移除 J、arg min、α̂ 预测与残差推导。已累计频点变色，完整累计后分数飞入原格；填完图后，左侧换成 N²×N² 的工作量。第 17 步先让原有元素变暗，横向展开两张完整固定预处理频谱，各自在原位逆变换为空域复数场；三个光标同步遍历同一位置，直接逐点扫出共轭乘积图，取消连线汇入。乘积图原位做正 FFT 和归一化，再整张归位到同一评分图，交回原有评分节点；每个结果格的坐标、大小、色标与直接算法一致。中间图采用独立对数模长色阶，避免零级中心压暗实际纹理。能量和掩膜交集计数也由 FFT 批量计算；最后的整数峰保持到第 18 步。两幕分别 36 秒和 44 秒，持续使用同一可回退时钟。
 
-第 18 步为 68 秒的 gridLimit / phaseRamp / zoomCascade / returnSpectrum 四段，边界为 0.22、0.56、0.935。整数格放大后的等高线来自同一观测的 21×21 局部实际分数，不读取真值或绘制人为偏移靶心。三栏用同一候选驱动空域相位斜坡、FFT 后复数频谱、同移 OTF、可靠公共区与第一轮评分。后半段局部网格移到中央，按实际三轮 5×5 数据与赢家继续缩进；第二、三轮边界为 0.70、0.85，第三轮在 0.915 完成。最终 0.01 格标注为搜索步长。锁定后局部网格退场，复用原 `frequency`、`sharedRoot`、OTF、公共点及复数箭头展开完整图像，结束时与第 19 步 least-squares-fit(0) 的位置和数值一致；全过程 k̂ 固定，不重新估计或替换纹理。顶部标题、说明、公式、画面和独立参数页共用相同状态；第 17 步的共轭乘积与第 18 步的旁带相位调制在公式及注文中明确区分。专用视图为 `sim-parameter-refinement-view.js`，复数调制和有限 Fourier 求和经过独立数值对照。
+第 18 步为 68 秒的 gridLimit / phaseRamp / zoomCascade / returnSpectrum 四段，边界为 0.22、0.56、0.935。整数格放大后的等高线来自同一观测的 21×21 局部实际分数，不读取真值或绘制人为偏移靶心。三栏用同一候选驱动空域相位斜坡、FFT 后复数频谱、同移 OTF、可靠公共区与第一轮评分。后半段局部网格移到中央，按实际三轮 5×5 数据与赢家继续缩进；第二、三轮边界为 0.70、0.85，第三轮在 0.915 完成。最终 0.01 格标注为搜索步长。锁定后局部网格退场，复用原 `frequency`、`sharedRoot`、OTF、公共点及复数箭头展开完整图像，结束时与第 19 步 least-squares-fit(0) 的位置和数值一致；全过程 k̂ 固定，不重新估计或替换纹理。顶部标题、说明、公式、画面和独立参数页共用相同状态；第 17 步的共轭乘积与第 18 步的旁带相位调制在公式及注文中明确区分。专用视图为 `scenes/refine/view.js`，复数调制和有限 Fourier 求和经过独立数值对照。
 
 第 19 步从第 18 步的完整概览开始，旧概览退出后显示两份最终工作频带，分别逆 FFT，再按锁定波矢对旁带应用空间相位斜坡。取同一个实际空域位置解释共轭乘积和参考能量，然后累计全部 N² 个位置；全部累加完成才显示相除结果，再读取模长和相角。公式和讲解跟随同一七拍状态。P/Q/R、试探旋转、残差点云、arg min 和归一化残差恒等式均退出主线。第 20 步直接回填矩阵。
 
 主线原有采集的共同相位约为 0，独立页为 0.35 rad；两个入口保持各自原观测。相位斜坡中的示例位置和复数箭头来自实际空域数组，不为制造转动而修改观测相位。
 
-生产定义和纯状态位于 `../parameter-demo/sim-parameter-two-stage.js`，图形和持久公式位于 `sim-parameter-two-stage-view.js`，最终 getPeak 视图位于 `sim-parameter-fit-view.js`，桌面样式位于 `sim-parameter-two-stage.css`。`sim-parameter-line-view.js` 恢复主线中的一维教学，复用已经校验过的教学数值计算；完整页「原理与数值」保留相应手算表。第 19 幕依据与分镜见[最新方案](plans/2026-10-17-fairsim-getpeak-storyboard.md)。
+各幕生产定义、公式和纯状态位于 `../parameter-demo/scenes/<id>/`，由 `sim-parameter-two-stage.js` 组合。共享频谱几何与持久公式模板位于 `sim-parameter-two-stage-view.js`；最终 getPeak 另有独立的 `storyboard/state/layout/view/formula-view`。一维教学视图位于 `scenes/line-shift/view.js`，细化视图位于 `scenes/refine/view.js`，桌面样式继续使用 `sim-parameter-two-stage.css`。完整页「原理与数值」保留手算表。准确路径见[分镜目录](SCENES.md)，维护规则见[治理约定](GOVERNANCE.md)。

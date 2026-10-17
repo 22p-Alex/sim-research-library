@@ -2,6 +2,7 @@
  * playhead; actual scores/complex values come from the observation-only fit. */
 (function (root) {
   'use strict';
+  const GetPeak = root.SIMGetPeak;
   const L = root.SIMParameterLesson, M = root.SIMParameterStory, A = root.SIMAtlas;
   const colors = L.bandColors, names = ['P', 'Q', 'R'];
   let instance = 0;
@@ -303,9 +304,31 @@
     const refineView=L.createRefinementView({parent:stage,defs,lesson,el,label,line,path,arrow,raster,fieldURL,set,text,opacity,heat,uid});
     let lastMask = '';
     const maxInput = Math.max(1e-12, ...data.examples.flatMap(c => c.points.filter(p => data.selected.some(t => t.q.join(',') === p.q.join(','))).flatMap(p => [magnitude(p.x), magnitude(p.y)])));
-    const fitView = L.createFitView({ parent: stage, lesson, el, label, line, path, vector, set, text, opacity, raster, defs, uid });
+    const chrome = new Set([header, cue, footer]);
+    const legacyBody = el('g', { 'data-scene-body': 'position-search' }, stage);
+    for (const child of Array.from(stage.children)) if (child !== legacyBody && !chrome.has(child)) {
+      child.remove(); legacyBody.appendChild(child);
+    }
+    const fitView = GetPeak.createView({ parent: stage, lesson, el, label, line, path, vector, set, text, opacity, raster, defs, uid });
     const lineRoot = el('g', { 'data-line-bridge': '' }), lineView = L.createLineView(lineRoot, lesson);
     function drawScene(id, progress) {
+      if (id !== GetPeak.scene.legacyId) {
+        opacity(legacyBody, 1); fitView.draw(null);
+        return drawLegacyScene(id, progress);
+      }
+      // Reconstruct the declared entry from any seek direction. A single
+      // owned group exits; this scene never enumerates another scene's actors.
+      drawLegacyScene(GetPeak.entry.from, 1);
+      const peak = fitView.draw(progress), state = L.stateForScene(id, progress);
+      opacity(legacyBody, peak.overview);
+      if (options.sharedPairContainer) opacity(sharedRoot, peak.overview);
+      pills.forEach((pill, i) => set(pill, 'data-active', i === 1));
+      text(cue, peak.cue); text(footer, peak.footer);
+      opacity(cue, peak.chromeAlpha); opacity(footer, peak.chromeAlpha);
+      set(container, 'data-scene-id', id); set(container, 'data-position', state.position); set(container, 'data-step', state.step);
+      return state;
+    }
+    function drawLegacyScene(id, progress) {
       const s = L.stateForScene(id, progress), p = s.progress, early = s.phase === 'position';
       refineView.draw(null);
       if (id === 'line-shift') {
@@ -627,7 +650,7 @@
         // Preserve the coarse grid for the opening zoom. The dedicated view
         // then owns all three linked columns and the three-round cascade.
         const retained=new Set([header,cue,footer,grid,refineView.root]);
-        for(const node of stage.children)if(!retained.has(node))opacity(node,0);
+        for(const node of legacyBody.children)if(!retained.has(node))opacity(node,0);
         opacity(sharedRoot,0);
         const enter=M.ramp(p,.015,.12);
         opacity(grid,1-enter);opacity(fftPeak,1-enter);
@@ -652,24 +675,6 @@
           planes.forEach((plane,i)=>opacity(plane.group,candidate.points.some(t=>t.q.join(',')===data.selected[i].q.join(','))?returning.values:0));
           opacity(legend,returning.values);
         }
-      }
-      fitView.draw(id === 'least-squares-fit' ? p : null);
-      if (id === 'least-squares-fit') {
-        const peak = L.leastSquaresState(lesson, p);
-        // Exact frame-0 handoff from refine(1); the old overview exits in
-        // place BEFORE the new native-coordinate working fields enter.
-        const retained = new Set([header, cue, footer, fitView.root, frequency, ...planes.map(plane => plane.group), legend]);
-        for (const node of stage.children) if (!retained.has(node)) opacity(node, 0);
-        opacity(frequency, peak.overview); opacity(sharedRoot, peak.overview);
-        text(mapTitle, '同一批公共频点 · 位置锁定');
-        planes.forEach((plane, i) => opacity(plane.group,
-          data.best.points.some(t => t.q.join(',') === data.selected[i].q.join(',')) ? peak.overview : 0));
-        opacity(legend, peak.overview);
-        text(cue, p < .055 ? '位置已锁定，回到两张完整频谱。' : 'fairSIM getPeak · 最终共同幅相估计');
-        text(footer, peak.footer);
-        opacity(cue, p < .055 ? peak.overview : peak.textAlpha);
-        opacity(footer, p < .055 ? peak.overview : peak.textAlpha);
-        if (p === 0) text(footer, 'k̂ 已锁定 · 回到同一对完整频谱 · 下一步比较公共点的共同幅相。');
       }
       if (id === 'shift') {
         opacity(stage, handoff.actual); opacity(sharedRoot, handoff.actual);
@@ -718,30 +723,8 @@
           parts.minusK = compile(parts.substitution, 'k-cancel-minus', String.raw`-\mathbf k'`);
           parts.residual = compile(parts.substitution, 'q-residual', String.raw`=\mathbf q+(\mathbf k-\mathbf k')`);
           parts.same = compile(parts.substitution, 'same-sample', String.raw`\xrightarrow{\ \mathbf k'=\mathbf k\ }\mathbf q`);
-        } else if (s.id === 'least-squares-fit' && s.progress >= .07) {
-          group.setAttribute('class', 'pe-study-formula pe-two-formula pe-peak-formula');
-          const beat = L.leastSquaresNarrative(s.progress).mode;
-          const add = (key, tex) => (parts[key] = compile(group, 'get-peak-' + key, tex));
-          if (beat === 'finalInverse') {
-            add('inverse0', String.raw`u=\mathcal F_N^{-1}\{B_0\}`);
-            add('inverse1', String.raw`v=\mathcal F_N^{-1}\{B_1\}`);
-          } else if (beat === 'finalShift') {
-            add('target', String.raw`v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)`);
-            add('ramp', String.raw`e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`);
-          } else if (beat === 'finalProduct') {
-            add('productName', String.raw`z(\mathbf r)=`);
-            add('conjugate', String.raw`u^*(\mathbf r)`);
-            add('multiply', String.raw`v_{\widehat{\mathbf k}}(\mathbf r)`);
-            add('energy', String.raw`,\qquad e(\mathbf r)=|u(\mathbf r)|^2`);
-          } else if (beat === 'finalSum') {
-            add('cross', String.raw`C=\sum_{\mathbf r}z(\mathbf r)`);
-            add('energySum', String.raw`E_0=\sum_{\mathbf r}e(\mathbf r)`);
-            add('domain', String.raw`\mathbf r\in\{0,\ldots,N-1\}^2`);
-          } else if (beat === 'finalRead') {
-            add('modulation', String.raw`\widehat m=|\widehat\alpha|`);
-            add('phase', String.raw`\widehat\phi_\Delta=\arg\widehat\alpha`);
-            add('frames', String.raw`\widehat\phi_j=\phi'_j+\widehat\phi_\Delta`);
-          } else add(beat === 'finalDivide' ? 'divide' : 'prepare', formula.equation.slice(2, -2));
+        } else if (s.id === GetPeak.scene.legacyId && !GetPeak.presentation(s.progress).handoff) {
+          Object.assign(parts, GetPeak.formulaView.build({ group, compile, progress: s.progress }));
         } else if(mode==='refine-phaseRamp'&&options.lesson) {
           group.setAttribute('class','pe-study-formula pe-refine-formula');
           parts.refinement=L.createRefinementFormulaView({parent:group,document:doc,lesson:options.lesson,compile});
@@ -752,16 +735,8 @@
       if (active !== mode || !Array.from(container.children).includes(group)) { clear(); container.appendChild(group); active = mode; }
       container.setAttribute('data-formula-mode', mode);
       const p = s.progress;
-      group.style.opacity = s.id === 'least-squares-fit' ? String(p < .07 ? 1 - M.ramp(p,.015,.055) : (() => { const b=L.leastSquaresNarrative(p); return M.ramp(p,b.start===0?.07:b.start+.003,b.start===0?.10:b.start+.013)*(b.end===1?1:1-M.ramp(p,b.end-.012,b.end-.003)); })()) : '1';
-      if (s.id === 'least-squares-fit') {
-        const beat = L.leastSquaresNarrative(p).mode;
-        const emphasis = { finalPrepare: ['prepare'], finalInverse: ['inverse0', 'inverse1'],
-          finalShift: ['ramp'], finalProduct: p < .50 ? ['conjugate'] : ['multiply', 'energy', 'productName'],
-          finalSum: ['cross', 'energySum'], finalDivide: ['divide'],
-          finalRead: p < .94 ? ['phase'] : p < .97 ? ['modulation'] : ['frames'] }[beat];
-        group.setAttribute('data-get-peak-formula-beat', p < .07 ? 'handoff' : beat);
-        for (const [name, node] of Object.entries(parts)) node.setAttribute('data-emphasized', emphasis.includes(name));
-      }
+      group.style.opacity = '1';
+      if (s.id === GetPeak.scene.legacyId) GetPeak.formulaView.draw(group, parts, p);
       if(parts.refinement){parts.refinement.draw(p);return formula;}
       if (mode === 'shared-derive') {
         const state = L.sharedState(p);

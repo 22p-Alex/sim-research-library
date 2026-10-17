@@ -2,6 +2,8 @@
 
 入口：[独立参数页](../../sim_parameter_demo.html)。[完整重建动画](../../sim_motion_demo.html)与本页共用八幕参数章节；完整页共 33 步，独立页含入口和出口共 13 步。
 
+修改从[完整分镜目录](../motion/SCENES.md)进入，维护规则见[治理约定](../motion/GOVERNANCE.md)。各幕状态和公式定义位于 `scenes/<id>/`；第 19 幕的完整模块说明见 [getPeak 单元](scenes/get-peak/README.md)。两页的“分镜排练”可以选择拍并复制准确定位码。
+
 ## 试读顺序
 
 | 完整页 | 独立页 | 内容 |
@@ -142,7 +144,7 @@ $$
 
 中栏仅显示各频带自身可靠 OTF 通带中的纹理，橙色交集格表示实际参与评分的公共点。小数频移后的有限傅里叶频谱在圈外仍可能非零，对数色阶会把尾迹提亮；显示掩膜只改变位图透明度，不修改复数频谱和评分。测试同时检查圈外像素透明、计算数组中尾迹仍在。
 
-每轮局部热图注明该轮分数的最小值与最大值；它用于看清局部差别，不与第 17 步固定 0—1 色标混用。居中放大时先收起候选读数，再显示顶部三轮摘要；中央标题、刻度、底部结果使用独立区域与实体背板，摘要不再放在图像下方。`sim-parameter-refinement-view.js` 负责三段图形和公式对照，`refinementState`、`refinementPhaseState`、`refinementNarrative` 与 `refinementDataFor` 负责时间状态、文案及候选复数数据。候选字段、计算用复数场、相位斜坡位图和实际频谱均缓存，倒放与重播复用同一结果，不重新估计或改动相机观测；公式节点缓存，箭头、数字和因子动画不重复编译 LaTeX。
+每轮局部热图注明该轮分数的最小值与最大值；它用于看清局部差别，不与第 17 步固定 0—1 色标混用。居中放大时先收起候选读数，再显示顶部三轮摘要；中央标题、刻度、底部结果使用独立区域与实体背板，摘要不再放在图像下方。`scenes/refine/view.js` 负责三段图形和公式对照，`refinementState`、`refinementPhaseState`、`refinementNarrative` 与 `refinementDataFor` 负责时间状态、文案及候选复数数据。候选字段、计算用复数场、相位斜坡位图和实际频谱均缓存，倒放与重播复用同一结果，不重新估计或改动相机观测；公式节点缓存，箭头、数字和因子动画不重复编译 LaTeX。
 
 ## 最终共同幅相：源码七拍
 
@@ -183,10 +185,12 @@ $$
 每个入口仅采集一次，估计器只读取观测、已知名义步进和 OTF。主线继续沿用原来三方向九帧，独立页继续使用原来的非零共同相位观测；没有更换或重新采集数据。默认 128×128、圆孔 OTF 截止 10 格、整数波矢 (8,0)、(4,7)、(−4,7)，调制度 0.8。
 
 - `sim-parameter-model.js`：观测工厂、重建交接、播放器及经校验的一维教学计算；旧八幕整体视图仍在测试替身中。
-- `sim-parameter-line-view.js`：一维实数移动与乘积和，不创建人工相位的教学视图。
-- `sim-parameter-two-stage.js`：八幕定义、公式、实际候选与取样点、返回二维的纯进度状态。
+- `scenes/line-shift/view.js`：一维实数移动与乘积和，不创建人工相位的教学视图。
+- `scenes/<id>/storyboard.js`、`state.js`：各幕定义、公式与确定性状态；`comparison-data.js` 提供共用候选及取样数据。
+- `sim-parameter-two-stage.js`：八幕单元组合及宿主兼容接口。
 - `sim-parameter-two-stage-view.js`：持续使用的频谱对、OTF、公共区、复平面、评分图及持久公式。
-- `sim-parameter-fit-view.js`：第 19 幕复数几何、全公共区点云、实际残差、累计量与参数卡片。
+- `scenes/get-peak/`：第 19 幕七拍定义、纯状态、布局、画面与公式视图，读取最终工作频带、空域乘积、完整前缀和与参数卡片。
+- `scenes/refine/view.js`：局部细化、相位斜坡及复数场对照。
 - `sim-parameter-two-stage.css`：桌面样式。
 - `sim-parameter-preview.js`、`sim-parameter-app.js`：独立页的入口、出口与控件。
 - `../motion/sim-motion-parameter-chapter.js`：完整页的 33 步组合、共享观测与全方向重建出口。

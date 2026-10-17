@@ -2,6 +2,8 @@
 
 入口：[sim_motion_demo.html](../../sim_motion_demo.html)。可直接双击 HTML 离线打开，也可从重建图谱顶部的“动画演示”进入。只面向桌面；不需要构建、联网或安装依赖。
 
+维护入口：[33 幕分镜目录](SCENES.md) · [治理约定](GOVERNANCE.md)。每幕文案、公式与时长已迁到独立 `scenes/<id>/storyboard.js`；独立动作和共享模板的修改路径见目录。两个入口都可打开“分镜排练”，定位到具体幕、拍及拍内进度。下文保留详细理论与演示说明；历史检查次数只对应当时版本，当前检查记录见治理约定。
+
 参数 Demo 已接入主线：同一批观测依次进入临时分离、参数估计、正式解混、归位与融合。完整流程 33 步，复用一个播放器和原公式栏；具体数据连接见[参数估计集成说明](PARAMETER-INTEGRATION.md)。
 
 第 10→11 步用 132 秒逐行解释权重、检查预设值的后果，再得到临时频带。先在原矩阵中框住第一行，三个 1/3 淡出后，原位显示“已知常数，直接可算”；文字退去后恢复系数。随后框住第二、三行，六个旁带权重淡出，分别在对应行显示“需要知道 φⱼ 和 m”；文字消失后再恢复系数。两轮说明都留有独立阅读停顿，系数与说明文字不会同时显示。
@@ -95,14 +97,17 @@ $$
 
 ## 文件分工
 
-- `sim-motion-model.js`：场景文案与公式、真实模拟数据、矩阵行状态、纯函数画面状态与单一播放进度。
-- `sim-motion-parameter-chapter.js`：33 步清单、原场景时间映射、同一观测的估计与全方向重建出口。
-- `sim-motion-parameter-view.js`：已有权重到临时频带、采用估计权重的两个衔接画面。
-- `../parameter-demo/sim-parameter-model.js` 提供数据与播放器；`sim-parameter-two-stage.js`、`sim-parameter-line-view.js`、`sim-parameter-two-stage-view.js`、`sim-parameter-fit-view.js` 与组件 CSS 提供共用八幕、OTF 与公共区、搜索和最终 getPeak 幅相估计，不创建第二个播放器。
-- `sim-motion-stages.js`：编码、空频域检测对照、九帧与支撑、复数融合、逆变换和结果对照的 SVG / Canvas 场景。
+- `scenes/<id>/storyboard.js`：每幕文案、公式、时长；`state.js` 和 `view.js` 按需存放独立状态与演员。`scenes/index.js` 只组合基础场景。
+- `sim-motion-model.js`：真实模拟数据、纯状态接口与单一播放器；从场景单元组合状态，不再集中存放各幕文案。
+- `sim-motion-parameter-chapter.js`：33 步组合、原场景时间映射、同一观测的估计与全方向重建出口。临时分离和参数回填的定义分别在 `scenes/provisional-split/` 和 `scenes/adopted-weights/`。
+- `sim-motion-parameter-view.js`：临时频带与采用权重两个场景共享的矩阵演员模板。
+- `../parameter-demo/scenes/`：共用八幕参数章节，各幕独立存放状态和公式。getPeak 同时独立拥有布局、视图及公式视图；前半段复用持续存在的频谱几何模板 `sim-parameter-two-stage-view.js`。`sim-parameter-two-stage.js` 只组合兼容接口。
+- `sim-motion-stages.js`：场景模板接线、公共 SVG / Canvas 工具和图层开关。编码、检测、覆盖、融合与结果模板已迁入对应场景目录。
 - `sim-motion-fourier.js`：八段交叉条纹故事、专用教学样品、共轭频率对与像素贡献；同一进度同步控制图形、复数与公式元素，打开时才创建图形，主流程暂停。
-- `sim-motion.js`：矩阵解混场景、公共纹理与公式工具、连续步骤导航与 DOM 事件。
+- `sim-motion.js`：公共纹理与公式工具、场景接线、连续步骤导航与 DOM 事件；矩阵视图位于 `scenes/mixed-sources/view.js`。
 - `sim-motion.css`：固定舞台、桌面排版、时间轴与原理弹窗。
+- `../animation-assets.json`、`../../scripts/sync-animation-scenes.cjs`：两个入口的脚本清单、共享模板归属和自动分镜目录。
+- `../shared/animation/`：拍内时序、注册表和使用原播放器的排练控件。
 
 主流程的几何动画由同一个可回退进度驱动，`requestAnimationFrame` 只推进这个进度。位置、缩放、矩阵行强调和频带归位由纯函数确定；静态纹理只在初始化时计算，融合场景从预先计算的复数数组绘制过渡帧，先组合复数再取幅度。标题淡入由浏览器 Web Animations API 处理。KaTeX 输出原生 MathML，避免依赖网络字体；需要支持 MathML 的现代桌面浏览器。
 
@@ -414,7 +419,7 @@ $$
 
 参数估计位于连续主线内，原理窗口补充公式与源码出处。当前模型假设准确等间隔相对相移；非等间隔相位需另行处理，OTF 仍需标定或建模提供。依据 [fairSIM 2016](https://doi.org/10.1038/ncomms10980) 的 Supplementary Note 1、项目内[参数估计推导](../../Wiener-SIM/fairSIM-论文/fairSIM_参数估计逐步推导与代码实操.md)与[原版估计器实操](../../scripts/fairsim-parameter-estimation/README.md)。
 
-第 34 步将 RMSE 标为“全图”均方根误差，解释它是重建后与真值比较的指标、128² 是像素数、(2x, 2y) 用于输出和真值对齐。入口提供平方—平均—开方的推导与当前结果：宽场约 0.2059，SIM 约 0.2643。固定计数、正则化、切趾的总传递为 Papo R₀ / (R + w²)，本例直流增益约 0.5048，因而存在整体亮度抑制；不能将部分高频恢复等同于更低 RMSE。RMSE 与分辨率判断分开，真值不参与重建。
+第 32 步将 RMSE 标为“全图”均方根误差，解释它是重建后与真值比较的指标、128² 是像素数、(2x, 2y) 用于输出和真值对齐。入口提供平方—平均—开方的推导与当前结果：宽场约 0.2059，SIM 约 0.2643。固定计数、正则化、切趾的总传递为 Papo R₀ / (R + w²)，本例直流增益约 0.5048，因而存在整体亮度抑制；不能将部分高频恢复等同于更低 RMSE。RMSE 与分辨率判断分开，真值不参与重建。
 
 ## 检查
 
