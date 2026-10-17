@@ -21,7 +21,7 @@
     scene('temporary', '先临时分离', '利用已知的相对相移，先取出临时频带。',
       '同一组三帧先形成三份临时结果，旁带保留未知调制度和共同相位。接着选 0 级与 +1 级，把注意力转向两带都有的样品信息。',
       provisional,
-      '这里假设三帧相对相移准确且等间隔。主流程追踪的 q=(14,0) 在 0 级通带外；先用公共区估计参数，再回来处理高频。', 15000, 'entry'),
+      M.notation.tilde + M.notation.band + '这里假设三帧相对相移准确且等间隔。', 15000, 'entry'),
   ];
   const exit = [
     scene('refill', '参数回填', '回到同一个矩阵，把估计值逐行填进去。',
@@ -54,7 +54,7 @@
     return { equation: scenes[s.step].equation, note: scenes[s.step].note };
   }
   const { fittingState, matchingState } = Study;
-  const createFormulaView = container => Study.createFormulaView(container, { formulaAt });
+  const createFormulaView = (container,lesson) => Study.createFormulaView(container, { formulaAt,lesson });
   const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
   function dataFor(lesson) {
     const g = lesson.bridge.pipeline.groups[0];

@@ -160,41 +160,51 @@
       ratio: label(right, 922 + i * 185, 369, '', 'pe-two-small'),
       phase: label(right, 922 + i * 185, 394, '', 'pe-two-small'),
     }));
-    // Point names provide correspondence without crossing the frequency map
-    // with connector curves. OTF correction uses magnitudes, not Re–Im arrows.
-    const correction = el('g', { 'data-otf-correction': '' }, stage);
-    label(correction, 962, 205, '0 级：幅值 ÷ H(q) → |U|', 'pe-two-text', colors[0]);
-    label(correction, 1246, 205, '+1 级：幅值 ÷ H(q+k′) → |V|', 'pe-two-text', colors[1]);
-    const magnitudeWidth = 128;
-    const corrections = data.selected.map((point, i) => {
-      const y = 247 + i * 86, g = el('g', { 'data-otf-point': names[i] }, correction);
-      label(g, 805, y + 26, names[i], 'pe-two-text', colors[2]);
-      const bands = [0, 1].map(b => {
-        const x = 832 + b * 284, start = x + 57, tag = names[i] + ':' + b;
-        const h = label(g, x + 130, y - 12, '', 'pe-two-bar-operation', colors[b]);
-        set(h, 'data-otf-operation', tag);
-        const beforeLabel = label(g, x, y + 11, '补偿前', 'pe-two-bar-label');
-        const afterLabel = label(g, x, y + 39, '', 'pe-two-bar-label', colors[b]);
-        for (const node of [beforeLabel, afterLabel]) set(node, 'text-anchor', 'start');
-        for (const dy of [0, 28]) el('rect', { x: start, y: y + dy, width: magnitudeWidth, height: 12, rx: 2, fill: '#20343d' }, g);
-        const original = el('rect', { x: start, y, height: 12, rx: 2, fill: '#c0ccd2', 'data-otf-original': tag }, g);
-        const bar = el('rect', { x: start, y: y + 28, height: 12, rx: 2, fill: colors[b], 'fill-opacity': .5, 'data-otf-magnitude': tag }, g);
-        const restored = el('rect', { y: y + 28, height: 12, fill: colors[b], 'data-otf-restored': tag }, g);
-        const reference = line(g, start, y - 2, start, y + 42, '#c0ccd2', { 'stroke-dasharray': '3 3', 'data-otf-original-end': tag });
-        const beforeValue = label(g, x + 198, y + 11, '', 'pe-two-bar-value');
-        const afterValue = label(g, x + 198, y + 39, '', 'pe-two-bar-value', colors[b]);
-        for (const node of [beforeValue, afterValue]) set(node, 'text-anchor', 'start');
-        set(beforeValue, 'data-otf-before-value', tag); set(afterValue, 'data-otf-after-value', tag);
-        return { h, original, bar, restored, reference, beforeValue, afterValue, afterLabel, start };
-      });
-      return { point, group: g, bands };
+    // Keep the original rows intact while each receives its own H*.
+    // H*H merges to |H|²; only the subsequent normalization cancels that factor.
+    const otfCorrection = el('g', { 'data-otf-normalization': '' }, stage);
+    label(otfCorrection, 1110, 210, '同一频点 q · 以下省略自变量 · 示意 k′=k', 'pe-two-small');
+    function otfTerm(parent, tag, tex, width = 80, color = '#dce8e6') {
+      const group = el('g', { 'data-otf-term': tag, 'data-tex': tex }, parent);
+      const box = el('foreignObject', { x: -width / 2, y: -28, width, height: 56 }, group);
+      const div = doc.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      div.setAttribute('class', 'pe-two-otf-math'); div.style.color = color;
+      box.appendChild(div); renderMath(div, '$$' + tex + '$$');
+      return group;
+    }
+    const otfRows = [0, 1].map(b => {
+      const y = 270 + b * 118, group = el('g', { 'data-otf-equality': b }, otfCorrection);
+      const productHighlight = el('rect', { x: 1069, y: y - 29, width: 155, height: 58, rx: 7,
+        fill: colors[b], 'fill-opacity': .06, stroke: colors[b], 'stroke-width': 1,
+        'data-otf-product-highlight': b }, group);
+      const band = otfTerm(group, 'band:' + b, b ? String.raw`\widetilde A_{+1}` : String.raw`\widetilde A_0`, 125, colors[b]);
+      const equals = otfTerm(group, 'equals:' + b, '=', 40);
+      const own = otfTerm(group, 'own:' + b, 'H_' + b, 70, colors[b]);
+      const sample = otfTerm(group, 'sample:' + b, 'S', 60);
+      const alpha = b ? otfTerm(group, 'alpha', String.raw`\alpha`, 70, colors[2]) : null;
+      const conjugate = otfTerm(group, 'conjugate:' + b, 'H_' + b + '^*', 80, colors[b]);
+      const lhsConjugate = otfTerm(group, 'lhs-conjugate:' + b, 'H_' + b + '^*', 80, colors[b]);
+      const power = otfTerm(group, 'power:' + b, '|H_' + b + '|^2', 110, colors[b]);
+      const lhsDenominator = otfTerm(group, 'lhs-denominator:' + b, '|H_' + b + '|^2', 110, colors[b]);
+      const rhsDenominator = otfTerm(group, 'rhs-denominator:' + b, '|H_' + b + '|^2', 110, colors[b]);
+      const lhsLine = line(group, 785, y + 4, 965, y + 4, colors[b], { 'stroke-width': 1.5, 'data-otf-fraction-line': 'lhs:' + b });
+      const rhsLine = line(group, 1093, y + 4, 1213, y + 4, colors[b], { 'stroke-width': 1.5, 'data-otf-fraction-line': 'rhs:' + b });
+      const cancel = el('g', { 'data-otf-cancel': b }, group);
+      for (const cy of [y - 22, y + 27]) line(cancel, 1113, cy + 7, 1193, cy - 7, colors[2], { 'stroke-width': 2 });
+      const one = otfTerm(group, 'one:' + b, '1', 45);
+      const name = otfTerm(group, 'name:' + b, b ? 'V' : 'U', 80, colors[b]);
+      const reference = b ? otfTerm(group, 'reference', 'U', 80, colors[0]) : null;
+      set(own, 'data-otf-original-factor', b);
+      for(const node of [conjugate, lhsConjugate])set(node, 'data-otf-conjugate-of', b);
+      return { y, group, productHighlight, band, equals, own, sample, alpha, conjugate, lhsConjugate,
+        power, lhsDenominator, rhsDenominator, lhsLine, rhsLine, cancel, one, name, reference };
     });
-    label(correction, 1100, 482, '灰条固定 · 彩条增长 · 虚线保留原长度 · 亮色段为补回的幅值', 'pe-two-small');
-    label(correction, 1100, 501, '两行使用同一标尺（幅值 / N²）；相位和频率位置不变', 'pe-two-small');
+    const operationNote = label(otfCorrection, 1110, 464, '', 'pe-two-text', colors[2]);
+    const normalizationNote = label(otfCorrection, 1110, 491, '', 'pe-two-small');
     const filterGuide = el('g', { 'data-otf-filter-guide': '' }, stage);
     label(filterGuide, 1110, 245, '① 暖红格：任一边 H 太弱，剔除', 'pe-two-text', '#e29a90');
     label(filterGuide, 1110, 292, '② 橙色格：两边 H ≥ τ，保留', 'pe-two-text', colors[2]);
-    label(filterGuide, 1110, 356, '③ 留下的点分别除以 H，得到 U、V', 'pe-two-text');
+    label(filterGuide, 1110, 356, '③ 每行先乘自己的 H*，再除以 |H|²', 'pe-two-text');
     label(filterGuide, 1110, 409, '下一步：改变 k′，比较整片公共区', 'pe-two-small');
     function plane(parent, title, tag) {
       const g = el('g', { 'data-complex-plane': tag }, parent);
@@ -211,7 +221,7 @@
     const planes = data.selected.map((_, i) => plane(stage, names[i], names[i]));
     const legend = label(stage, 1100, 422, '青： 0 级 U   紫：旁带 V   虚线：同一系数预测', 'pe-two-small');
     const grid = el('g', { 'data-candidate-grid': '' }, stage);
-    label(grid, 1110, 200, '整数候选评分 · 0—1 固定色标', 'pe-two-small');
+    const gridTitle=label(grid, 1110, 200, '整数候选评分 · 0—1 固定色标', 'pe-two-small');
     const width = 2 * e.extent + 1, gridSize = 210, cell = gridSize / width, gx = 1005, gy = 224;
     const heat = score => `rgb(${[19, 38, 46].map((v, i) => Math.round(v + ([239, 184, 121][i] - v) * score)).join(',')})`;
     const gridCells = e.coarse.map(c => el('rect', { x: gx + (c.kx + e.extent) * cell, y: gy + (c.ky + e.extent) * cell, width: cell - .5, height: cell - .5, fill: c.valid ? '#13262e' : '#091115', 'data-score-k': [c.kx, c.ky].join(','), 'data-score': c.score, 'data-valid': c.valid }, grid));
@@ -223,13 +233,75 @@
     label(grid, gx + gridSize + 29, gy + gridSize + 19, 'k′ₓ', 'pe-two-small');
     label(grid, gx - 23, gy - 8, 'k′ᵧ', 'pe-two-small');
     const gridCursor = el('rect', { width: cell, height: cell, fill: 'none', stroke: colors[0], 'stroke-width': 2 }, grid);
-    const fine = el('g', { 'data-refinement-grid': '' }, stage);
-    const fineCells = Array.from({ length: 25 }, (_, i) => el('rect', { x: 1010 + i % 5 * 38, y: 228 + Math.floor(i / 5) * 38, width: 35, height: 35 }, fine));
-    const fineTitle = label(fine, 1110, 194, '', 'pe-two-small');
-    const fineDetail = label(fine, 1110, 443, '', 'pe-two-small');
-    const fineCursor = el('rect', { width: 35, height: 35, fill: 'none', stroke: colors[0], 'stroke-width': 2 }, fine);
-    const rampExplanation = el('g', {}, stage);
-    ['① 旁带做逆变换', '② 乘空间相位斜坡', '③ 得到小数频移的复数值'].forEach((s, i) => label(rampExplanation, 1110, 235 + i * 54, s, 'pe-two-text', i === 1 ? colors[2] : undefined));
+    // One score grid persists through direct accumulation, cost and FFT.
+    const scanPanel=el('g',{'data-direct-scan':''},stage);
+    const scanCount=label(scanPanel,862,241,'','pe-two-text',colors[0]);
+    label(scanPanel,862,275,'共轭相乘 → 累计','pe-two-small');
+    const scanSum=label(scanPanel,862,307,'','pe-two-small');
+    const scanScore=label(scanPanel,862,345,'','pe-two-value');
+    const scanTotal=label(scanPanel,862,390,'','pe-two-small');
+    const scanPoint=el('circle',{r:7,fill:'none',stroke:colors[0],'stroke-width':2,'data-scan-point':''},frequency);
+    const stamp=label(stage,862,345,'','pe-two-value',colors[2]);set(stamp,'data-score-stamp','');
+    const costPanel=el('g',{'data-scan-cost':''},stage);
+    label(costPanel,450,174,'每换一个候选，都要再扫一次公共区。','pe-two-value');
+    for(let b=0;b<2;b++) {
+      const g=el('g',{},costPanel),x=205+b*330;
+      for(let j=0;j<8;j++)for(let i=0;i<8;i++)el('rect',{x:x+i*14,y:222+j*14,width:11,height:11,fill:colors[b],'fill-opacity':.25},g);
+      label(g,x+50,366,b?'每次最多 N² 个频点':'N² 个候选位移','pe-two-text',colors[b]);
+    }
+    label(costPanel,450,287,'×','pe-two-value');
+    label(costPanel,450,415,'二维完整直接扫描：O(N⁴)','pe-two-value');
+    label(costPanel,450,447,'每轴格数翻倍，直接乘加量约变为 16 倍','pe-two-small');
+    // Darken the previous scene before introducing the foreground calculation.
+    // Keep the original score cells and their color scale for the final handoff.
+    const fftBackdrop=el('rect',{x:70,y:140,width:1290,height:335,rx:8,fill:'#091115','data-fft-backdrop':''},stage);
+    const fftRoot=el('g',{'data-fft-pipeline':''},stage),fftData=e.fft,fftSize=200,fftCenters=[280,630,980];
+    const fieldURL=(z,color,frequencyDomain,side=frequencyDomain?range:n)=>{
+      const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
+      const max=z.re.reduce((v,re,i)=>Math.max(v,Math.hypot(re,z.im[i])),1e-30);
+      return raster(side,side,(x,y)=>{
+        const i=frequencyDomain?A.idx(x-Math.floor(side/2),y-Math.floor(side/2),n):y*n+x;
+        // The zero-order DC is ~250 times the median supported amplitude.
+        // Four log decades expose its real texture without changing any data;
+        // exact zeros stay black. Each field has an independent display scale.
+        const value=Math.log1p(1e4*Math.hypot(z.re[i],z.im[i])/max)/Math.log1p(1e4);
+        return [...rgb.map(c=>Math.round(c*value)),255];
+      });
+    };
+    const fftImageAttrs={x:-fftSize/2,y:-fftSize/2,width:fftSize,height:fftSize,style:'image-rendering:pixelated'};
+    const fftPanel=g=>el('rect',{x:-116,y:-116,width:232,height:232,rx:5,class:'pe-two-panel'},g);
+    const fftCards=[0,1].map(b=>{
+      const g=el('g',{'data-fft-input':b},fftRoot);
+      fftPanel(g);
+      const spectral=el('image',{...fftImageAttrs,href:fieldURL(fftData.inputs[b],colors[b],true),'data-fft-spectrum':b},g);
+      const spatial=el('image',{...fftImageAttrs,href:fieldURL(fftData.spatial[b],colors[b],false),'data-fft-spatial':b},g);
+      const title=label(g,0,-144,'','pe-two-text',colors[b]);set(title,'data-fft-input-title',b);
+      const step=label(g,0,148,'','pe-two-small');set(step,'data-fft-input-caption',b);
+      return {g,spectral,spatial,title,step};
+    });
+    const fftProduct=el('g',{'data-fft-product':''},fftRoot);
+    const productPanel=fftPanel(fftProduct);
+    const productClip=el('clipPath',{id:uid+'-product-scan',clipPathUnits:'userSpaceOnUse'},defs);
+    const productPrefix=el('path',{'data-fft-product-prefix':''},productClip);
+    const productImage=el('image',{...fftImageAttrs,href:fieldURL(fftData.product,colors[2],false),
+      'clip-path':'url(#'+uid+'-product-scan)','data-fft-product-image':''},fftProduct);
+    const correlationImage=el('image',{...fftImageAttrs,href:fieldURL(fftData.correlation,colors[2],true,width),'data-fft-correlation-image':''},fftProduct);
+    const resultScores=el('g',{'data-fft-result-scores':''},fftProduct);
+    e.coarse.forEach(c=>el('rect',{x:-100+(c.kx+e.extent)*fftSize/width,y:-100+(c.ky+e.extent)*fftSize/width,
+      width:(cell-.5)*fftSize/gridSize,height:(cell-.5)*fftSize/gridSize,
+      fill:c.valid?heat(c.score):'#091115','data-fft-score-k':[c.kx,c.ky].join(',')},resultScores));
+    const productTitle=label(fftProduct,0,-144,'','pe-two-text',colors[2]);
+    const productCaption=label(fftProduct,0,148,'','pe-two-small');
+    const fftOperators=[label(fftRoot,(fftCenters[0]+fftCenters[1])/2,307,'×','pe-two-value'),label(fftRoot,(fftCenters[1]+fftCenters[2])/2,307,'=','pe-two-value')];
+    const fftCursors=[...fftCards.map(card=>card.g),fftProduct].map((parent,b)=>{
+      const row=el('rect',{x:-100,width:fftSize,height:fftSize/n,fill:colors[b],'fill-opacity':.18,'data-fft-scan-row':b},parent);
+      const point=el('circle',{r:5,fill:colors[b],'fill-opacity':.3,stroke:colors[b],'stroke-width':2,'data-fft-pixel-cursor':b},parent);
+      return {row,point};
+    });
+    const fftInfo=label(fftRoot,720,122,'','pe-two-text');
+    label(fftRoot,720,485,'各图独立对数色阶 · 仅显示模长，计算保留完整复数值','pe-two-small');
+    const fftPeak=el('rect',{x:0,y:0,width:cell+6,height:cell+6,fill:'none',stroke:colors[2],'stroke-width':2,'data-fft-peak':''},grid);
+    const refineView=L.createRefinementView({parent:stage,defs,lesson,el,label,line,path,arrow,raster,fieldURL,set,text,opacity,heat,uid});
     const miniTitle = label(stage, 205, 163, '样品频率 q · 固定位置', 'pe-two-text');
     const miniCoordinates = data.selected.map((point, i) => label(stage, 205, 347 + i * 25, `${names[i]}：q = (${point.q.join(', ')})`, 'pe-two-small'));
     const locked = label(stage, 205, 448, '', 'pe-two-small', colors[2]);
@@ -265,6 +337,7 @@
     const lineRoot = el('g', { 'data-line-bridge': '' }), lineView = L.createLineView(lineRoot, lesson);
     function drawScene(id, progress) {
       const s = L.stateForScene(id, progress), p = s.progress, early = s.phase === 'position';
+      refineView.draw(null);
       if (id === 'line-shift') {
         // The actual selected regions remain visible while the teaching row
         // enters. Its numbers are explicitly a separate example.
@@ -302,20 +375,23 @@
       if (!early) candidate = data.best;
       const key = candidate.kx + ',' + candidate.ky;
       set(container, 'data-scene-id', id); set(container, 'data-position', s.position); set(container, 'data-step', s.step);
+      set(container,'data-refine-return',refinement?refinement.returnView.overview:0);
       for (const [key, value] of Object.entries({ kx: candidate.kx, ky: candidate.ky, score: candidate.score, count: candidate.count })) set(right, 'data-' + key, value);
       const searching = ['match', 'coarse', 'refine'].includes(id);
-      text(kValue, id === 'shift' ? '归位示意 · 条件 k′=k' : id === 'otf' || id === 'match' && p < .12 ? '先做准备：筛选并除以 H'
+      text(kValue, id === 'shift' ? '归位示意 · 条件 k′=k' : id === 'otf' || id === 'match' && p < .12 ? '先做准备：共轭与模平方归一'
         : (early ? '候选 k′ = ' : '已锁定 k̂ = ') + '(' + num(candidate.kx, 2) + ', ' + num(candidate.ky, 2) + ')');
       text(countValue, `可靠公共区 ${candidate.count} 点 · 两边 |H| ≥ ${e.context.config.minH}`);
-      text(purpose, id === 'otf' ? p < .53 ? '先对照两行原值；随后分别除以 H'
-        : p < .69 ? '① 青色 0 级正在补偿；紫色旁带暂不变'
-        : p < .73 ? '0 级已补偿完成；接下来处理旁带'
-        : p < .89 ? '② 紫色旁带正在补偿；灰条保留原值'
-        : '③ U、V 已就绪；上下两行保留前后对照'
-        : id === 'match' ? p < .12 ? '保留补偿后的数据，接下来更换候选' : p < .42 ? '先允许共同幅相差，再算预测误差' : p < .72 ? '全部可靠点共同拟合 α̂ = C / Eᵤ' : '相对剩余误差 = 1 − ρ²'
+      text(purpose, id === 'otf' ? p < .4 ? '先筛掉任一边 H 太弱的频点'
+        : p < .48 ? '上行用 H₀，下行用 H₁；各自校正'
+        : p < .60 ? '① 等式两边乘上自身 H 的共轭'
+        : p < .70 ? 'H*H = |H|²；还未完成幅度校正'
+        : p < .79 ? '② 等式两边再除以相同的 |H|²'
+        : p < .87 ? '分子分母约去，右侧留下样品信息'
+        : '两步完成后记作 U、V，接着比较候选'
+        : id === 'match' ? p < .12 ? '接住校正后的 U、V，随后尝试候选' : p < .42 ? '逐点乘加，累计一个候选' : p < .82 ? '继续填入每个候选的分数' : '每换候选，都要重复一轮'
         : id === 'coarse' ? `粗搜：${num(e.context.config.minRadius, 1)} ≤ |k′| ≤ ${num(e.context.config.maxRadius, 1)} · 整数格`
         : id === 'refine' ? '从整数峰出发 · 每轮只搜上一轮峰附近' : '');
-      opacity(purpose, ['otf', 'match', 'coarse', 'refine'].includes(id) ? 1 : 0);
+      opacity(purpose, ['otf', 'refine'].includes(id) ? 1 : 0);
       text(scoreValue, `匹配分数 ρ = ${num(candidate.score, 4)}`);
       opacity(address, id === 'shared' ? 1 : 0);
       text(address, p < .18 ? '先固定青色 q：0 级在这里记录 S(q)。旁带要到哪里找？'
@@ -386,7 +462,10 @@
       set(moveArrow, 'd', arrow(cx, cy - 115, cx + sideDx, cy - 115 + sideDy));
       opacity(moveArrow, id === 'shift' ? M.ramp(relocate, 0, .15) : 1);
       set(moveArrow, 'data-dx', -candidate.kx); set(moveArrow, 'data-dy', -candidate.ky);
-      text(moveLabel, id === 'shift' && p < .68 ? '相同 f 仍对应不同来源；两幅图尚未归位' : searching ? '0 级固定 · 旁带与 OTF 同移 −k′ = (' + num(-candidate.kx, 2) + ', ' + num(-candidate.ky, 2) + ')' : '0 级固定 · 旁带与 OTF 同移 −k′ · 示意 k′=k');
+      const positionLocked=s.step>=L.index('geometry')||refinement?.returnView.overview>0;
+      text(moveLabel, id === 'shift' && p < .68 ? '相同 f 仍对应不同来源；两幅图尚未归位'
+        :positionLocked?'旁带与 OTF 已按 −k̂ 归位 · 位置锁定'
+        : searching ? '0 级固定 · 旁带与 OTF 同移 −k′ = (' + num(-candidate.kx, 2) + ', ' + num(-candidate.ky, 2) + ')' : '0 级固定 · 旁带与 OTF 同移 −k′ · 示意 k′=k');
       const maskAlpha = id === 'shift' ? M.ramp(relocate, .8, 1) : s.step >= L.index('otf') ? 1 : 0;
       opacity(mask, maskAlpha);
       if (lastMask !== key) {
@@ -412,35 +491,49 @@
       text(axisX, detector ? 'fₓ' : 'qₓ'); text(axisY, detector ? 'fᵧ' : 'qᵧ');
       opacity(right, id === 'shift' ? comparisonReveal : ['otf', 'match', 'coarse', 'refine'].includes(id) ? 1 : 0);
       const correctionAlpha = id === 'otf' ? filtering.detail : id === 'match' ? 1 - M.ramp(p, 0, .12) : 0;
-      opacity(correction, correctionAlpha);
+      opacity(otfCorrection, correctionAlpha);
       opacity(filterGuide, id === 'otf' ? 1 - M.ramp(p, .37, .40) : 0);
-      set(correction, 'data-correction-progress', id === 'match' ? 1 : s.correction);
-      set(correction, 'data-amplitude-scale', maxAlignedInput / n ** 2);
-      corrections.forEach(({ point, bands }) => bands.forEach((item, b) => {
-        const h = b ? point.h1 : point.h0, value = b ? point.y : point.x;
-        const corrected = filtering.correctionByBand[b];
-        const gain = h + (1 - h) * corrected, re = value.re * gain, im = value.im * gain;
-        const width = magnitudeWidth * Math.hypot(re, im) / maxAlignedInput;
-        set(item.bar, 'width', width);
-        set(item.bar, 'data-re', re); set(item.bar, 'data-im', im); set(item.bar, 'data-h', h);
-        set(item.bar, 'data-correction-progress', corrected); set(item.bar, 'data-gain', gain / h);
-        const originalMagnitude = magnitude(value) * h;
-        const originalWidth = magnitudeWidth * originalMagnitude / maxAlignedInput;
-        set(item.original, 'width', originalWidth);
-        set(item.original, 'data-magnitude', originalMagnitude);
-        set(item.bar, 'data-original-magnitude', originalMagnitude);
-        set(item.bar, 'data-corrected-magnitude', magnitude(value));
-        set(item.restored, 'x', item.start + originalWidth);
-        set(item.restored, 'width', Math.max(0, width - originalWidth));
-        set(item.reference, 'x1', item.start + originalWidth); set(item.reference, 'x2', item.start + originalWidth);
-        text(item.h, '÷ ' + num(h, 3) + ' · 当前 ×' + num(gain / h, 2));
-        text(item.afterLabel, corrected === 0 ? '待补偿' : corrected < 1 ? '补偿中' : '补偿后');
-        text(item.beforeValue, num(originalMagnitude / n ** 2, 5));
-        text(item.afterValue, num(Math.hypot(re, im) / n ** 2, 5));
-      }));
+      for (const key of ['multiply', 'power', 'divide', 'cancel', 'name', 'relation'])
+        set(otfCorrection, 'data-' + key + '-progress', filtering[key]);
+      const place = (node, x, y, scale = 1) => set(node, 'transform', `translate(${x} ${y}) scale(${scale})`);
+      otfRows.forEach((row, b) => {
+        const { multiply: travel, power, divide, cancel, name, relation } = filtering;
+        const lift = 22 * divide, cancelled = M.ramp(cancel, .35, 1);
+        place(row.band, 895 + 15 * name, row.y - lift * (1 - name), 1 - .15 * name);
+        opacity(row.band, 1 - name); place(row.equals, 995, row.y);
+        // The RHS conjugate comes from this row's H and stays in this row.
+        place(row.own, 1185 - 32 * power, row.y - lift); opacity(row.own, 1 - power);
+        place(row.conjugate, 1185 - 75 * travel + 43 * power,
+          row.y - 32 * Math.sin(Math.PI * travel) - lift);
+        opacity(row.conjugate, M.ramp(travel, 0, .15) * (1 - power));
+        place(row.lhsConjugate, 1185 - 375 * travel + 100 * name,
+          row.y - 44 * Math.sin(Math.PI * travel) - lift * (1 - name), 1 - .15 * name);
+        opacity(row.lhsConjugate, M.ramp(travel, 0, .15) * (1 - name));
+        place(row.power, 1153, row.y - lift); opacity(row.power, power * (1 - cancelled));
+        place(row.lhsDenominator, 875 + 35 * name, row.y + 27 * (1 - name));
+        opacity(row.lhsDenominator, divide * (1 - name)); opacity(row.lhsLine, divide * (1 - name));
+        place(row.rhsDenominator, 1153, row.y + 27);
+        opacity(row.rhsDenominator, divide * (1 - cancelled)); opacity(row.rhsLine, divide * (1 - cancelled));
+        opacity(row.cancel, Math.sin(Math.PI * cancel));
+        set(row.cancel, 'data-cancel-progress', cancel);
+        place(row.one, 1153, row.y); opacity(row.one, cancelled * (1 - name));
+        place(row.sample, 1270 - 117 * name, row.y); opacity(row.sample, b ? 1 - relation : 1);
+        place(row.name, 910, row.y); opacity(row.name, name);
+        place(row.productHighlight, 0, -lift); opacity(row.productHighlight, power * (1 - divide));
+        if (row.alpha) {
+          place(row.alpha, 1040, row.y); opacity(row.alpha, 1);
+          place(row.reference, 1153, row.y); opacity(row.reference, relation);
+        }
+      });
+      text(operationNote, filtering.name > 0 ? '正确对齐后：U=S，V=αS=αU'
+        : filtering.divide > 0 ? '再除以 |H|²，才完成自身 OTF 的校正'
+        : '只乘 H*，仍留有 |H|²');
+      opacity(operationNote, M.ramp(filtering.multiply, .85, 1));
+      text(normalizationNote, filtering.name > 0 ? '相同 q 的 U 固定；V 与可靠公共区随候选 k′ 改变'
+        : '两步合起来等价于除以 H；只处理已筛选的可靠点');
       const conjugateView = id === 'conjugate' || id === 'fit' && p < .12;
       const cp = id === 'fit' ? 1 : p, previousAlpha = id === 'fit' ? 1 - M.ramp(p, 0, .12) : 1;
-      const showPlanes = ['match', 'geometry', 'conjugate'].includes(id) || id === 'fit' && p < .12;
+      const showPlanes = ['geometry', 'conjugate'].includes(id) || id === 'fit' && p < .12;
       const earlyPlanes = id === 'match', planeAlpha = id === 'match' ? M.ramp(p, .12, .23) : previousAlpha;
       opacity(legend, showPlanes ? planeAlpha : 0);
       set(legend, 'x', earlyPlanes ? 1100 : 882); set(legend, 'y', earlyPlanes ? 445 : 419);
@@ -455,8 +548,10 @@
           [plane.u, plane.v, plane.prediction, plane.product].forEach(node => { vector(node, { re: 0, im: 0 }, 1); opacity(node, 0); });
           text(plane.scaleLabel, '当前候选不可比较'); return;
         }
-        const h0 = row.h0 + (1 - row.h0) * s.correction, h1 = row.h1 + (1 - row.h1) * s.correction;
-        let u = { re: row.x.re * h0, im: row.x.im * h0 }, v = { re: row.y.re * h1, im: row.y.im * h1 };
+        // The arrows appear after both OTF-correction steps. Their stored
+        // operands also expose the actual conjugate-weighted intermediate.
+        let u = s.correction === 1 ? row.x : s.otfMultiply === 1 ? row.weightedX : row.rawX;
+        let v = s.correction === 1 ? row.y : s.otfMultiply === 1 ? row.weightedY : row.rawY;
         if (conjugateView) u = polar(magnitude(row.x), angle(row.x) * (1 - 2 * s.conjugation));
         vector(plane.u, u, 58 / inputMaximum); vector(plane.v, v, 58 / inputMaximum);
         const transform = L.transformState(lesson, p);
@@ -475,7 +570,7 @@
       });
       stats.forEach(t => {
         set(t.ratio, 'y', 392); set(t.phase, 'y', 416);
-        for (const label of Object.values(t)) opacity(label, earlyPlanes ? planeAlpha : 0);
+        for (const label of Object.values(t)) opacity(label, 0);
       });
       planes.forEach(plane => opacity(plane.scaleLabel, earlyPlanes ? 0 : 1));
       set(scoreValue, 'y', id === 'match' ? 479 : 489);
@@ -485,19 +580,6 @@
         const done = new Set(committed.map(c => c.kx + ',' + c.ky));
         gridCells.forEach((g, i) => { const c = e.coarse[i]; set(g, 'fill', !c.valid ? '#091115' : done.has(c.kx + ',' + c.ky) ? heat(c.score) : '#13262e'); });
         set(gridCursor, 'x', gx + (candidate.kx + e.extent) * cell); set(gridCursor, 'y', gy + (candidate.ky + e.extent) * cell);
-      }
-      opacity(fine, id === 'refine' && p >= .30 ? 1 : 0); opacity(rampExplanation, id === 'refine' && p < .30 ? 1 : 0);
-      if (refinement) {
-        const valid = refinement.candidates.filter(c => c.valid), lo = Math.min(...valid.map(c => c.score)), hi = Math.max(...valid.map(c => c.score));
-        text(fineTitle, `第 ${refinement.round + 1} 轮 · 半宽 ±${num(2 * refinement.step, 2)} · 间隔 ${refinement.step}`);
-        text(fineDetail, `中心 (${num(refinement.center.kx, 2)}, ${num(refinement.center.ky, 2)}) · 色标 ${num(lo, 3)}—${num(hi, 3)}`);
-        refinement.candidates.forEach((c, i) => {
-          set(fineCells[i], 'fill', c.valid ? heat((c.score - lo) / Math.max(1e-12, hi - lo)) : '#091115');
-          set(fineCells[i], 'data-kx', c.kx); set(fineCells[i], 'data-ky', c.ky); set(fineCells[i], 'data-score', c.score);
-        });
-        const cursor = refinement.candidates.findIndex(c => Math.abs(c.kx - candidate.kx) < 1e-8 && Math.abs(c.ky - candidate.ky) < 1e-8);
-        opacity(fineCursor, cursor >= 0 ? 1 : 0);
-        if (cursor >= 0) { set(fineCursor, 'x', 1010 + cursor % 5 * 38); set(fineCursor, 'y', 228 + Math.floor(cursor / 5) * 38); }
       }
       opacity(miniTitle, reduce); miniCoordinates.forEach(node => opacity(node, reduce));
       opacity(locked, early ? 0 : 1); text(locked, `k̂ = (${num(e.kx, 2)}, ${num(e.ky, 2)}) · ${data.best.count} 个公共点`);
@@ -538,9 +620,9 @@
       const footers = {
         shared: '',
         shift: p < .40 ? '二维频率有横纵两个分量；候选写作 k′，真实 k 仍待估计。' : p < .68 ? '面板共用坐标原点后，0 级保持固定；随后用候选 −k′ 搬回旁带。' : '旁带与 OTF 一起移动 −k′；仅在 k′=k 时，同名频点重合。',
-        otf: p < .4 ? '先筛选可比较的频点：暖红格退出，橙色格保留；此步还不搜索位移。' : s.correction < 1 ? '上行灰条固定，下行彩条从同一长度开始；逐级演示除以 H，倍数从 1 增至 1/H。' : '已得到 U、V：下一步换不同 k′，寻找能解释整片公共区的位移。',
-        match: p < .12 ? '接住上一幕的 U、V，再开始尝试候选位移。' : p < .72 ? '一个候选配一个共同 α；橙色预测越贴近紫色实测，平方误差越小。' : 'ρ 越接近 1，允许共同幅相差后剩下的相对误差越小。',
-        coarse: p < .68 ? '先理解分子与归一化；右图填入每个整数候选的实际分数。' : p < .90 ? '全局粗搜可以跨较大范围；行间跳动只是填表顺序，深色格不参与搜索。' : '整数峰给下一步初值；fairSIM 随后只在峰附近 ±2.5 格起步细化。',
+        otf: p < .4 ? '先筛选可比较的频点：暖红格退出，橙色格保留；此步还不搜索位移。' : filtering.cancel < 1 ? '乘自身 H* → 保留 |H|² → 再除以 |H|²；两步齐全才等价于除以 H。' : '已得到 U、V：下一步换不同 k′，寻找能解释整片公共区的位移。',
+        match: p < .12 ? '接住上一幕的 U、V，再开始尝试候选位移。' : p < .72 ? '公共区逐点共轭相乘、累计；算完后把分数送到对应的 k′ 格。' : '完整二维扫描要重复 N² 遍乘加；能否一次算出所有位移？',
+        coarse: p < .12 ? '原有元素先变暗，保留刚才的评分图。' : p < .26 ? '展开两张完整固定频谱：可靠区除自身 H，圈外置零。' : p < .46 ? '两张频谱在原位分别逆 FFT，成为空域复数场 u、v。' : p < .71 ? '三个光标取同一像素：u 取共轭后乘 v，逐点扫出乘积图。' : p < .86 ? '整张乘积图原位做正 FFT，再按两边能量归一化。' : p < .96 ? '整张结果移回原评分图，坐标、色标和候选分数都保持一致。' : '同一评分图、同一整数峰；接下来只在峰附近做小数细化。',
         refine: p < .30 ? '空间相位斜坡随像素位置变化 → 小数频移；下一幕的共同相位则处处相同。' : p < .9 ? '本页半宽 0.5→0.1→0.02；fairSIM 半宽 2.5→0.5→0.1，均为频率格。' : '波矢已锁定。接下来从 V=m·exp(iφΔ)U 解释复数值的旋转与伸缩。',
         geometry: p < .59 ? 'exp(iφΔ) 只改变复数值的角度；各点 q 与条纹方向保持固定。' : '共同相位控制条纹位置，调制度控制对比度；在复平面对应角度差与长度比。',
         conjugate: '各点的样品相位被消去，才能把共同的照明相位保留下来。',
@@ -548,6 +630,116 @@
         read: '把 m̂、φ̂j 填回混合矩阵，正式求逆；k̂ 继续用于频带归位。',
       };
       text(footer, footers[id] || ''); opacity(footer, footers[id] ? 1 : 0);
+      const scanning=id==='match',fftScene=id==='coarse',fft=L.fftState(fftScene?p:0);
+      const scan=L.scanState(lesson,scanning?p:1),scanVisible=scanning?M.ramp(p,.12,.18)*(1-scan.cost):0;
+      const costVisible=scanning?scan.cost:fftScene?1-fft.dock:0;
+      opacity(scanPanel,scanVisible);opacity(costPanel,costVisible);opacity(fftRoot,fftScene?fft.gather:0);
+      opacity(fftBackdrop,fftScene ? .92*fft.dim*(1-fft.reveal) : 0);
+      opacity(scanPoint,scanVisible*(scan.count>0&&scan.count<scan.candidate.count?1:0));
+      opacity(stamp,scanVisible*(scan.transfer>0&&!scan.done?Math.sin(Math.PI*scan.transfer):0));
+      set(scanPanel,'data-count',scan.count);set(scanPanel,'data-total',scan.candidate.count);
+      set(scanPanel,'data-sum-re',scan.sum.re);set(scanPanel,'data-sum-im',scan.sum.im);
+      set(scanPanel,'data-operations',scan.operations);set(scanPanel,'data-committed',scan.committed.length);
+      text(scanCount,`累计 ${scan.count} / ${scan.candidate.count} 点`);
+      text(scanSum,`C = ${num(scan.sum.re,0)} ${scan.sum.im<0?'−':'+'} ${num(Math.abs(scan.sum.im),0)}i`);
+      text(scanScore,scan.count===scan.candidate.count?'分数 '+num(scan.candidate.score,3):'继续累计…');
+      text(scanTotal,`已填 ${scan.committed.length} / ${scan.total} 格`);
+      const activePoint=scan.candidate.points[Math.max(0,scan.count-1)];
+      if(activePoint){set(scanPoint,'cx',cx+activePoint.q[0]*unit);set(scanPoint,'cy',cy+activePoint.q[1]*unit);set(scanPoint,'data-q',activePoint.q.join(','));}
+      const visited=scanning?new Set(scan.candidate.points.slice(0,scan.count).map(t=>t.q.join(','))):new Set();
+      maskCells.forEach(node=>{
+        const accumulated=visited.has(node.getAttribute('data-q'));
+        set(node,'fill',accumulated?colors[0]:colors[2]);set(node,'data-scan-accumulated',accumulated);
+      });
+      const stampX=gx+(scan.candidate.kx+e.extent+.5)*cell,stampY=gy+(scan.candidate.ky+e.extent+.5)*cell;
+      set(stamp,'x',862+(stampX-862)*scan.transfer);set(stamp,'y',345+(stampY-345)*scan.transfer-30*Math.sin(Math.PI*scan.transfer));
+      set(stamp,'data-transfer',scan.transfer);text(stamp,num(scan.candidate.score,3));
+      if(scanning||fftScene) {
+        const spatialVisible=scanning?1-scan.cost:0;
+        opacity(frequency,spatialVisible);opacity(sharedRoot,spatialVisible);opacity(right,scanning?p<.82?1:0:0);
+        opacity(grid,scanning?M.ramp(p,.12,.18):1);
+        const written=new Set(scan.committed.map(c=>c.kx+','+c.ky));
+        gridCells.forEach((g,i)=>{
+          const c=e.coarse[i],done=fftScene?true:written.has(c.kx+','+c.ky);
+          set(g,'fill',!c.valid?'#091115':done?heat(c.score):'#13262e');
+          set(g,'data-written',c.valid&&done&&(fftScene?fft.reveal===1||fft.gather===0:true));
+          set(g,'data-score-method',fftScene?'fft':'direct');
+        });
+        text(gridTitle,fftScene?fft.dock>0?'同一评分图 · FFT 批量结果':'同一评分图 · 暂时变暗':'每个格 = 一个候选的分数 · 0—1');
+        opacity(gridCursor,scanning&&!scan.done?1:0);
+        set(gridCursor,'x',gx+(scan.candidate.kx+e.extent)*cell);set(gridCursor,'y',gy+(scan.candidate.ky+e.extent)*cell);
+        opacity(scoreValue,0);opacity(legend,0);
+        text(kValue,`候选 k′ = (${num(candidate.kx,0)}, ${num(candidate.ky,0)})`);
+      } else opacity(grid,0);
+      opacity(fftPeak,fftScene?fft.peak:0);
+      set(fftPeak,'x',gx+(e.coarseBest.kx+e.extent)*cell-3);set(fftPeak,'y',gy+(e.coarseBest.ky+e.extent)*cell-3);
+      for(const [key,value] of Object.entries(fft))set(fftRoot,'data-'+key,value);
+      fftCards.forEach((card,b)=>{
+        set(card.g,'transform',`translate(${fftCenters[b]} 300)`);
+        opacity(card.g,1-fft.forward);opacity(card.spectral,1-fft.inverse);opacity(card.spatial,fft.inverse);
+        text(card.title,fft.inverse===1?b?'v(r) · 空域复数场':p>=.46?'u*(r) · 同点取共轭':'u(r) · 空域复数场'
+          :b?'Vₚ(f) · +1 级固定频谱':'Uₚ(f) · 0 级固定频谱');
+        text(card.step,fft.inverse===0?'可靠区除 H，圈外置零':fft.inverse<1?'逆 FFT · 频谱变为空域复数场':p<.46?'逆 FFT 完成 · 保留复数相位':'同一位置 r · 保留完整复数运算');
+      });
+      const productReady=M.ramp(p,.46,.48),pixelCount=Math.min(n*n,Math.floor((fft.multiply+1e-12)*n*n));
+      const rows=Math.floor(pixelCount/n),remaining=pixelCount%n,px=fftSize/n;
+      // Exact row-major prefix, including a partial row. No future pixel is
+      // shown before its corresponding complex multiplication has been visited.
+      const prefix=`M -100 -100 h ${fftSize} v ${rows*px} h ${-fftSize} Z`
+        +(remaining?` M -100 ${-100+rows*px} h ${remaining*px} v ${px} h ${-remaining*px} Z`:'');
+      set(productPrefix,'d',prefix);set(productPrefix,'data-count',pixelCount);set(productPrefix,'data-total',n*n);
+      const cursorIndex=Math.max(0,pixelCount-1),pixelX=cursorIndex%n,pixelY=Math.floor(cursorIndex/n);
+      const cursorVisible=productReady*(pixelCount>0&&pixelCount<n*n&&fft.forward===0?1:0);
+      fftCursors.forEach(({row,point})=>{
+        set(row,'y',-100+pixelY*px);opacity(row,cursorVisible);
+        set(point,'cx',-100+(pixelX+.5)*px);set(point,'cy',-100+(pixelY+.5)*px);opacity(point,cursorVisible);
+        set(point,'data-r',[pixelX,pixelY].join(','));set(point,'data-index',cursorIndex);
+      });
+      const u=fftData.spatial[0],v=fftData.spatial[1];
+      set(fftProduct,'data-pixel-count',pixelCount);set(fftProduct,'data-pixel-index',cursorIndex);
+      set(fftProduct,'data-pixel-re',u.re[cursorIndex]*v.re[cursorIndex]+u.im[cursorIndex]*v.im[cursorIndex]);
+      set(fftProduct,'data-pixel-im',u.re[cursorIndex]*v.im[cursorIndex]-u.im[cursorIndex]*v.re[cursorIndex]);
+      const targetX=gx+gridSize/2,targetY=gy+gridSize/2;
+      set(fftProduct,'transform',`translate(${fftCenters[2]+(targetX-fftCenters[2])*fft.dock} ${300+(targetY-300)*fft.dock}) scale(${1+(gridSize/fftSize-1)*fft.dock})`);
+      // Keep the moving image opaque until the persistent grid below is fully
+      // restored, then release it at the exact same cell coordinates.
+      opacity(fftProduct,productReady*(fft.reveal===1?0:1));
+      opacity(productPanel,1-fft.dock);opacity(productTitle,1-fft.dock);opacity(productCaption,1-fft.dock);
+      opacity(productImage,1-fft.forward);opacity(correlationImage,fft.forward*(1-fft.normalize));opacity(resultScores,fft.normalize);
+      text(productTitle,fft.normalize>0?'ρ(k′) · 归一化评分':fft.forward>0?'C(k′) · 全部位移的乘积和':'w(r) = u*(r) v(r)');
+      text(productCaption,fft.normalize>0?'取模 · 两边能量归一化':fft.forward>0?'正 FFT · 一次得到全部位移':`已相乘 ${pixelCount} / ${n*n} 像素`);
+      fftOperators.forEach(node=>opacity(node,productReady*(1-fft.forward)));
+      text(fftInfo,fft.dock>0?'结果归位：回到同一评分图':fft.normalize>0?'按两边能量归一化，沿用原来的评分色标':fft.forward>0?'乘积图原位做正 FFT：一次得到全部位移':productReady>0?'同一空域坐标逐点相乘，直接扫出右侧乘积图':fft.inverse>0?'分别逆 FFT：两张固定频谱在原位变为空域复数场':'两张固定频谱 · 可靠区除自身 H，圈外置零');
+      if(id==='refine') {
+        // Preserve the coarse grid for the opening zoom. The dedicated view
+        // then owns all three linked columns and the three-round cascade.
+        const retained=new Set([header,cue,footer,grid,refineView.root]);
+        for(const node of stage.children)if(!retained.has(node))opacity(node,0);
+        opacity(sharedRoot,0);
+        const enter=M.ramp(p,.015,.12);
+        opacity(grid,1-enter);opacity(fftPeak,1-enter);
+        gridCells.forEach((g,i)=>set(g,'fill',e.coarse[i].valid?heat(e.coarse[i].score):'#091115'));
+        opacity(gridCursor,0);text(gridTitle,'整数峰 → 放大附近一个频率格');
+        text(cue,refinement.title);
+        text(footer,refinement.mode==='gridLimit'?'整数格限制初值；背景与准星来自同一组观测。'
+          :refinement.mode==='phaseRamp'?'17：空域共轭乘积求整张相关图；18：旁带乘相位斜坡，计算一个小数位移候选。'
+          :refinement.mode==='returnSpectrum'?'k̂ 已锁定 · 回到同一对完整频谱 · 下一步比较公共点的共同幅相。'
+          :'每轮最高分作为下一轮中心 · 范围缩小 5 倍 · 0.01 格是最终搜索步长。');
+        opacity(footer,1);
+        refineView.draw(p,refinement,{x:gx+(e.coarseBest.kx+e.extent+.5)*cell,y:gy+(e.coarseBest.ky+e.extent+.5)*cell,cell});
+        const returning=refinement.returnView;
+        if(returning.overview>0) {
+          // Restore the original actors, not raster copies of the overview.
+          // Their final pose is exactly geometry(0), which then shrinks them.
+          const scale=.72+.28*returning.overview;
+          const overviewPose=`translate(${cx*(1-scale)} ${cy*(1-scale)}) scale(${scale})`;
+          set(frequency,'transform',overviewPose);set(sharedRoot,'transform',overviewPose);
+          opacity(frequency,returning.overview);opacity(sharedRoot,returning.overview);
+          text(mapTitle,'同一批公共频点 · 位置锁定');
+          planes.forEach((plane,i)=>opacity(plane.group,candidate.points.some(t=>t.q.join(',')===data.selected[i].q.join(','))?returning.values:0));
+          opacity(legend,returning.values);
+        }
+      }
       if (id === 'shift') {
         opacity(stage, handoff.actual); opacity(sharedRoot, handoff.actual);
         lineView.draw(1, handoff.teaching);
@@ -595,6 +787,9 @@
           parts.minusK = compile(parts.substitution, 'k-cancel-minus', String.raw`-\mathbf k'`);
           parts.residual = compile(parts.substitution, 'q-residual', String.raw`=\mathbf q+(\mathbf k-\mathbf k')`);
           parts.same = compile(parts.substitution, 'same-sample', String.raw`\xrightarrow{\ \mathbf k'=\mathbf k\ }\mathbf q`);
+        } else if(mode==='refine-phaseRamp'&&options.lesson) {
+          group.setAttribute('class','pe-study-formula pe-refine-formula');
+          parts.refinement=L.createRefinementFormulaView({parent:group,document:doc,lesson:options.lesson,compile});
         } else if (s.id === 'geometry') {
           group.setAttribute('class', 'pe-two-derivation pe-two-geometry');
           const source = doc.createElement('div'); source.setAttribute('class', 'pe-two-geometry-source'); group.appendChild(source);
@@ -620,6 +815,7 @@
       if (active !== mode || !Array.from(container.children).includes(group)) { clear(); container.appendChild(group); active = mode; }
       container.setAttribute('data-formula-mode', mode);
       const p = s.progress, f = L.fittingState(s.id, p, 1);
+      if(parts.refinement){parts.refinement.draw(p);return formula;}
       if (mode === 'shared-derive') {
         const state = L.sharedState(p);
         parts.reference.setAttribute('data-emphasized', p < .18 && state.pin > 0);

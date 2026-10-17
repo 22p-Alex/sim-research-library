@@ -238,7 +238,7 @@ test('the complex contrast uses the same actual frequency points and keeps multi
   near(Math.atan2(other.complexComparison.aligned.sum.im, other.complexComparison.aligned.sum.re), other.estimate.phase);
 });
 
-test('the identified corresponding frequencies share the same sample content after their own OTF correction', () => {
+test('the identified corresponding frequencies share the same sample content after own-OTF correction', () => {
   assert.equal(lesson.correspondence.length, 3);
   lesson.correspondence.forEach(p => {
     assert.ok(p.h0 >= capture.config.minH && p.h1 >= capture.config.minH);
@@ -254,7 +254,7 @@ test('the formula bridge precedes the numerical copies and their relocation', ()
     if (encountered.at(-1) !== state.formula) encountered.push(state.formula);
     if (state.abstract > 0) {
       assert.ok(encountered.includes('substitute'), 'explain f=q+k before changing to the numerical example');
-      assert.ok(encountered.includes('corrected'), 'explain removal of OTF before using the numerical example');
+      assert.ok(encountered.includes('corrected'), 'explain correction by the own OTF before using the numerical example');
       assert.ok(['copies', 'aligned'].includes(state.formula), 'toy conditions must be visible as the numerical example appears');
     }
     if (state.copies > 0) near(state.abstract, 1);
@@ -432,7 +432,9 @@ test('standalone production renderer and controls run through all sixteen stops 
   const snapshots = new Map();
   for (const t of [...positions, ...positions.toReversed()]) {
     player.seek(t); const s = P.state(t);
-    assert.equal(byId.get('pe-title').textContent, P.scenes[s.step].title);
+    const copy=s.id==='refine'?context.SIMParameterLesson.refinementNarrative(s.progress):P.scenes[s.step];
+    assert.equal(byId.get('pe-title').textContent, copy.title);
+    assert.equal(byId.get('pe-copy').textContent, copy.copy);
     assert.equal(byId.get('pe-note').textContent, P.formulaAt(s).note);
     const layers = nodes.filter(node => node.attrs['data-connection-scene']);
     const alphas = layers.map(g => Number(g.attrs.opacity)); near(alphas.reduce((sum, v) => sum + v, 0), 1);

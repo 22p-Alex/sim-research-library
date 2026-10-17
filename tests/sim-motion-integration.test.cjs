@@ -282,102 +282,311 @@ test('production host estimates the same nine frames and drives the chapter and 
   assert.equal(byId.get('frequency-handoff-stage').children.length, 0);
 });
 
-test('scene 11 inserts pending parameters, absorbs common coefficients and cancels other orders reversibly', () => {
+test('scene 11 keeps matrix-to-formula flight and changes coefficients inside the same assembled row', () => {
   const h = boot(), { byId, nodes, context } = h;
   assert.deepEqual(h.errors, []);
+  assert.equal(nodes.some(el => el.innerHTML.includes('katex-error')), false);
   const flow = context.SIMMotionParameterChapter.plan(context.SIMMotion), end = flow.index('provisional-split');
-  const seek = p => { byId.get('progress').value = String(end - 1 + Chapter.provisionalProgress(p)); byId.get('progress').dispatch('input'); };
+  const seek = seconds => { byId.get('progress').value = String(end - 1 + seconds * 1000 / Chapter.provisionalDuration); byId.get('progress').dispatch('input'); };
   const originals = nodes.filter(el => el.attrs['data-resolved-weight'] !== undefined);
-  const moving = nodes.filter(el => el.attrs['data-provisional-token']?.startsWith('weight:'));
+  const rows = nodes.filter(el => el.attrs['data-inverse-row'] !== undefined), matrix = rows[0].parent;
+  const brackets = matrix.children.filter(el => el.attrs.class === 'matrix-bracket');
+  const boxes = nodes.filter(el => el.attrs['data-inspection-row-box'] !== undefined);
+  const messages = nodes.filter(el => el.attrs['data-inspection-row-message'] !== undefined);
+  const moving = nodes.filter(el => el.attrs['data-provisional-token']);
+  const transfer = nodes.find(el => el.attrs['data-provisional-transfer'] !== undefined);
   const operation = nodes.find(el => el.attrs['data-provisional-operation'] !== undefined);
   const groups = Object.fromEntries(nodes.filter(el => el.attrs['data-provisional-lesson']).map(el => [el.attrs['data-provisional-lesson'], el]));
-  const flights = nodes.filter(el => el.attrs['data-parameter-substitution']);
-  const blocks = nodes.filter(el => el.attrs['data-unknown-band'] !== undefined);
-  const bands = nodes.filter(el => el.attrs['data-absorbed-band'] !== undefined);
-  const sums = nodes.filter(el => el.attrs['data-provisional-phase-sum'] !== undefined);
-  assert.equal(moving.length, 9);
-  assert.deepEqual(flights.map(el => el.attrs['data-parameter-substitution']), ['k', 'm', 'phase']);
-  for (const token of flights) {
-    const card = nodes.find(el => el.attrs['data-parameter-card'] === token.attrs['data-parameter-substitution']);
-    assert.ok(groups.substitution.children.indexOf(card) < groups.substitution.children.indexOf(token), 'card backgrounds precede their moving symbols');
-  }
-  assert.equal(sums.length, 3); assert.equal(blocks.length, 3); assert.equal(bands.length, 3);
-  seek(.000001);
-  for (const item of moving) {
-    const key = item.attrs['data-provisional-token'].slice('weight:'.length), original = originals.find(el => el.attrs['data-resolved-weight'] === key);
-    const [x, y, scale] = item.attrs.transform.match(/-?[\d.]+/g).map(Number);
-    near(x, +original.attrs.x + +original.attrs.width / 2); near(y, +original.attrs.y + +original.attrs.height / 2); near(scale, 1);
-    assert.equal(item.children[0].children[0].innerHTML, original.children[0].innerHTML);
-  }
-  seek(.055); moving.forEach(el => near(el.style.opacity, 0)); near(operation.style.opacity, 1);
-  seek(.1); near(groups.substitution.style.opacity, 1);
-  flights.forEach((el, b) => { near(el.attrs['data-insertion-progress'], 0); assert.equal(el.attrs.transform, `translate(${360 + b * 360} 425)`); });
-  seek(.18); flights.forEach(el => assert.ok(+el.attrs['data-insertion-progress'] > 0 && +el.attrs['data-insertion-progress'] < 1));
-  seek(.23); flights.forEach((el, b) => { near(el.attrs['data-insertion-progress'], 1); near(el.style.opacity, 0); assert.equal(el.attrs.transform, `translate(${[750, 530, 1040][b]} 225)`); });
-  assert.match(byId.get('equation-note').textContent, /尚未求值/);
-  seek(.33); near(groups.substitution.style.opacity, 0); near(groups.model.style.opacity, 1);
-  seek(.52); near(groups.expansion.style.opacity, 1);
-  seek(.60); near(groups.absorption.style.opacity, 1); blocks.forEach(el => near(el.style.opacity, 1)); bands.forEach(el => near(el.style.opacity, 0));
-  seek(.71); blocks.forEach(el => near(el.style.opacity, 0)); bands.forEach(el => near(el.style.opacity, 1));
-  assert.match(byId.get('scene-description').textContent, /k 仍在/);
-  seek(.92); near(groups.demix.style.opacity, 1); sums.forEach(el => near(el.style.opacity, 1));
-  seek(1); near(groups.ready.style.opacity, 1); near(byId.get('frequency-handoff-stage').style.opacity, 0);
-  assert.equal(byId.get('equation').attrs['data-formula-mode'], 'provisional-ready');
-  const actors = [...moving, operation, ...Object.values(groups), ...flights, ...blocks, ...bands, ...sums];
-  const snapshot = () => ({ actors: actors.map(el => [el.attrs.transform, el.style.opacity]),
-    mode: byId.get('equation').attrs['data-formula-mode'], title: byId.get('scene-title').textContent, note: byId.get('equation-note').textContent });
-  const poses = new Map(), points = [.000001, .05, .1, .18, .23, .33, .46, .52, .6, .66, .71, .8, .86, .92, 1];
-  points.forEach(p => { seek(p); poses.set(p, snapshot()); });
-  const renders = h.mathRenders;
-  points.toReversed().forEach(p => { seek(p); assert.deepEqual(snapshot(), poses.get(p)); });
-  assert.equal(h.mathRenders, renders, 'reverse playback reuses the compiled formulas');
-  for (const position of [2, 6, 7]) {
-    byId.get('progress').value = String(position); byId.get('progress').dispatch('input');
-    assert.equal(byId.get('theory-context').hidden, true, 'the removed parameter entry stays absent');
-    assert.equal(byId.get('theory-context').textContent, '');
-  }
-});
-
-test('the pre-illumination failure scene drops the card, displaces the band and rotates opposing phasors on one reversible clock', () => {
-  const h = boot(), { byId, nodes } = h;
-  assert.deepEqual(h.errors, []);
-  const flow = Chapter.plan(Motion), end = flow.index('provisional-split');
-  const seek = p => {
-    const progress = (.06 * Chapter.provisionalContentDuration + p * Chapter.nominalPreludeDuration) / Chapter.provisionalDuration;
-    byId.get('progress').value = String(end - 1 + progress); byId.get('progress').dispatch('input');
-  };
-  const failure = nodes.find(el => el.attrs['data-provisional-lesson'] === 'failure');
-  const substitution = nodes.find(el => el.attrs['data-provisional-lesson'] === 'substitution');
-  const operation = nodes.find(el => el.attrs['data-provisional-operation'] !== undefined);
-  const card = nodes.find(el => el.attrs['data-nominal-card'] !== undefined);
-  const side = nodes.find(el => el.attrs['data-nominal-disk'] === 'side');
-  const question = nodes.find(el => el.attrs['data-nominal-question'] !== undefined);
-  const images = nodes.filter(el => el.attrs['data-nominal-reconstruction'] !== undefined);
-  const phasors = nodes.filter(el => el.attrs['data-nominal-phasor'] !== undefined);
-  const glow = nodes.find(el => el.attrs['data-nominal-cancellation'] !== undefined);
-  const actors = [failure, substitution, operation, card, side, question, glow, ...images, ...phasors];
-  const snapshot = () => actors.map(el => [el.attrs.transform, el.attrs.d, el.style.opacity, el.attrs['data-angle']]);
-  const saved = new Map();
-  for (const p of [.01, .08, .12, .2, .26, .35, .45, .55, .65, .75, .86, .96]) {
-    seek(p); saved.set(p, snapshot()); near(substitution.style.opacity, 0);
-    if (p >= .08) near(failure.style.opacity, 1);
-    if (p >= .12) { assert.match(operation.attrs.transform, /translate\(720 45\)/); near(operation.style.opacity, .16); }
-    if (p >= .26) assert.equal(card.attrs.transform, 'translate(720 151)');
-    if (p >= .55) near(failure.attrs['data-frequency-error'], .3);
-    if (p < .64) near(images[2].style.opacity, 0);
-    if (p >= .86) {
-      near(failure.attrs['data-phase-loss'], 1); near(images[2].style.opacity, 1);
-      for (let b = 0; b < 3; b++) {
-        const pair = phasors.filter(el => el.attrs['data-probe'] === String(b));
-        near(+pair[1].attrs['data-angle'] - +pair[0].attrs['data-angle'], Math.PI);
-      }
-      assert.ok(+glow.style.opacity > 0);
+  const actualCells = nodes.filter(el => el.attrs['data-actual-U-cell']);
+  const selectedCell = actualCells.find(el => el.attrs['data-actual-U-cell'] === '1:1');
+  const actualScaffold = nodes.find(el => el.attrs['data-actual-U-scaffold'] !== undefined);
+  const weightRhs = nodes.find(el => el.attrs['data-actual-weight-coefficient'] !== undefined);
+  const coefficientTokens = Object.fromEntries(nodes.filter(el => el.attrs['data-weight-coefficient-token']).map(el => [el.attrs['data-weight-coefficient-token'], el]));
+  const factorLabels = nodes.find(el => el.attrs['data-weight-factor-labels'] !== undefined);
+  const matrixProduct = nodes.find(el => el.attrs['data-weight-matrix-product'] !== undefined);
+  const productSources = nodes.filter(el => el.attrs['data-weight-matrix-source'] !== undefined);
+  const productObservations = nodes.filter(el => el.attrs['data-weight-matrix-observation'] !== undefined);
+  const rowFocus = nodes.find(el => el.attrs['data-weight-row-focus'] !== undefined);
+  const rowEquals = nodes.find(el => el.attrs['data-weight-matrix-equals'] !== undefined);
+  const knownDefinition = nodes.find(el => el.attrs['data-known-weight-definition'] !== undefined);
+  const rowOperators = nodes.find(el => el.attrs['data-weight-row-operators'] !== undefined);
+  const coefficientRelation = nodes.find(el => el.attrs['data-coefficient-relation'] !== undefined);
+  const rowWeights = actualCells.filter(el => el.attrs['data-actual-U-cell'].startsWith('1:'));
+  const matrixWeightContents = rowWeights.map(el => el.children[0]);
+  const factoredWeights = rowWeights.map(el => el.children.find(child => child.attrs['data-row-weight-variant'] === 'factored'));
+  const temporaryWeights = rowWeights.map(el => el.children.find(child => child.attrs['data-row-weight-variant'] === 'temporary'));
+  const sourceVariants = productSources[1].children;
+  const propagated = nodes.find(el => el.attrs['data-coefficient-output'] !== undefined);
+  const notation = nodes.find(el => el.attrs['data-provisional-notation'] !== undefined);
+  const operationParts = Object.fromEntries(operation.children.filter(el => el.attrs['data-operation-part']).map(el => [el.attrs['data-operation-part'], el]));
+  const fixedParts = [...factoredWeights, ...temporaryWeights, ...sourceVariants, ...Object.values(operationParts), knownDefinition, coefficientRelation, propagated];
+  const fixedPositions = fixedParts.map(el => [el.attrs.x, el.attrs.y, el.attrs.width, el.attrs.height, el.attrs.transform]);
+  const fixedContents = fixedParts.map(el => el.children[0]);
+  for (const removed of ['data-coefficient-detail', 'data-weight-row-sum', 'data-weighted-sum', 'data-common-weight-factor'])
+    assert.equal(nodes.some(el => el.attrs[removed] !== undefined), false, 'substitutions happen within the assembled row, without a separate coefficient scene');
+  const cards = nodes.filter(el => el.attrs['data-parameter-card']);
+  assert.equal(cards.length, 0, 'do not preview parameter estimation with three cards');
+  const tokens = nodes.filter(el => el.attrs['data-illumination-token']);
+  const kToken = tokens.find(el => el.attrs['data-illumination-token'] === 'k');
+  const mToken = tokens.find(el => el.attrs['data-illumination-token'] === 'm');
+  const phiToken = tokens.find(el => el.attrs['data-illumination-token'] === 'phase');
+  const reasons = nodes.filter(el => el.attrs['data-parameter-reason']);
+  const failure = nodes.find(el => el.attrs['data-provisional-lesson'] === 'nominalFailure');
+  const badImages = nodes.filter(el => el.attrs['data-nominal-reconstruction'] !== undefined);
+  const phasors = nodes.filter(el => el.attrs['data-nominal-phasor']);
+  const errorPicture = nodes.find(el => el.attrs['data-nominal-residual-view'] !== undefined);
+  assert.equal(tokens.length, 8); assert.equal(reasons.length, 2); assert.equal(badImages.length, 3);
+  assert.equal(originals.length, 9); assert.equal(boxes.length, 3); assert.equal(messages.length, 3); assert.ok(brackets.length >= 3);
+  assert.equal(moving.length, 17);
+  assert.deepEqual(Object.keys(groups).sort(), ['whyEstimate', 'nominalFailure', 'actualWeights', 'coefficientFocus', 'ready'].sort());
+  assert.equal(nodes.some(el => el.attrs['data-relocation-parameter'] !== undefined), false, 'remove the extra formula above the unchanged source definitions');
+  assert.equal(nodes.some(el => el.attrs['data-provisional-phase-sum'] !== undefined), false);
+  boxes.forEach((box, b) => {
+    const background = rows[b].children.find(el => el.attrs.class === 'matrix-row-background');
+    for (const key of ['x', 'y', 'width', 'height']) assert.equal(box.attrs[key], background.attrs[key], 'highlight the coefficient row itself');
+  });
+  const checkWeights = expected => originals.forEach(el => near(el.style.opacity, expected[+el.attrs['data-resolved-weight'].split(':')[0]]));
+  seek(1.8); checkWeights([1, 1, 1]); near(boxes[0].style.opacity, 1); near(boxes[1].style.opacity, 0);
+  seek(4.4); checkWeights([0, 1, 1]); near(messages[0].style.opacity, 1); near(messages[1].style.opacity, 0);
+  near(byId.get('motion-content').style.opacity, 1); near(operation.style.opacity, 0);
+  assert.equal(matrix.attrs.transform, 'translate(0 0)');
+  seek(7.4); checkWeights([1, 1, 1]); messages.forEach(el => near(el.style.opacity, 0));
+  seek(9.4); checkWeights([1, 1, 1]); near(boxes[0].style.opacity, 0); near(boxes[1].style.opacity, 1); near(boxes[2].style.opacity, 1);
+  seek(12.6); checkWeights([1, 0, 0]); near(messages[0].style.opacity, 0); near(messages[1].style.opacity, 1); near(messages[2].style.opacity, 1);
+  seek(15.7); checkWeights([1, 1, 1]); messages.forEach(el => near(el.style.opacity, 0));
+  seek(16.25); near(byId.get('demix-source-definitions').style.opacity, 0); near(transfer.style.opacity, 1);
+  moving.forEach(el => {
+    const [kind, key] = el.attrs['data-provisional-token'].split(':');
+    const original = kind === 'weight' ? originals.find(o => o.attrs['data-resolved-weight'] === el.attrs['data-provisional-token'].slice(7))
+      : kind === 'observation' ? nodes.find(o => o.attrs['data-demix-observation'] === key) : null;
+    if (original) {
+      const [x, y, scale] = el.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+      near(x, +original.attrs.x + +original.attrs.width / 2); near(y, +original.attrs.y + +original.attrs.height / 2); near(scale, 1);
     }
-  }
+  });
+  const startPose = moving[0].attrs.transform;
+  seek(17.3); assert.notEqual(moving[0].attrs.transform, startPose);
+  seek(19); near(byId.get('motion-content').style.opacity, 0); near(operation.style.opacity, 1); near(transfer.style.opacity, 0);
+  seek(20.7); near(groups.whyEstimate.style.opacity, 1); near(kToken.attrs['data-hop'], 1);
+  near(mToken.attrs['data-hop'], 0); near(phiToken.attrs['data-hop'], 0); reasons.forEach(el => near(el.style.opacity, 0));
+  seek(23); near(kToken.attrs['data-hop'], 0); near(reasons[0].style.opacity, 1); near(reasons[1].style.opacity, 0);
+  seek(25.7); reasons.forEach(el => near(el.style.opacity, 0)); near(mToken.attrs['data-hop'], 1); near(phiToken.attrs['data-hop'], 1);
+  seek(29); near(reasons[0].style.opacity, 0); near(reasons[1].style.opacity, 1);
+  seek(34); near(failure.style.opacity, 1); near(groups.whyEstimate.style.opacity, 0); near(groups.actualWeights.style.opacity, 0);
+  seek(40); near(failure.attrs['data-frequency-error'], .3); near(badImages[1].style.opacity, 1); near(badImages[2].style.opacity, 0);
+  seek(47); near(failure.attrs['data-phase-loss'], 1); near(badImages[2].style.opacity, 1);
+  near(+phasors[1].attrs['data-angle'] - +phasors[0].attrs['data-angle'], Math.PI);
+  assert.ok(+failure.attrs['data-negative-minimum'] < 0);
+  seek(52); near(errorPicture.style.opacity, 1); near(groups.actualWeights.style.opacity, 0);
+  near(failure.attrs['data-residual-peak-bin'], 8);
   assert.equal(failure.attrs['data-nominal-source'], 'controlled-remix-of-adopted-bands');
+  seek(55.5); near(groups.actualWeights.style.opacity, 1); near(failure.style.opacity, 0);
+  assert.equal(byId.get('scene-title').textContent, '那么实际的权重应该是什么呢？');
+  assert.equal(actualCells.length, 9); near(actualScaffold.style.opacity, 1); near(weightRhs.style.opacity, 0);
+  assert.equal(selectedCell.attrs.transform, 'translate(805 340) scale(1)');
+  const selectedIndexed = selectedCell.children[0], selectedGeneric = selectedCell.children[1];
+  seek(58); assert.notEqual(selectedCell.attrs.transform, 'translate(805 340) scale(1)'); near(actualScaffold.style.opacity, 1);
+  assert.equal(selectedCell.children[0], selectedIndexed, 'lift the existing cell itself');
+  seek(60.3); near(actualScaffold.style.opacity, 0); near(selectedIndexed.style.opacity, 0); near(selectedGeneric.style.opacity, 1); near(weightRhs.style.opacity, 0);
+  actualCells.filter(el => el !== selectedCell).forEach(el => near(el.style.opacity, 0));
+  assert.equal(selectedCell.attrs.transform, 'translate(300 285) scale(1.35)');
+  seek(62); near(weightRhs.style.opacity, 1); near(coefficientTokens.rawPhase.style.opacity, 1); near(coefficientTokens.knownPhase.style.opacity, 0);
+  seek(65); near(coefficientTokens.rawPhase.style.opacity, 0); near(coefficientTokens.knownPhase.style.opacity, 1); near(coefficientTokens.unknownPhase.style.opacity, 1);
+  near(coefficientTokens.rawAmplitude.style.opacity, 1); near(coefficientTokens.unknownAmplitude.style.opacity, 0);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'], 'provisional-expandWeight');
+  seek(68.75);
+  const knownPose = coefficientTokens.knownAmplitude.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+  const unknownPose = coefficientTokens.unknownAmplitude.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+  assert.ok(knownPose[1] < 285 && unknownPose[1] > 285, 'the two factors follow separate arcs');
+  seek(72); near(coefficientTokens.rawAmplitude.style.opacity, 0); near(coefficientTokens.unknownAmplitude.style.opacity, 1); near(factorLabels.style.opacity, 1);
+  assert.equal(coefficientTokens.knownAmplitude.attrs.style, 'color:' + Chapter.weightFactorColors.known);
+  assert.equal(coefficientTokens.unknownAmplitude.attrs.style, 'color:' + Chapter.weightFactorColors.unknown);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'], 'provisional-splitWeight');
+  seek(75.4); near(weightRhs.style.opacity, 0); near(selectedGeneric.style.opacity, 0); near(selectedIndexed.style.opacity, 1);
+  seek(76.5); assert.notEqual(selectedCell.attrs.transform, 'translate(805 340) scale(1)'); near(groups.coefficientFocus.style.opacity, 0);
+  seek(77.5); assert.equal(selectedCell.attrs.transform, 'translate(805 340) scale(1)');
+  assert.equal(byId.get('equation-domain').textContent, 'u → U → A = UD');
+  assert.equal(selectedCell.children[0], selectedIndexed, 'the extracted weight returns as the same matrix node');
+  actualCells.forEach(el => near(el.style.opacity, 1)); near(matrixProduct.style.opacity, 0);
+  seek(81); near(matrixProduct.style.opacity, 1); near(rowFocus.style.opacity, 1);
+  assert.deepEqual(productSources.map(el => el.attrs['data-weight-matrix-source']), ['0', '1', '-1']);
+  assert.deepEqual(productObservations.map(el => el.attrs['data-weight-matrix-observation']), ['0', '1', '2']);
+  [...productSources, ...productObservations].forEach(el => near(el.style.opacity, 1));
+  const dockedPoses = [...rowWeights, ...productObservations, productSources[1], rowEquals].map(el => el.attrs.transform);
+  seek(83.5);
+  assert.notDeepEqual([...rowWeights, ...productObservations, productSources[1], rowEquals].map(el => el.attrs.transform), dockedPoses,
+    'matrix entries must fly into the formula before substitutions begin');
+  near(groups.coefficientFocus.style.opacity, 0);
+  seek(85.5); near(rowOperators.style.opacity, 1); near(actualScaffold.style.opacity, 0); near(matrixProduct.style.opacity, 0);
+  near(groups.actualWeights.style.opacity, 1); near(groups.coefficientFocus.style.opacity, 0);
+  assert.equal(rowEquals.attrs.transform, 'translate(310 300)');
+  assert.equal(productSources[1].attrs.transform, 'translate(150 300)');
+  rowWeights.forEach((el, j) => {
+    const [wx, wy] = el.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+    const [dx, dy] = productObservations[j].attrs.transform.match(/-?[0-9.]+/g).map(Number);
+    near(dx - wx, 110); near(wy, 300); near(dy, wy);
+    near(el.style.opacity, 1); near(productObservations[j].style.opacity, 1);
+    assert.equal(el.children[0], matrixWeightContents[j], 'the same weight node flies from its matrix into the formula');
+  });
+  const assembledActors = [...rowWeights, ...productObservations, productSources[1], rowEquals, rowOperators];
+  const assembledPoses = assembledActors.map(el => el.attrs.transform);
+  const assembledChildren = assembledActors.map(el => [...el.children]);
+  for (const t of [86, 87, 88.4, 89, 90.8, 92, 94.4, 95, 97, 99]) {
+    seek(t);
+    assert.deepEqual(assembledActors.map(el => el.attrs.transform), assembledPoses, 'the assembled formula stays in place');
+    assembledActors.forEach((el, i) => {
+      near(el.style.opacity, 1);
+      el.children.forEach((child, j) => assert.equal(child, assembledChildren[i][j], 'same node survives flight and coefficient changes'));
+    });
+    assert.deepEqual(fixedParts.map(el => [el.attrs.x, el.attrs.y, el.attrs.width, el.attrs.height, el.attrs.transform]), fixedPositions);
+    fixedParts.forEach((el, i) => assert.equal(el.children[0], fixedContents[i], 'each coefficient variant compiles once'));
+    const state = Chapter.provisionalState(t * 1000 / Chapter.provisionalDuration);
+    near(operationParts.source.style.opacity, 1 - state.outputScale);
+    near(operationParts['temporary-source'].style.opacity, state.outputScale);
+    near(operationParts.weight.style.opacity, 1 - state.outputScale);
+    near(operationParts['temporary-weight'].style.opacity, state.outputScale);
+    near(sourceVariants[0].style.opacity, 1 - state.outputScale);
+    near(sourceVariants[1].style.opacity, state.outputScale);
+    rowWeights.forEach((el, j) => {
+      const replacement = j === 1 ? state.selectedCoefficient : state.coefficientScale;
+      near(el.children[0].style.opacity, 1 - replacement);
+      near(factoredWeights[j].style.opacity, replacement * (1 - state.outputScale));
+      near(temporaryWeights[j].style.opacity, state.outputScale);
+    });
+  }
+  seek(87); near(knownDefinition.style.opacity, 1); near(notation.style.opacity, 1);
+  factoredWeights.forEach(el => near(el.style.opacity, 0));
+  seek(89); near(factoredWeights[1].style.opacity, 1); near(selectedIndexed.style.opacity, 0);
+  [0, 2].forEach(j => { near(factoredWeights[j].style.opacity, 0); near(rowWeights[j].children[0].style.opacity, 1); });
+  seek(92); factoredWeights.forEach(el => near(el.style.opacity, 1)); near(coefficientRelation.style.opacity, 1);
+  near(propagated.style.opacity, 0); near(sourceVariants[0].style.opacity, 1);
+  seek(95); factoredWeights.forEach(el => near(el.style.opacity, 0)); temporaryWeights.forEach(el => near(el.style.opacity, 1));
+  near(sourceVariants[1].style.opacity, 1); near(propagated.style.opacity, 1); near(knownDefinition.style.opacity, 0);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'], 'provisional-outputScale');
+  const matrixTemporaryWeights = actualCells.map(el => el.children.find(child => child.attrs['data-row-weight-variant'] === 'temporary'));
+  const matrixTemporarySources = productSources.map(el => el.children.find(child => child.attrs['data-row-source-variant'] === 'temporary'));
+  const indexDefinition = nodes.find(el => el.attrs['data-temporary-index-definition'] !== undefined);
+  const notationRail = nodes.find(el => el.attrs['data-provisional-notation-rail'] !== undefined);
+  const railTerms = nodes.find(el => el.attrs['data-notation-rail-terms'] !== undefined);
+  const railTokens = nodes.filter(el => el.attrs['data-notation-rail-token']);
+  const railVector = nodes.find(el => el.attrs['data-notation-rail-vector'] !== undefined);
+  const railIndex = nodes.find(el => el.attrs['data-notation-rail-index'] !== undefined);
+  const collectedActors = [...actualCells, ...productSources, ...productObservations, rowEquals];
+  const collectedContents = collectedActors.map(el => [...el.children]);
+  seek(99.50001);
+  assert.equal(byId.get('equation').children[0], notationRail);
+  near(notationRail.children[0].style.opacity, 1); near(railTerms.style.opacity, 0);
+  seek(101.5);
+  assert.notDeepEqual(assembledActors.map(el => el.attrs.transform), assembledPoses, 'only the completed temporary row moves back into the matrix');
+  near(groups.coefficientFocus.style.opacity, 0); near(operation.style.opacity, 0); near(railTerms.style.opacity, 1);
+  near(railVector.style.opacity, 0); near(railIndex.style.opacity, 0);
+  seek(103.5);
+  near(actualScaffold.style.opacity, 1); near(matrixProduct.style.opacity, 1);
+  actualCells.forEach((el, i) => {
+    const cell = Chapter.actualWeightCells[i];
+    assert.equal(el.attrs.transform, `translate(${cell.x} ${cell.y}) scale(1)`);
+    near(el.style.opacity, 1); near(el.children[0].style.opacity, 0); near(matrixTemporaryWeights[i].style.opacity, 1);
+  });
+  productSources.forEach((el, i) => {
+    assert.equal(el.attrs.transform, `translate(295 ${260 + i * 80})`);
+    near(el.style.opacity, 1); near(el.children[0].style.opacity, 0); near(matrixTemporarySources[i].style.opacity, 1);
+  });
+  productObservations.forEach((el, i) => assert.equal(el.attrs.transform, `translate(1260 ${260 + i * 80})`));
+  railTokens.filter(el => el.children.length === 2).forEach(el => {
+    near(el.children[0].style.opacity, 0); near(el.children[1].style.opacity, 1);
+    assert.match(el.children[1].children[0].innerHTML, /ℓ|ell/);
+  });
+  const unpackedPoses = collectedActors.map(el => el.attrs.transform);
+  seek(106.9);
+  assert.notDeepEqual(collectedActors.map(el => el.attrs.transform), unpackedPoses);
+  assert.ok(+groups.actualWeights.style.opacity > 0 && +groups.actualWeights.style.opacity < 1);
+  near(+groups.actualWeights.style.opacity + +operation.style.opacity, 1, 1e-8);
+  near(railVector.style.opacity, operation.style.opacity, 1e-8);
+  near(railIndex.style.opacity, 0);
+  seek(107.5);
+  near(groups.actualWeights.style.opacity, 0); near(operation.style.opacity, 1);
+  near(railTerms.style.opacity, 0); near(railVector.style.opacity, 1);
+  const central = Chapter.provisionalState(107.5 * 1000 / Chapter.provisionalDuration).operationPose;
+  assert.equal(operation.attrs.transform, 'translate(680 285) scale(1.12)');
+  // Every moving group arrives at the exact corresponding compact glyph.
+  for (const [elements, key] of [[actualCells, 'temporary-weight'], [productSources, 'temporary-source'], [productObservations, 'observations'], [[rowEquals], 'equals']]) {
+    const glyph = operation.children.find(el => el.attrs['data-operation-part'] === key);
+    const targetX = central.x + central.scale * (+glyph.attrs.x + +glyph.attrs.width / 2);
+    elements.forEach(el => {
+      const [x, y] = el.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+      near(x, targetX); near(y, central.y);
+    });
+  }
+  seek(108.4);
+  assert.ok(+railIndex.style.opacity > 0 && +railIndex.style.opacity < 1);
+  near(railIndex.style.opacity, indexDefinition.style.opacity);
+  const observationStage = nodes.find(el => el.attrs['data-observation-expansion'] !== undefined);
+  const responseMatrix = nodes.find(el => el.attrs['data-observation-response-matrix'] !== undefined);
+  const observationActors = nodes.filter(el => el.attrs['data-observation-actor'] !== undefined);
+  const byActor = Object.fromEntries(observationActors.map(el => [el.attrs['data-observation-actor'], el]));
+  const spectrumBracket = nodes.find(el => el.attrs['data-observation-spectrum-brackets'] !== undefined);
+  const observationRails = nodes.filter(el => el.attrs['data-observation-rail']);
+  const sampleContents = [0, 1, -1].map(order => byActor['sample:' + order].children[0]);
+  const poseOf = el => el.attrs.transform.match(/-?[0-9.]+/g).map(Number);
+  seek(110.3); near(observationStage.style.opacity, 0);
+  assert.ok(+indexDefinition.style.opacity < 1);
+  seek(113.8);
+  near(operationParts.observations.style.opacity, 0); near(observationStage.style.opacity, 1);
+  near(operationParts['temporary-weight'].style.opacity, 1); near(byActor.mixing.style.opacity, 1);
+  near(responseMatrix.style.opacity, 0);
+  near(poseOf(byActor['otf:0'])[0], 600);
+  [0, 1, -1].forEach((order, row) => {
+    near(poseOf(byActor['sample:' + order])[1], 205 + 80 * row);
+    near(byActor['output:' + order].style.opacity, 0);
+  });
+  seek(117);
+  assert.ok(poseOf(byActor['otf:0'])[1] > 285, 'H passes below the temporary weight');
+  assert.ok(poseOf(operationParts['temporary-weight'])[1] < 0, 'the temporary weight passes above H');
+  seek(120.5);
+  near(operationParts['temporary-weight'].style.opacity, 0); near(byActor.mixing.style.opacity, 0);
+  near(responseMatrix.style.opacity, 1); near(poseOf(byActor['otf:0'])[0], 470);
+  [0, 1, -1].forEach((order, row) => {
+    const factor = byActor['factor:' + order];
+    near(factor.style.opacity, 1); near(poseOf(factor)[0], 620 + 155 * row); near(poseOf(factor)[1], 205 + 80 * row);
+  });
+  seek(123.2);
+  assert.ok(+byActor['output:1'].style.opacity > 0 && +byActor['output:1'].style.opacity < 1);
+  const pausedPose = byActor['sample:1'].attrs.transform, pausedRenders = h.mathRenders;
+  h.advance(); assert.equal(byActor['sample:1'].attrs.transform, pausedPose); assert.equal(h.mathRenders, pausedRenders);
+  seek(124.5);
+  near(responseMatrix.style.opacity, 0); near(spectrumBracket.style.opacity, 0);
+  [0, 1, -1].forEach((order, row) => {
+    for (const key of ['output', 'equals', 'otf', 'sample']) {
+      const node = byActor[key + ':' + order]; near(node.style.opacity, 1); near(poseOf(node)[1], 235 + 90 * row);
+    }
+    assert.equal(byActor['sample:' + order].children[0], sampleContents[row], 'the S terms from D become the band equations');
+  });
+  near(byActor['factor:0'].style.opacity, 0);
+  seek(126);
+  assert.ok(poseOf(operation)[1] > 85 && poseOf(operation)[1] < 285, 'the compact formula docks only after its bands have unfolded');
+  seek(132); near(groups.ready.style.opacity, 1); near(operation.style.opacity, 1);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'], 'provisional-ready');
+  near(indexDefinition.style.opacity, 1); near(railIndex.style.opacity, 1);
+  const entry = nodes.find(el => el.attrs['data-split-operation'] !== undefined);
+  assert.deepEqual(poseOf(operation), poseOf(entry));
+  collectedActors.forEach((el, i) => el.children.forEach((child, j) => assert.equal(child, collectedContents[i][j], 'collection preserves the matrix and row actors')));
+  const actors = [matrix, ...originals, ...boxes, ...messages, transfer, ...moving, operation, ...tokens, ...reasons, ...badImages, ...phasors, errorPicture, ...Object.values(groups), actualScaffold, ...actualCells, selectedIndexed, selectedGeneric, weightRhs, ...Object.values(coefficientTokens), factorLabels, matrixProduct, ...productSources, ...productObservations, rowFocus, rowEquals, rowOperators, knownDefinition, coefficientRelation, ...factoredWeights, ...matrixTemporaryWeights, ...matrixTemporarySources, ...sourceVariants, ...Object.values(operationParts), propagated, notation, indexDefinition, notationRail.children[0], railTerms, ...railTokens, railVector, railIndex, observationStage, ...observationActors, responseMatrix, spectrumBracket, ...observationRails];
+  const snapshot = () => ({ actors: actors.map(el => [el.attrs.transform, el.style.opacity, el.attrs.d, el.attrs['data-angle'], el.attrs['data-hop']]),
+    definitions: byId.get('demix-source-definitions').style.opacity, motion: byId.get('motion-content').style.opacity,
+    mode: byId.get('equation').attrs['data-formula-mode'], title: byId.get('scene-title').textContent, note: byId.get('equation-note').textContent });
+  const poses = new Map(), times = [.00001, .9, 1.8, 2.5, 3, 3.4, 4.4, 5.6, 6, 6.4, 7.4, 8.6, 9.4, 10.5, 11, 11.4, 12.6, 14.1, 14.5, 15, 15.7, 16.1, 16.25, 17.3, 18.4, 19, 20.3, 20.7, 21.2, 21.5, 23, 24.4, 25, 25.7, 26.6, 29, 30.6, 32.3, 34, 36, 38, 40, 43, 45, 47, 50, 52, 54, 54.8, 55.5, 56.3, 57, 58, 59.3, 59.8, 60.1, 60.3, 60.9, 62, 63.2, 64.2, 65, 66, 67.2, 67.7, 68.75, 70.3, 72, 75, 76, 77.5, 80, 82, 87];
+  times.push(74.2, 74.8, 75.4, 76.5, 77.8, 78.2, 79, 81, 82.3, 83.4, 84.8, 85.5, 86, 86.5, 87.5, 88, 88.5, 89.5, 90.5, 91.3, 92, 94.2, 95.5, 97, 98, 99.5, 100, 101.5, 102.6, 103.5, 105, 106.9, 107.5, 108.4, 109, 110.3, 111, 112.4, 113.8, 116, 117, 119, 120.5, 122, 123.2, 124.5, 126, 128, 132);
+  times.forEach(t => { seek(t); poses.set(t, snapshot()); });
+  for (const t of [76, 81, 85, 89]) {
+    seek(t);
+    assert.ok(byId.get('stage-caption').textContent);
+    assert.doesNotMatch(byId.get('stage-caption').textContent, /undefined/);
+  }
   const renders = h.mathRenders;
-  [...saved.keys()].toReversed().forEach(p => { seek(p); assert.deepEqual(snapshot(), saved.get(p)); });
-  assert.equal(h.mathRenders, renders, 'the added scene needs no second clock or repeated formula compilation');
+  times.toReversed().forEach(t => { seek(t); assert.deepEqual(snapshot(), poses.get(t)); });
+  assert.equal(h.mathRenders, renders, 'all beats and reverse playback reuse the compiled formulas');
+  seek(0); near(byId.get('motion-content').style.opacity, 1); near(byId.get('demix-source-definitions').style.opacity, 1);
+  checkWeights([1, 1, 1]); assert.equal(matrix.attrs.transform, 'translate(0 0)');
 });
 
 test('the 11-to-12 split carries the same spectra, colored formulas and synchronized negative fade in both directions', () => {

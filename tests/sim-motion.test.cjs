@@ -98,7 +98,7 @@ test('the displayed closed-form weights invert equal phase steps with any common
       near(actual[b][j].re, weight.re); near(actual[b][j].im, weight.im);
     }
   }
-  assert.match(M.inverseEquations.at(-1), /\\phi_j=\\phi_\\Delta\+\\frac\{2\\pi j\}\{3\}/);
+  M.inverseEquations.forEach(tex => assert.doesNotMatch(tex, /phi_\\Delta|u_\{0,j\}=\\frac13|\\frac\{2\}\{3m\}/));
   assert.match(M.inverseEquations.at(-1), /m\\ne0/);
   for (let j = 0; j < 3; j++) {
     assert.equal(M.inverseWeightTex(0, j), String.raw`\frac13`);
@@ -120,7 +120,7 @@ test('source aliases are introduced before coefficients move into their matching
     near(sum(s.activeRows.map(re => ({ re, im: 0 }))).re, 1);
   }
   assert.ok(M.scenes.slice(8, 12).every(scene => scene.theoryTopic === null));
-  assert.match(M.scenes[9].note, /照明模型.*实际参数/);
+  assert.match(M.scenes[9].note, /检查哪些量已知.*待确定/);
   assert.equal(M.parameterSlot.active, true, 'the symbolic solve leads into the active parameter chapter');
 });
 

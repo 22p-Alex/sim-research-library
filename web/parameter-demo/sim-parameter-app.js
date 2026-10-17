@@ -10,7 +10,7 @@
     const chapter = root.SIMMotionParameterChapter.create({ raw: capture.raw, config: capture.config,
       direction: 0 });
     const lesson = chapter.lesson, view = P.createView($('pe-art'), lesson);
-    const formulaView = P.createFormulaView($('pe-equation'));
+    const formulaView = P.createFormulaView($('pe-equation'),lesson);
     const reduced = root.matchMedia('(prefers-reduced-motion: reduce)');
     let scene = -1, note = '', player, scrubbing = false;
     const shortLabels = { read: '估计结果', fit: '估计幅相', coarse: '相关峰' };
@@ -35,6 +35,11 @@
         $('pe-stage-label').textContent = data.section === 'entry' ? 'ENTRY / 解法 → 临时数据' : data.section === 'exit' ? 'EXIT / 估计参数 → 正式重建' : scene < P.index('geometry') ? '① 找位置 / 频率坐标' : '② 求幅相 / 复数值';
         stops.forEach((button, index) => index === scene ? button.setAttribute('aria-current', 'step') : button.removeAttribute('aria-current'));
         if (!scrubbing) stops[scene].scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
+      }
+      if(s.id==='refine') {
+        const copy=root.SIMParameterLesson.refinementNarrative(s.progress);
+        $('pe-title').textContent=copy.title;$('pe-copy').textContent=copy.copy;
+        $('pe-svg-title').textContent=copy.title;$('pe-svg-description').textContent=copy.copy+' '+data.note;
       }
       const formula = formulaView.draw(s);
       if (note !== formula.note) { note = formula.note; $('pe-note').textContent = note; }

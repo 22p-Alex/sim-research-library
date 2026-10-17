@@ -30,6 +30,231 @@ test('the two stages define location before coefficient geometry and conjugation
     assert.doesNotMatch(source,/\\mathbf k'/,'the physical source keeps the true unknown k');
   }
   assert.match(L.formulas.subpixel,/e\^\{-\\frac\{2\\pi i\}/);
+  for(const key of ['correct','match','score'])
+    assert.ok(!L.formulas[key].includes(String.raw`U_{\mathbf k'}`),'the reference U at fixed q is independent of the candidate');
+  assert.ok(L.formulas.correct.includes(String.raw`H^*(\mathbf q)\widetilde A_0(\mathbf q)`));
+  assert.ok(L.formulas.correct.includes(String.raw`H^*(\mathbf q+\mathbf k')\widetilde A_{+1}(\mathbf q+\mathbf k')`));
+  assert.ok(L.formulas.correct.includes(String.raw`|H(\mathbf q)|^2`));
+  assert.ok(L.formulas.correct.includes(String.raw`|H(\mathbf q+\mathbf k')|^2`));
+  assert.ok(L.formulas.coefficient.includes(String.raw`U_j=S(\mathbf q_j)`));
+  assert.doesNotMatch(L.formulas.fit,/\\mathbf k'/,'the fitted-shift stage uses the documented U,V shorthand');
+});
+
+test('own complex conjugation leaves the OTF power; normalization recovers the specimen and its common coefficient', () => {
+  const specimen={re:2.3,im:-1.7},alpha={re:.4,im:.65};
+  for(const transfers of [[{re:.2,im:.4},{re:-.6,im:.1}],[{re:0,im:-.7},{re:.3,im:-.2}]]) {
+    for(const [b,h] of transfers.entries()) {
+      const target=b?mul(alpha,specimen):specimen, observed=mul(h,target);
+      const {power,weighted,corrected}=E.correctOtf(observed,h);
+      near(power,h.re*h.re+h.im*h.im);
+      for(const component of ['re','im']) {
+        near(weighted[component],power*target[component]);
+        near(corrected[component],target[component]);
+      }
+      assert.ok(Math.hypot(weighted.re-target.re,weighted.im-target.im)>.1,'multiplication alone must not be presented as completed correction');
+    }
+  }
+  for(const h of [{re:0,im:0},{re:Infinity,im:1},{re:1,im:NaN}])
+    assert.throws(()=>E.correctOtf(specimen,h),/非零且有限/);
+});
+
+test('each candidate uses its own OTF on each band, leaving U fixed and the observations unchanged', () => {
+  const capture=E.capture(), n=capture.raw.n;
+  for(const group of capture.raw.groups) {
+    const ctx=E.context(group,capture.config), [kx,ky]=capture.truth.vectors[group.index];
+    const snapshots=ctx.separated.bands.map(z=>({re:z.re.slice(),im:z.im.slice()}));
+    const actual=E.compare(ctx,kx,ky,true), other=E.compare(ctx,kx-1,ky+1,true);
+    for(const [dx,dy] of [[kx,ky],[kx-1,ky+1],[kx+.25,ky-.05]]) {
+      const candidate=E.compare(ctx,dx,dy,true), fractional=!Number.isInteger(dx)||!Number.isInteger(dy);
+      const side=fractional?A.shift(ctx.separated.bands[1],dx,dy,n):ctx.separated.bands[1];
+      for(const p of candidate.points) {
+        const i=A.idx(...p.q,n), j=fractional?i:A.idx(p.q[0]+dx,p.q[1]+dy,n);
+        for(const component of ['re','im']) {
+          near(p.rawX[component],ctx.separated.bands[0][component][i]);
+          near(p.rawY[component],side[component][j]);
+          near(p.weightedX[component],p.h0*p.rawX[component]);
+          near(p.weightedY[component],p.h1*p.rawY[component]);
+          near(p.x[component],p.rawX[component]/p.h0);
+          near(p.y[component],p.rawY[component]/p.h1);
+          if(dx===kx && dy===ky)near(p.x[component],capture.truth.spectrum[component][i]);
+        }
+        near(p.power0,p.h0**2);near(p.power1,p.h1**2);
+        assert.ok(p.h0>=ctx.config.minH && p.h1>=ctx.config.minH);
+      }
+    }
+    const changed=actual.points.find(p=>p.energy>1e-8 && other.points.some(t=>t.q.join(',')===p.q.join(',') && Math.abs(t.h1-p.h1)>.01));
+    assert.ok(changed);
+    const alternative=other.points.find(p=>p.q.join(',')===changed.q.join(','));
+    assert.deepEqual(alternative.rawX,changed.rawX,'the observation stays fixed');
+    assert.deepEqual(alternative.x,changed.x,'the reference U at the same q remains fixed');
+    assert.ok(Math.hypot(alternative.y.re-changed.y.re,alternative.y.im-changed.y.im)>1e-6,'the candidate changes the sideband value');
+    assert.notDeepEqual(actual.points.map(p=>p.q),other.points.map(p=>p.q),'the candidate changes the comparison mask');
+    assert.deepEqual(ctx.separated.bands,snapshots,'correction never overwrites the separated observations');
+  }
+  const unthresholded=E.context(capture.raw.groups[0],{...capture.config,minH:0});
+  for(const p of E.compare(unthresholded,8,0,true).points) {
+    assert.ok(p.h0>0 && p.h1>0,'zero transfer is excluded even if the threshold is zero');
+    assert.ok([p.x.re,p.x.im,p.y.re,p.y.im].every(Number.isFinite));
+  }
+});
+
+
+test('FFT correlation reproduces every circular shift with complex phase, sign and N squared normalization', () => {
+  const n=8,size=n*n, make=()=>({re:new Float64Array(size),im:new Float64Array(size)});
+  const check=(first,second)=>{
+    const snapshots=[first,second].map(z=>({re:z.re.slice(),im:z.im.slice()}));
+    const result=E.correlationMap(first,second,n);
+    for(let ky=0;ky<n;ky++)for(let kx=0;kx<n;kx++) {
+      const expected={re:0,im:0};
+      for(let y=0;y<n;y++)for(let x=0;x<n;x++) {
+        const i=y*n+x,j=A.idx(x+kx,y+ky,n);
+        expected.re+=first.re[i]*second.re[j]+first.im[i]*second.im[j];
+        expected.im+=first.re[i]*second.im[j]-first.im[i]*second.re[j];
+      }
+      near(result.correlation.re[ky*n+kx],expected.re,1e-10);
+      near(result.correlation.im[ky*n+kx],expected.im,1e-10);
+    }
+    assert.deepEqual([first,second],snapshots,'FFT calculation preserves both fixed inputs');
+    for(let i=0;i<size;i++) {
+      const [u,v]=result.spatial;
+      near(result.product.re[i],u.re[i]*v.re[i]+u.im[i]*v.im[i]);
+      near(result.product.im[i],u.re[i]*v.im[i]-u.im[i]*v.re[i]);
+    }
+    return result;
+  };
+  const first=make(),second=make();first.re[A.idx(1,-2,n)]=2;first.im[A.idx(1,-2,n)]=3;
+  second.re[A.idx(3,-3,n)]=-4;second.im[A.idx(3,-3,n)]=1;
+  const result=check(first,second),peak=A.idx(2,-1,n);
+  near(result.correlation.re[peak],-5);near(result.correlation.im[peak],14);
+  near(result.correlation.re[A.idx(-2,1,n)],0);
+  for(let i=0;i<size;i++){first.re[i]=Math.sin(i*.37);first.im[i]=Math.cos(i*.71);second.re[i]=Math.cos(i*.19);second.im[i]=Math.sin(i*.53);}
+  check(first,second);
+});
+
+test('fixed preprocessing and FFT energy and mask maps preserve every admitted direct score in all directions', () => {
+  const capture=E.capture();
+  for(const group of capture.raw.groups) {
+    const e=E.estimate(group,capture.config),f=e.fft,n=capture.config.n;
+    assert.ok(e.ok);
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++) {
+      const i=y*n+x,h=A.otf(A.bin(x,n),A.bin(y,n),capture.config.cutoff),keep=h>0&&h>=capture.config.minH;
+      for(let b=0;b<2;b++) {
+        near(f.masks[b].re[i],keep?1:0);
+        for(const part of ['re','im'])near(f.inputs[b][part][i],keep?e.context.separated.bands[b][part][i]/h:0);
+      }
+    }
+    for(const c of e.coarse.filter(c=>Math.hypot(c.kx,c.ky)>=capture.config.minRadius&&Math.hypot(c.kx,c.ky)<=capture.config.maxRadius)) {
+      const direct=E.compare(e.context,c.kx,c.ky,true),fft=f.at(c.kx,c.ky);
+      assert.equal(fft.count,direct.count);assert.equal(fft.valid,direct.valid);
+      for(const key of ['score','xx','yy'])near(fft[key],direct[key],1e-9);
+      for(const key of ['re','im'])near(fft.cross[key],direct.cross[key],1e-8);
+      near(c.score,direct.score,1e-9);
+    }
+    near(e.kx,capture.truth.vectors[group.index][0]);near(e.ky,capture.truth.vectors[group.index][1]);
+    near(e.m,capture.truth.m);near(e.phase,capture.truth.offsets[group.index]);
+  }
+});
+
+test('direct scan accumulates actual prefixes before depositing scores; FFT keeps and fills the same grid in one batch', () => {
+  let chapter;
+  const h=boot({beforeRenderer(c){const create=c.SIMMotionParameterChapter.create;c.SIMMotionParameterChapter.create=o=>(chapter=create(o));}});
+  const {context,byId,nodes}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
+  const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const get=k=>nodes.find(n=>n.attrs[k]!==undefined),scan=get('data-direct-scan'),stamp=get('data-score-stamp'),fft=get('data-fft-pipeline');
+  const cells=nodes.filter(n=>n.attrs['data-score-k']!==undefined),positions=cells.map(n=>[n.attrs.x,n.attrs.y]);
+  const tracked=nodes.filter(n=>Object.keys(n.attrs).some(k=>k.startsWith('data-fft-')||k.startsWith('data-score-')||k.startsWith('data-scan-')||k==='data-direct-scan'));
+  const snapshots=new Map();
+  for(const id of ['match','coarse'])for(const p of [.001,.05,.119,.17,.22,.237,.31,.45,.52,.59,.64,.72,.79,.82,.87,.91,.97,1]) {
+    seek(id,p);
+    assert.deepEqual(cells.map(n=>[n.attrs.x,n.attrs.y]),positions,'score coordinates never change between algorithms');
+    assert.doesNotMatch(L.formulaAt(L.stateForScene(id,p)).equation,/arg\\,min|J\(|min_\\alpha|1-\\rho/);
+    if(id==='match') {
+      const s=L.scanState(chapter.lesson,p),prefix=s.candidate.points.slice(0,s.count);
+      near(scan.attrs['data-count'],s.count);
+      near(scan.attrs['data-sum-re'],prefix.reduce((v,t)=>v+t.cross.re,0));
+      near(scan.attrs['data-sum-im'],prefix.reduce((v,t)=>v+t.cross.im,0));
+      if(+stamp.attrs.opacity>0)assert.equal(s.count,s.candidate.count,'finish all shared points before sending the score');
+      const written=cells.filter(n=>n.attrs['data-written']==='true');
+      assert.equal(written.length,s.committed.length);
+    } else {
+      const state=L.fftState(p);
+      for(const key of ['dim','gather','inverse','multiply','forward','normalize','dock','reveal','peak'])near(fft.attrs['data-'+key],state[key]);
+      const written=cells.filter(n=>n.attrs['data-written']==='true');
+      if(state.gather===1&&state.reveal<1)assert.equal(written.length,0);
+      if(state.reveal===1)assert.equal(written.length,chapter.lesson.estimate.coarse.filter(c=>c.valid).length);
+      if(state.forward>0)near(state.multiply,1);
+      if(state.multiply>0)near(state.inverse,1);
+      if(state.gather>0)near(state.dim,1);
+      if(state.normalize>0)near(state.forward,1);
+      if(state.dock>0)near(state.normalize,1);
+      if(state.reveal>0)near(state.dock,1);
+    }
+    snapshots.set(id+':'+p,tracked.map(n=>({...n.attrs})));
+  }
+  for(const [key,snapshot] of [...snapshots].reverse()) {const [id,p]=key.split(':');seek(id,+p);assert.deepEqual(tracked.map(n=>({...n.attrs})),snapshot);}
+  seek('coarse',1);const colors=cells.map(n=>n.attrs.fill),peak=get('data-fft-peak');
+  near(peak.attrs.opacity,1);seek('refine',.001);assert.deepEqual(cells.map(n=>n.attrs.fill),colors);assert.ok(+peak.attrs.opacity>.99);
+  assert.deepEqual(h.errors,[]);
+});
+
+test('FFT sweeps actual complex pixels before docking the normalized result onto the persistent score grid', () => {
+  let chapter;
+  const h=boot({beforeRenderer(c){const create=c.SIMMotionParameterChapter.create;c.SIMMotionParameterChapter.create=o=>(chapter=create(o));}});
+  const {nodes,byId,context}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
+  const seek=p=>{byId.get('progress').value=flow.index('parameters.coarse')-1+p;byId.get('progress').dispatch('input');};
+  const get=key=>nodes.find(node=>node.attrs[key]!==undefined),f=chapter.lesson.estimate.fft,n=f.n;
+  const cards=nodes.filter(node=>node.attrs['data-fft-input']!==undefined),product=get('data-fft-product'),prefix=get('data-fft-product-prefix');
+  const cursors=nodes.filter(node=>node.attrs['data-fft-pixel-cursor']!==undefined);
+  const scoreCells=nodes.filter(node=>node.attrs['data-score-k']!==undefined),resultCells=nodes.filter(node=>node.attrs['data-fft-score-k']!==undefined);
+  assert.equal(nodes.some(node=>node.attrs['data-fft-merge']!==undefined||node.attrs['data-fft-forward']!==undefined),false);
+  seek(.11);assert.ok(+get('data-fft-backdrop').attrs.opacity>.9);near(get('data-fft-pipeline').attrs.opacity,0);
+  // Every supported frequency is rendered, including the zero-order texture
+  // formerly lost under DC. Zero padding remains exactly black in both cards.
+  for(const image of nodes.filter(node=>node.attrs['data-fft-spectrum']!==undefined)) {
+    const b=+image.attrs['data-fft-spectrum'],canvas=nodes[Number(image.attrs.href.split('fixture')[1])],brightness=[];
+    for(let y=0;y<canvas.height;y++)for(let x=0;x<canvas.width;x++) {
+      const i=A.idx(x-Math.floor(canvas.width/2),y-Math.floor(canvas.height/2),n),rgba=canvas.lastPixels.slice((y*canvas.width+x)*4,(y*canvas.width+x)*4+3);
+      const value=Math.max(...rgba);
+      if(Math.hypot(f.inputs[b].re[i],f.inputs[b].im[i])>1e-10)brightness.push(value);
+      else near(value,0);
+    }
+    assert.equal(brightness.length,f.inputs[b].re.reduce((count,re,i)=>count+(Math.hypot(re,f.inputs[b].im[i])>1e-10?1:0),0),'the display includes the entire nonzero frequency support');
+    assert.ok(brightness.length>100);brightness.sort((a,b)=>a-b);
+    assert.ok(brightness[Math.floor(brightness.length/2)]>50,'the actual supported texture is visible under the DC display scale');
+  }
+  seek(.45);cards.forEach(card=>near(card.attrs.opacity,1));near(get('data-fft-product-image').attrs.opacity,1);
+  const writes=h.work.canvas,renders=h.mathRenders,poses=cards.map(card=>card.attrs.transform);
+  let previous=0;
+  for(const p of [.48,.481,.51,.54,.59,.63,.679,.68]) {
+    seek(p);
+    const count=+prefix.attrs['data-count'];assert.ok(count>=previous);previous=count;
+    assert.deepEqual(cards.map(card=>card.attrs.transform),poses,'the inputs remain in place while multiplying');
+    const pieces=[...prefix.attrs.d.matchAll(/h (-?[\d.e+-]+) v (-?[\d.e+-]+) h (-?[\d.e+-]+) Z/g)];
+    const area=pieces.reduce((sum,m)=>sum+Number(m[1])*Number(m[2]),0);
+    near(area,200*200*count/(n*n));
+    const i=Math.max(0,count-1);
+    near(product.attrs['data-pixel-re'],f.product.re[i]);near(product.attrs['data-pixel-im'],f.product.im[i]);
+    assert.deepEqual(cursors.map(c=>c.attrs['data-r']),Array(3).fill([i%n,Math.floor(i/n)].join(',')));
+    if(count>0&&count<n*n)cursors.forEach(c=>near(c.attrs.opacity,1));
+    if(count<n*n)near(get('data-fft-correlation-image').attrs.opacity,0);
+  }
+  assert.equal(previous,n*n);assert.equal(h.work.canvas,writes,'pixel sweeps use cached rasters');
+  // Normalization preserves the actual score/color for each candidate. Once
+  // docked, every preview cell occupies its original grid cell exactly.
+  seek(.94);
+  near(get('data-fft-result-scores').attrs.opacity,1);near(get('data-fft-correlation-image').attrs.opacity,0);
+  const [tx,ty,scale]=product.attrs.transform.match(/-?[\d.]+/g).map(Number);
+  const original=new Map(scoreCells.map(c=>[c.attrs['data-score-k'],c]));
+  for(const cell of resultCells) {
+    const target=original.get(cell.attrs['data-fft-score-k']);
+    near(tx+scale*Number(cell.attrs.x),Number(target.attrs.x));near(ty+scale*Number(cell.attrs.y),Number(target.attrs.y));
+    near(scale*Number(cell.attrs.width),Number(target.attrs.width));near(scale*Number(cell.attrs.height),Number(target.attrs.height));
+    assert.equal(cell.attrs.fill,target.attrs.fill);
+  }
+  seek(.96);near(product.attrs.opacity,0);near(get('data-fft-backdrop').attrs.opacity,0);
+  assert.equal(get('data-candidate-grid').children.filter(c=>c.attrs['data-score-k']!==undefined).length,scoreCells.length);
+  assert.equal(h.mathRenders,renders+3,'only the multiply, forward and peak formula modes compile once');
+  assert.deepEqual(h.errors,[]);
 });
 
 test('matching is invariant to a common complex scale and equals minimized relative residual, not overlap area', () => {
@@ -89,7 +314,7 @@ test('the geometric pool includes both weak paths, and q / q+k sample the same s
   }
 });
 
-test('left-side presentation, physical relocation, threshold exit and magnitude correction remain distinct and reversible', () => {
+test('relocation, threshold exit and own-conjugate normalization remain ordered and reversible', () => {
   let chapter;
   const h=boot({beforeRenderer(c){const create=c.SIMMotionParameterChapter.create;c.SIMMotionParameterChapter.create=o=>(chapter=create(o));}});
   const {nodes,byId,context}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion),d=context.SIMParameterLesson.dataFor(chapter.lesson);
@@ -118,8 +343,17 @@ test('left-side presentation, physical relocation, threshold exit and magnitude 
   }
   const rejected=nodes.filter(n=>n.attrs['data-rejected-q']!==undefined),planes=nodes.filter(n=>['P','Q','R'].includes(n.attrs['data-complex-plane']));
   assert.equal(rejected.length,d.support.rejected.length);assert.equal(nodes.filter(n=>n.attrs['data-sampling-link']!==undefined).length,0);
-  const fixedPositions=new Map(),snapshots=new Map(),barSnapshots=new Map(),textures=images.map(n=>n.attrs.href);
-  const samples=[.001,.05,.16,.24,.32,.4,.5,.53,.61,.70,.73,.81,.92,1];
+  const fixedPositions=new Map(),snapshots=new Map(),formulaSnapshots=new Map(),textures=images.map(n=>n.attrs.href);
+  const terms=nodes.filter(n=>n.attrs['data-otf-term']!==undefined);
+  const term=tag=>terms.find(n=>n.attrs['data-otf-term']===tag);
+  const fractionNodes=nodes.filter(n=>['data-otf-product-highlight','data-otf-fraction-line','data-otf-cancel'].some(k=>n.attrs[k]!==undefined));
+  const xy=node=>node.attrs.transform.match(/-?[\d.]+/g).slice(0,2).map(Number);
+  assert.equal(terms.filter(n=>n.attrs['data-otf-original-factor']!==undefined).length,2);
+  assert.equal(terms.filter(n=>n.attrs['data-otf-conjugate-of']!==undefined).length,4);
+  assert.equal(terms.filter(n=>n.attrs['data-otf-copy-from']!==undefined).length,0,'no factor comes from the other row');
+  for(const attr of ['data-otf-magnitude','data-otf-original','data-otf-restored','data-otf-correction'])
+    assert.equal(nodes.filter(n=>n.attrs[attr]!==undefined).length,0,'compensation bars are removed');
+  const samples=[.001,.05,.16,.24,.32,.4,.46,.50,.54,.58,.63,.67,.70,.73,.77,.79,.83,.85,.87,.90,.93,.96,1];
   for(const p of [...samples,...samples.toReversed()]) {
     seek('otf',p);planes.forEach(n=>near(n.attrs.opacity,0));
     const snapshot=rejected.map(n=>[n.attrs.transform,n.attrs.opacity,n.attrs['data-exit-progress']]);
@@ -131,40 +365,53 @@ test('left-side presentation, physical relocation, threshold exit and magnitude 
     assert.deepEqual(images.map(n=>n.attrs.href),textures);
     if(p<.1)rejected.forEach(n=>near(n.attrs.opacity,1));
     if(p>=.4)rejected.forEach(n=>near(n.attrs.opacity,0));
-    if(p<.5)near(L.stateForScene('otf',p).correction,0);
-    const correction=L.otfState(p).correctionByBand;
-    if(p<=.53)assert.deepEqual(correction,[0,0]);
-    if(p===.61)assert.ok(correction[0]>0 && correction[0]<1 && correction[1]===0);
-    if(p===.70)assert.deepEqual(correction,[1,0]);
-    if(p===.81)assert.ok(correction[0]===1 && correction[1]>0 && correction[1]<1);
-    if(p>=.92)assert.deepEqual(correction,[1,1]);
-    const barState=[];
-    d.selected.forEach((point,i)=>[0,1].forEach(b=>{
-      const bar=nodes.find(n=>n.attrs['data-otf-magnitude']===['P','Q','R'][i]+':'+b), value=b?point.y:point.x, otf=b?point.h1:point.h0;
-      const original=nodes.find(n=>n.attrs['data-otf-original']===['P','Q','R'][i]+':'+b);
-      const beforeValue=nodes.find(n=>n.attrs['data-otf-before-value']===['P','Q','R'][i]+':'+b);
-      const afterValue=nodes.find(n=>n.attrs['data-otf-after-value']===['P','Q','R'][i]+':'+b);
-      const operation=nodes.find(n=>n.attrs['data-otf-operation']===['P','Q','R'][i]+':'+b);
-      const restored=nodes.find(n=>n.attrs['data-otf-restored']===['P','Q','R'][i]+':'+b);
-      const gain=otf+(1-otf)*correction[b];
-      near(zOf(bar).re,value.re*gain);near(zOf(bar).im,value.im*gain);
-      const correctedMagnitude=Math.hypot(value.re,value.im), originalMagnitude=correctedMagnitude*otf;
-      near(original.attrs['data-magnitude'],originalMagnitude);
-      near(bar.attrs['data-original-magnitude'],originalMagnitude);
-      near(bar.attrs['data-corrected-magnitude'],correctedMagnitude);
-      near(+bar.attrs.width / +original.attrs.width,gain/otf);
-      near(bar.attrs['data-gain'],gain/otf);
-      near(restored.attrs.width,+bar.attrs.width-+original.attrs.width);
-      const normalization=chapter.lesson.capture.config.n**2;
-      near(beforeValue.textContent,originalMagnitude/normalization,.5e-5);
-      near(afterValue.textContent,correctedMagnitude*gain/normalization,.5e-5);
-      const displayed=operation.textContent.match(/÷ ([\d.]+) · 当前 ×([\d.]+)/);
-      assert.ok(displayed);near(displayed[1],otf,.0005);near(displayed[2],gain/otf,.005);
-      barState.push([original.attrs.width,bar.attrs.width,beforeValue.textContent,afterValue.textContent,operation.textContent,restored.attrs.width]);
-    }));
-    if(barSnapshots.has(p))assert.deepEqual(barState,barSnapshots.get(p));else barSnapshots.set(p,barState);
+    const state=L.otfState(p);
+    if(p<=.46)near(state.multiply,0);
+    if(p>=.58)near(state.multiply,1);
+    if(p<.87)near(state.name,0);
+    if(p<.94)near(state.relation,0);
+    for(let b=0;b<2;b++) {
+      const own=term('own:'+b),conjugate=term('conjugate:'+b),lhs=term('lhs-conjugate:'+b);
+      const power=term('power:'+b),denominator=term('rhs-denominator:'+b);
+      for(const node of [conjugate,lhs]) {
+        assert.equal(node.attrs['data-otf-conjugate-of'],String(b));
+        assert.equal(node.attrs['data-tex'],'H_'+b+'^*');
+        assert.ok(Math.abs(xy(node)[1]-(270+b*118))<=45,'conjugate stays with its own row');
+      }
+      assert.equal(power.attrs['data-tex'],'|H_'+b+'|^2');
+      for(const node of [denominator,term('lhs-denominator:'+b)])assert.equal(node.attrs['data-tex'],power.attrs['data-tex']);
+      if(p<=.46) { near(own.attrs.opacity,1);near(conjugate.attrs.opacity,0);near(lhs.attrs.opacity,0); }
+      if(p===.58) {
+        near(xy(conjugate)[1],xy(own)[1]);near(conjugate.attrs.opacity,1);near(lhs.attrs.opacity,1);
+      }
+      if(p>=.67 && p<=.70) {
+        near(power.attrs.opacity,1);near(own.attrs.opacity,0);near(conjugate.attrs.opacity,0);
+        near(denominator.attrs.opacity,0);near(term('name:'+b).attrs.opacity,0);
+      }
+      if(p>=.77 && p<=.79) {
+        near(power.attrs.opacity,1);near(denominator.attrs.opacity,1);
+        assert.ok(xy(power)[1]<xy(denominator)[1]);
+      }
+      if(p===.85) {
+        near(power.attrs.opacity,0);near(denominator.attrs.opacity,0);near(term('one:'+b).attrs.opacity,1);
+        near(term('lhs-denominator:'+b).attrs.opacity,1);near(lhs.attrs.opacity,1);
+      }
+      if(p>=.93) {
+        near(term('name:'+b).attrs.opacity,1);near(term('band:'+b).attrs.opacity,0);
+        near(term('lhs-denominator:'+b).attrs.opacity,0);near(lhs.attrs.opacity,0);
+      }
+    }
+    if(p===1) {
+      near(term('sample:0').attrs.opacity,1);near(term('sample:1').attrs.opacity,0);
+      near(term('reference').attrs.opacity,1);near(term('alpha').attrs.opacity,1);
+    }
+    const actorState=[...terms,...fractionNodes].map(n=>[n.attrs.transform,n.attrs.opacity,n.attrs['data-cancel-progress']]);
+    if(formulaSnapshots.has(p))assert.deepEqual(actorState,formulaSnapshots.get(p));else formulaSnapshots.set(p,actorState);
   }
-  seek('match',.3);planes.forEach(n=>near(n.attrs.opacity,1));
+  seek('otf',.52);const renders=h.mathRenders;
+  for(const p of [.56,.61,.65]) { seek('otf',p);assert.equal(h.mathRenders,renders,'the conjugate flight and product update persistent formula actors'); }
+  assert.deepEqual(nodes.filter(n=>n.attrs['data-otf-term']!==undefined),terms);
+  seek('match',.3);planes.forEach(n=>near(n.attrs.opacity,0));
   assert.deepEqual(h.errors,[]);
 });
 
@@ -297,7 +544,12 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
   seek('otf',.25);
   d.selected.forEach((p,i)=>{
     const actual=current.points.find(t=>t.q.join(',')===p.q.join(','));
-    near(zOf(u()[i]).re,actual.x.re*actual.h0); near(zOf(v()[i]).im,actual.y.im*actual.h1);
+    near(zOf(u()[i]).re,actual.rawX.re); near(zOf(v()[i]).im,actual.rawY.im);
+  });
+  seek('otf',.68);
+  d.selected.forEach((p,i)=>{
+    const actual=current.points.find(t=>t.q.join(',')===p.q.join(','));
+    near(zOf(u()[i]).re,actual.weightedX.re); near(zOf(v()[i]).im,actual.weightedY.im);
   });
   seek('otf');
   d.selected.forEach((p,i)=>{
@@ -317,11 +569,11 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
   // only then can the map and values switch to the actual candidate search.
   seek('otf',1);
   const prepared=[right.attrs['data-kx'],right.attrs['data-ky'],right.attrs['data-score'],activeMask()];
-  const preparedBars=nodes.filter(n=>n.attrs['data-otf-magnitude']!==undefined).map(n=>[n.attrs.width,n.attrs['data-re'],n.attrs['data-im']]);
+  const preparedTerms=nodes.filter(n=>n.attrs['data-otf-term']!==undefined).map(n=>[n.attrs.transform,n.attrs.opacity]);
   for(const p of [.001,.05,.119]) {
     seek('match',p);
     assert.deepEqual([right.attrs['data-kx'],right.attrs['data-ky'],right.attrs['data-score'],activeMask()],prepared);
-    assert.deepEqual(nodes.filter(n=>n.attrs['data-otf-magnitude']!==undefined).map(n=>[n.attrs.width,n.attrs['data-re'],n.attrs['data-im']]),preparedBars);
+    assert.deepEqual(nodes.filter(n=>n.attrs['data-otf-term']!==undefined).map(n=>[n.attrs.transform,n.attrs.opacity]),preparedTerms);
     assert.equal(byId.get('equation').attrs['data-formula-mode'],'match-prepare');
   }
   // The actual full story has zero common phase: a visible trial still returns
@@ -366,7 +618,7 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
 test('every meaningful intermediate state is reversible and formula terms use the same playhead', () => {
   const h=boot(), {context,byId,nodes}=h, flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
   const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
-  const tracked=nodes.filter(n=>['data-frequency-map','data-frequency-pair','data-candidate-panel','data-vector-u','data-vector-v','data-vector-prediction','data-vector-product','data-fitting','data-study-ratio','data-rejected-q','data-otf-magnitude','data-otf-correction'].some(k=>n.attrs[k]!==undefined));
+  const tracked=nodes.filter(n=>['data-frequency-map','data-frequency-pair','data-candidate-panel','data-vector-u','data-vector-v','data-vector-prediction','data-vector-product','data-fitting','data-study-ratio','data-rejected-q','data-otf-term','data-otf-product-highlight','data-otf-fraction-line','data-otf-cancel','data-otf-normalization'].some(k=>n.attrs[k]!==undefined));
   const snapshots=new Map(), positions=L.scenes.flatMap(s=>[.001,.19,.34,.52,.76,1].map(p=>[s.id,p]));
   for(const [id,p] of [...positions,...positions.toReversed()]) {
     seek(id,p); const key=id+':'+p;

@@ -374,7 +374,7 @@
     '去掉单位矩阵，A 的内容和数值保持不变。',
     '将 A 写到左边，得到三个来源的分离式。',
     'u 是 U 中的复数权重：每一行与右侧同一组三帧相乘求和，得到一个来源。',
-    '等间隔三相位且 m ≠ 0：九个 u 逐项变为闭式结果；m 与共同相位 φΔ 待后续估计。',
+    '等间隔三相位且 m ≠ 0：按行逐项写出求逆结果。',
   ];
   function buildInverseTransform() {
     inverseView.root = create('g', { 'data-inverse-transform': '' }, $('demix-matrix-view'));
@@ -465,9 +465,10 @@
     show(matrixView.forward, 1 - demix.inverse); show(matrixView.backward, M.ramp(demix.inversion.weights, .6, 1));
     drawInverseTransform(demix);
     opacity(matrixView.scaffold, demix.arrange);
+    opacity(matrixView.caption, 1);
     setText(matrixView.caption, demix.inverse > .5
       ? demix.inversion.formula < 6 ? '先展开 U 的三行，再将每个 u 写成求逆结果。'
-        : '等间隔三相位 · 0 级取平均 · 旁带反向补偿相位，并乘 2/(3m)。'
+        : '按行展开 U：每一行给出一个来源的三帧加权系数。'
       : demix.arrange < .5 ? 'H 乘在三个样品频谱项上；将这些乘积分别记为 A。'
       : '缩略图依次对应 A₀、A₊₁、A₋₁；Dⱼ 与三个系数进入第 j 行。');
     for (const item of [...matrixView.sourceTerms, ...matrixView.operators]) {
@@ -655,17 +656,47 @@
       bridgeView.draw(frame.id, frame.progress);
       if (frame.id === 'provisional-split') {
         const state = Chapter.provisionalState(frame.progress);
-        motionAlpha = 1 - state.handoff; provisionalAlpha = 1;
-        const formula = parameterFormulaView.draw({ id: frame.id, progress: frame.progress });
+        motionAlpha = state.matrix; provisionalAlpha = 1;
+        setText($('view-label'), state.nominalFailure > 0 ? 'NOMINAL PARAMETERS / 标称值重建对照'
+          : state.observation.intro > 0 ? 'OBSERVATION → OTF × SPECTRA / 从观测展开频带'
+          : state.notation.active ? 'ROW → MATRIX → VECTOR / 逐行乘加 → 矩阵合写'
+          : state.seconds >= 94 ? 'WEIGHT FACTOR → BAND FACTOR / 系数比例 → 输出比例'
+          : state.seconds >= 86 ? 'ACTUAL / TEMPORARY WEIGHT / 在原公式上比较权重'
+          : state.seconds >= 82 ? 'MATRIX → ROW PRODUCT / 矩阵项飞入组成公式'
+          : state.seconds >= 74 ? 'WEIGHT → MATRIX / 权重回到矩阵'
+          : state.seconds >= 54.5 ? 'ACTUAL WEIGHTS / 实际权重的结构' : 'WEIGHTS → ACTUAL PARAMETERS / 权重 → 实际参数');
+        setText($('equation-domain'), state.nominalFailure > 0 ? '直接代入标称值 · 结果对照'
+          : state.observation.intro > 0 ? '观测 D → H 与照明频谱 → 临时频带'
+          : state.seconds >= 94 ? '临时权重 → 临时矩阵 → 临时输出'
+          : state.seconds >= 86 ? 'u 与 ũ · 原公式内替换'
+          : state.seconds >= 74 ? 'u → U → A = UD'
+          : state.seconds >= 54.5 ? '实际权重 → 已知与未知' : '逆矩阵权重 → 照明参数');
+        opacity($('demix-source-definitions'), state.context);
+        opacity(matrixView.caption, state.context);
+        cameras.forEach(camera => opacity(camera.root, Number(camera.root.style.opacity) * state.context));
+        const formula = state.notation.active ? bridgeView.drawProvisionalFormula(frame.progress)
+          : parameterFormulaView.draw({ id: frame.id, progress: frame.progress });
         setText($('scene-title'), formula.title); setText($('scene-description'), formula.copy);
         setText($('equation-note'), formula.note); $('equation-note').hidden = !formula.note;
         attr($('equation'), 'data-parameter-focus', state.focus || '');
         setText($('scene-svg-description'), formula.copy + ' ' + formula.note);
-        setText($('stage-caption'), { compact: '从解混式回到照明模型', substitute: 'k̂ · m̂ · φ′ⱼ + φ̂Δ → Îⱼ',
-          question: '先上移解混式 → 直接分离可行吗？', 'nominal-card': '硬件预设标称参数 → 直接套用',
-          'vector-failure': 'Δp = 0.3 格 · 重叠区错位 → 重建伪影', 'phase-failure': '共同相位 π · 反向指针 → 复谱相消',
-          model: '三帧共用实际参数 · 只改变 φ′ⱼ', expand: '余弦展开 → 已知相移 × 共同幅相',
-          absorb: '未知块 → Ã₀、Ã₊₁、Ã₋₁', demix: '三相正交 · 加权求和 · 其他级次相消', ready: 'Ã = ŨD → 公共区参数估计' }[state.mode]);
+        setText($('stage-caption'), { knownHighlight: '第一行 · 高亮系数', knownMessage: '第一行 · 已知常数，直接可算',
+          knownRestore: '第一行 · 文字退去，系数恢复', sideHighlight: '第二、三行 · 高亮系数', sideMessage: '旁带 · 需要知道 φⱼ 和 m',
+          sideRestore: '旁带 · 文字退去，系数恢复', gather: '来源列 → A(f) · 权重 → U · 观测列 → D(f)',
+          whyEstimate: '回到照明公式', wavevectorReason: 'k 跳动 → 波矢为什么可能偏离预设',
+          amplitudePhaseReason: 'm、φⱼ 跳动 → 实际幅相为什么可能偏离预设', nominalPlug: '直接代回硬件标称值',
+          vectorFailure: '结果一 · 亚像素错位', phaseFailure: '结果二 · 反相抵消与黑边下冲',
+          nominalResidual: '实际误差 · 周期性残余条纹', actualWeights: '重新显示逆矩阵 U',
+          extractWeight: '从矩阵取出旁带权重 → 左侧放大', showWeight: '等号 → 原有系数',
+          expandWeight: '实际相位 → 已知相移 + 共同偏移', splitWeight: '权重因式分解 · 未知部分与 j 无关',
+          returnWeight: '同一个 u → U 的原单元格', matrixApply: '权重行 × 观测列 → 对应的 A',
+          rowProduct: '矩阵项飞入 → 三次相乘、逐项相加', nameKnown: '原公式中的 u₊₁,₁ → 原位展开',
+          coefficientScale: 'ũ 与 u 只差共同幅相因子', outputScale: '系数的共同比例 → 输出的共同比例',
+          matrixNotation: '临时 +1 行归位 → 补齐 0、+1、−1 三行',
+          vectorNotation: '中央收拢 → Ã = ŨD', observationModel: 'D = H × M × 三份样品频谱',
+          substituteObservation: '提出标量 H → ŨM 相邻', temporaryResponse: 'ŨM → 各级次的对角系数',
+          expandBands: '同一批 H、S 与系数 → 三份临时频带',
+          ready: 'Ã = ŨD → 公共区参数估计' }[state.mode]);
       }
       else {
         motionAlpha = 0; parameterAlpha = 1 - enter; adoptedAlpha = enter;
@@ -687,6 +718,11 @@
         setText($('scene-title'), copy.title); setText($('scene-description'), copy.copy);
         setText($('scene-svg-description'), copy.copy + ' ' + copy.note);
         setText($('stage-caption'), split.progress < 1 ? 'Ã → 0、+1、−1 → 0、+1' : '0 级 + +1 级 / 相机数据估计');
+      } else if(frame.sceneId==='refine') {
+        const copy=window.SIMParameterLesson.refinementNarrative(frame.progress);
+        setText($('scene-title'),copy.title);setText($('scene-description'),copy.copy);
+        setText($('scene-svg-description'),copy.copy+' '+window.SIMParameterLesson.scene('refine').note);
+        setText($('stage-caption'),copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
       }
       const useEntryFormula = split && split.progress < 1;
       const formula = useEntryFormula ? bridgeView.drawEntryFormula(frame.progress) : parameterFormulaView.draw(state);
@@ -739,7 +775,7 @@
     $('stage-caption').textContent = data.demixFormula ? (data.id === 'verify-demix' ? '0 · 0 · 1 / 验证来源系数' : data.id === 'separate-bands' ? 'WEIGHT → SUM / 符号乘加' : data.id === 'mixed-sources' ? '05 → 06 → A / 来源进入方程' : 'M → M⁻¹ / 符号权重') : data.detectionFormula ? 'SAME f / 衰减后仍是混合' : data.encodingSum ? '1 DIRECTION · FIXED PHASE / φ₀ = 0' : stageIndex === 0 ? 'q：样品频率坐标 · 单位：DFT 格' : stageIndex === 3 ? 'TRACK A PAIR / q = (±14, 0)' : stageIndex < 5 ? 'TRACK ONE FREQUENCY / q = (14, 0)' : stageIndex < 7 ? '3 PHASES · 1 DIRECTION' : stageIndex < 10 ? 'M → M⁻¹ / 矩阵解混' : stageIndex < 13 ? 'f → q / KEEP THE SAME VALUE' : stageIndex < 16 ? '3 DIRECTIONS · 9 BANDS' : stageIndex < 20 ? 'WEIGHT → SUM → FILTER' : 'THE SAME DATA, BACK IN REAL SPACE';
     if (data.owner !== 'motion') {
       $('view-label').textContent = data.owner === 'parameters' ? 'PARAMETER ESTIMATION / 同一组三帧'
-        : data.id === 'provisional-split' ? 'ILLUMINATION → PHASE SEPARATION / 照明模型 → 粗分离' : 'PHASE SEPARATION / 估计值 → 正式权重';
+        : data.id === 'provisional-split' ? 'WEIGHTS → ACTUAL PARAMETERS / 权重 → 实际参数' : 'PHASE SEPARATION / 估计值 → 正式权重';
       $('stage-caption').textContent = data.owner === 'parameters' ? '0 级 + +1 级 / 相机数据估计' : data.id === 'provisional-split' ? '波矢 · 调制度 · 相位' : 'k̂ · φ̂ⱼ · m̂ → 正式重建';
     }
     for (const el of [$('scene-copy'), $('equation'), $('domain-equations')]) {
@@ -964,12 +1000,12 @@
     buildFrames(); buildSources(); buildDemixMatrix(); buildDemixProof(); buildEncodingAlgebra(); populateTheory();
     parameterView = window.SIMParameterLesson.createView($('parameter-stage'), parameterChapter.lesson,
       { sharedPairContainer: $('frequency-handoff-stage') });
-    parameterFormulaView = window.SIMParameterLesson.createFormulaView($('equation'), { formulaAt: s =>
+    parameterFormulaView = window.SIMParameterLesson.createFormulaView($('equation'), { lesson:parameterChapter.lesson,formulaAt: s =>
       s.id === 'provisional-split' ? Chapter.provisionalFormulaAt(s) : window.SIMParameterLesson.formulaAt(s),
       formulaMode: s => s.id === 'provisional-split' ? 'provisional-' + Chapter.provisionalState(s.progress).formulaKey : window.SIMParameterLesson.formulaMode(s) });
     bridgeView = window.SIMMotionParameterView.create({ reconstruction, lesson,
-      create, attr, opacity, formulaBox, spectrumURL, imageURL, maximum, complex, compact, sharedPair: parameterView.sharedPair,
-      inverseHandoff: matrixView.inverseHandoff });
+      create, attr, opacity, math, formulaBox, spectrumURL, imageURL, maximum, complex, compact, sharedPair: parameterView.sharedPair,
+      inverseHandoff: matrixView.inverseHandoff, inverseMatrix: matrixView.backward });
     fullStages = window.SIMMotionStages.create({ lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact });
     player = M.createPlayer({ render: update, reducedMotion: reduced.matches, durations: Flow.durations, pacing: Flow.pacing }); bind(); player.seek(0);
   } catch (error) {

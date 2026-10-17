@@ -32,10 +32,10 @@
     },
     {
       chapter: '02 / 解混', label: '求逆与权重', title: '先求出解法，权重中的参数还待确定。',
-      copy: '两边左乘 M⁻¹，得到 A = UD，再逐项展开 U。本页等间隔三相位下，0 级权重为 1/3，旁带权重为带反向相位的 2/(3m)；每一行取出一个来源。',
+      copy: '两边左乘 M⁻¹，得到 A = UD，再按行逐项展开 U；每一行与同一组三帧相乘求和，取出一个来源。',
       equation: String.raw`$$\mathbf A(\mathbf f)=U\mathbf D(\mathbf f),\qquad U=M^{-1}$$`,
       weightEquation: F.negativeExtraction,
-      note: '闭式结果要求等间隔三相位且 m ≠ 0。此时得到含参数的解法；下一步回到照明模型，从观测确定实际参数。',
+      note: '闭式结果要求等间隔三相位且 m ≠ 0。先逐项写出系数，下一步再检查哪些量已知、哪些量还待确定。',
     },
     {
       chapter: '02 / 解混', label: '逐点解混', title: '同一行权重，作用于每一个检测频率。',
@@ -246,7 +246,7 @@
     String.raw`$$M^{-1}\mathbf D(\mathbf f)=\mathbf A(\mathbf f)$$`,
     String.raw`$$\mathbf A(\mathbf f)=M^{-1}\mathbf D(\mathbf f)$$`,
     String.raw`$$\mathbf A(\mathbf f)=U\mathbf D(\mathbf f),\qquad U=M^{-1},\quad U_{\ell j}=u_{\ell,j}$$`,
-    String.raw`$$u_{0,j}=\frac13,\qquad u_{\pm1,j}=\frac{2}{3m}e^{\mp i\phi_j},\qquad\phi_j=\phi_\Delta+\frac{2\pi j}{3},\quad m\ne0$$`,
+    String.raw`$$\mathbf A(\mathbf f)=U\mathbf D(\mathbf f),\qquad U_{\ell j}=u_{\ell,j},\quad m\ne0$$`,
   ]);
   // For equally spaced phases, M = V diag(1,m/2,m/2) and V* V = 3I.
   // Hence U = diag(1,2/m,2/m) V*/3. This includes a common phase offset.

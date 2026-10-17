@@ -92,7 +92,8 @@ test('one configurable player reaches every draft stop, supports reverse and res
   let now = 0, sequence = 0; const pending = new Map();
   const player = M.createPlayer({ durations: P.durations, request: callback => { pending.set(++sequence, callback); return sequence; }, cancel: id => pending.delete(id) });
   const tick = () => { now += 32; const callbacks = [...pending.values()]; pending.clear(); callbacks.forEach(callback => callback(now)); };
-  const finish = () => { let frames = 0; while (pending.size && frames++ < 2000) tick(); assert.ok(frames < 2000); };
+  const frameLimit=Math.ceil(Math.max(...P.durations)/32)+3;
+  const finish = () => { let frames = 0; while (pending.size && frames++ < frameLimit) tick(); assert.ok(frames < frameLimit); };
   for (let stop = 1; stop <= P.scenes.length; stop++) { player.navigate(1); finish(); near(player.state().position, stop); }
   for (let stop = P.scenes.length - 1; stop >= 0; stop--) { player.navigate(-1); finish(); near(player.state().position, stop); }
   player.go(1); tick(); tick(); player.pause(); assert.equal(pending.size, 0);

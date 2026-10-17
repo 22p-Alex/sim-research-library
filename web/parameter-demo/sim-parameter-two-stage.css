@@ -5,9 +5,6 @@
 .pe-two-text{font-size:17px;fill:#bdd0d4;font-weight:400}
 .pe-two-small{font-size:13px;fill:#8eabb6;font-variant-numeric:tabular-nums}
 .pe-two-value{font-size:21px;fill:#efb879;font-variant-numeric:tabular-nums}
-.pe-two-bar-label{font-size:14px;fill:#bdd0d4}
-.pe-two-bar-operation{font-size:15px;font-variant-numeric:tabular-nums}
-.pe-two-bar-value{font:14px ui-monospace,"SFMono-Regular",Consolas,monospace;fill:#dce7e8;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
 .pe-two-formula{font-size:16px;gap:10px;max-width:100%;flex-wrap:wrap}
 .pe-two-formula>.katex{font-size:1.1em}
 .pe-two-derivation{display:grid;gap:8px;font-size:20px;justify-items:center}
@@ -27,3 +24,18 @@
 .pe-two-derivation [data-formula-part=sample-q],.pe-two-derivation [data-formula-part=same-sample]{color:#7ad5cd}
 .parameter-correlation-detail{margin:20px 0;padding:14px 18px;border:1px solid #36515c;border-radius:6px}
 .parameter-correlation-detail>summary{cursor:pointer;color:#efb879}
+
+.pe-two-otf-math{height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;white-space:nowrap}
+.pe-two-otf-math .katex-display{margin:0}
+
+.pe-refine-formula{display:grid;gap:3px;width:100%;min-width:0;font-size:16px}
+.pe-refine-formula-caption{font-size:12px;color:#efb879;text-align:center}
+.pe-refine-formula-body{display:grid;grid-template-columns:minmax(0,1fr) 160px;align-items:center;gap:10px}
+.pe-refine-formula-equations{display:grid;gap:8px;min-width:0}
+.pe-refine-formula-slot{display:grid;align-items:center;justify-items:center;min-height:30px}
+.pe-refine-formula-slot>span,.pe-refine-formula-slot>div{grid-area:1/1}
+.pe-refine-formula-product{display:flex;align-items:center;justify-content:center;gap:8px;font-size:20px}
+.pe-refine-formula .pe-study-formula-part{display:block;white-space:nowrap}
+.pe-refine-formula [data-emphasized=true]{text-shadow:0 0 13px #efb87966}
+.pe-refine-phase-diagram{display:block;width:160px;height:100px}
+.pe-refine-formula-numeric{font-size:11px;line-height:1.5;color:#8eabb6;text-align:center;font-variant-numeric:tabular-nums}

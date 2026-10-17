@@ -89,10 +89,14 @@ dialog{width:min(780px,calc(100vw - 100px));max-height:82dvh;color:var(--ink);ba
 [data-weight-j] .matrix-cell{font-size:20px}
 .demix-proof-math{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:25px;color:inherit}
 .demix-proof-math>.katex{flex:none}.demix-proof-math math[display=block]{text-align:center}
-[data-provisional-operation] .demix-proof-math,[data-provisional-ready-operation] .demix-proof-math{font-size:34px}
-[data-provisional-illumination] .demix-proof-math{font-size:32px}
-[data-estimation-target] .demix-proof-math{font-size:30px}
-#provisional-stage mstyle[mathcolor="#dce6e1"]>menclose[notation=box],#equation mstyle[mathcolor="#dce6e1"]>menclose[notation=box]{background:#dce6e10a;border-radius:3px}
+[data-provisional-operation] .demix-proof-math,[data-split-operation] .demix-proof-math{font-size:34px}
+.provisional-illumination-token .demix-proof-math{font-size:32px}
+.provisional-parameter-reason{font-size:20px;fill:#bdcdd1}
+.provisional-row-message .demix-proof-math{font-size:28px}
+.provisional-transfer-math .demix-proof-math{font-size:24px}
+.actual-weight-symbol .demix-proof-math{font-size:28px}
+.weight-coefficient-token .demix-proof-math{font-size:36px}
+.weight-factor-label{font-size:22px}
 #provisional-stage mstyle[mathcolor="#7ad5cd"]>menclose[notation=box],#equation mstyle[mathcolor="#7ad5cd"]>menclose[notation=box]{color:#7ad5cd;background:#7ad5cd26;outline:2px solid #7ad5cd;outline-offset:1px;border-radius:3px;box-shadow:0 0 10px #7ad5cd24}
 #provisional-stage mstyle[mathcolor="#efb879"]>menclose[notation=box],#equation mstyle[mathcolor="#efb879"]>menclose[notation=box]{color:#efb879;background:#efb87926;outline:2px solid #efb879;outline-offset:1px;border-radius:3px;box-shadow:0 0 10px #efb87924}
 #provisional-stage mstyle[mathcolor="#b7a5eb"]>menclose[notation=box],#equation mstyle[mathcolor="#b7a5eb"]>menclose[notation=box]{color:#b7a5eb;background:#b7a5eb26;outline:2px solid #b7a5eb;outline-offset:1px;border-radius:3px;box-shadow:0 0 10px #b7a5eb24}
@@ -122,7 +126,13 @@ dialog{width:min(780px,calc(100vw - 100px));max-height:82dvh;color:var(--ink);ba
 #split-handoff-stage [data-split-operation] .demix-proof-math{font-size:34px}
 .split-handoff-formulas{display:block;width:100%;height:auto;overflow:visible}
 .split-handoff-formulas .demix-proof-math{font-size:24px}
+.provisional-notation-formulas{display:grid;width:100%;align-items:center}
+.provisional-notation-formulas>div,.provisional-notation-formulas>svg{grid-area:1/1;min-width:0}
+.provisional-notation-formulas>svg{display:block;width:100%;height:auto;overflow:visible}
+.provisional-notation-formulas .demix-proof-math{font-size:34px}
+.provisional-notation-orders .demix-proof-math{font-size:26px}
+.observation-rail-math .demix-proof-math{font-size:27px}
+[data-observation-expansion] .demix-proof-math{font-size:28px}
 #equation[data-formula-mode=shared-addresses] mtr:nth-child(1){color:var(--cyan)}
 #equation[data-formula-mode=shared-addresses] mtr:nth-child(2){color:var(--violet)}
 /* Long spectral identities stay in the same offline MathML renderer. */
-.provisional-compact-math .demix-proof-math { font-size: 19px; }

@@ -5,33 +5,33 @@
   'use strict';
   const node = typeof module !== 'undefined' && module.exports;
   const E = node ? require('../shared/sim-parameter-estimation.js') : root.SIMParameterEstimation;
-  const F = (node ? require('../shared/sim-band-formulas.js') : root.SIMBandFormulas).formulas;
+  const { formulas: F, notation } = node ? require('../shared/sim-band-formulas.js') : root.SIMBandFormulas;
   const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
   const smooth = t => { t = clamp(t); return t * t * (3 - 2 * t); };
   const ramp = (t, a, b) => smooth((t - a) / (b - a));
   // These are LaTeX builders, not extra physical variables. Keep the original
   // band names and detection coordinates in every OTF-corrected expression.
-  const zero = String.raw`\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)}`;
-  const side = shift => String.raw`\frac{\widetilde A_{+1}(\mathbf q+${shift})}{H(\mathbf q+${shift})}`;
-  const cross = shift => String.raw`\sum_{\Omega}\left(${zero}\right)^*${side(shift)}`;
+  const zero = String.raw`\frac{H^*(\mathbf q)\widetilde A_0(\mathbf q)}{|H(\mathbf q)|^2}`;
+  const side = shift => String.raw`\frac{H^*(\mathbf q+${shift})\widetilde A_{+1}(\mathbf q+${shift})}{|H(\mathbf q+${shift})|^2}`;
+  const cross = shift => String.raw`\sum_{\Omega}\left(${zero}\right)^*\left(${side(shift)}\right)`;
   const energy = String.raw`\sum_{\Omega}\left|${zero}\right|^2`;
   const score = String.raw`$$\rho(\mathbf k')=\frac{\left|${cross(String.raw`\mathbf k'`)}\right|}{\sqrt{\left(${energy}\right)\left(\sum_{\Omega}\left|${side(String.raw`\mathbf k'`)}\right|^2\right)}}$$`;
   const ratio = String.raw`$$\widehat m e^{i\widehat\phi_\Delta}=\frac{${cross(String.raw`\widehat{\mathbf k}`)}}{${energy}}$$`;
   const scenes = [
     { id: 'shared', label: '同源信息', chapter: '01 / 承接临时分离', title: '沿用刚才的频带，寻找同一份样品信息。',
-      copy: '这里接收临时 0 级与 +1 级。A 的下标表示级次，波浪号表示照明幅相尚未补偿。',
+      copy: '这里接收临时 0 级与 +1 级。A 的下标表示级次。' + notation.tilde + notation.band,
       equation: String.raw`$$\begin{aligned}\widetilde A_0(\mathbf q)&=H(\mathbf q)\,\underbrace{S(\mathbf q)}_{\text{同一样品信息}}\\\widetilde A_{+1}(\mathbf q+\mathbf k)&=m e^{i\phi_\Delta}H(\mathbf q+\mathbf k)\,\underbrace{S(\mathbf q)}_{\text{同一样品信息}}\end{aligned}$$`,
       note: '仍是同一组三帧。选 0 级与 +1 级作估计，同色标记追踪同一样品频率。实际相位为 φⱼ = φ′ⱼ + φΔ，名义相位 φ′ⱼ = 2πj/3；相对步进假设准确。' },
     { id: 'correlation', label: '实数相关', chapter: '02 / 相关怎样匹配', title: '尝试移动，逐点相乘，再相加。',
       copy: '沿用“1、4、2”的教学序列，依次尝试左移 0—4 格。每一列先显示乘积，再累计成这个位移的分数。',
       equation: String.raw`$$\text{移动 }\delta\text{ 格的分数}=\sum_q\bigl[\text{0 级在 }q\text{ 的值}\bigr]\bigl[\text{旁带在 }q+\delta\text{ 的值}\bigr]$$`,
-      note: '实数教学例：OTF 已校正，m = 1、φΔ = 0；范围外补零、不循环回绕。这里是原始乘积和，回到相机数据后再做能量归一化。' },
+      note: '实数教学例：H = 1，m = 1、φΔ = 0；范围外补零、不循环回绕。这里是原始乘积和，回到相机数据后再做能量归一化。' },
     { id: 'conjugate', label: '一维复数匹配', chapter: '02 / 相关怎样匹配', title: '仍用这一排格子，只给数值加入相位。',
       copy: '沿用左移两格后的 1、4、2。先给教学值加入相位，再在同一列取共轭、相乘，最后累计各列；每一步都接着上一幕。',
       equation: String.raw`$$\left|\sum_{\text{一行对应点}}\text{0 级值}^{*}\times\text{旁带值}\right|$$`,
       note: '明确的一维教学例：幅度仍为 1、4、2，旁带右移两格，另加共同相位 30°。教学值不进入实际估计或重建。' },
     { id: 'overlap', label: '公共区匹配', chapter: '03 / 估计波矢', title: '回到实际频带，只比较可信的公共区。',
-      copy: '0 级固定，+1 级随候选 k′ 移动。只在两边 OTF 都足够强的区域，比较各自除以 OTF 后的复数值。',
+      copy: '0 级固定，+1 级随候选 k′ 移动。只在两边 OTF 都足够强的区域，比较各自乘 H*、再除以 |H|² 后的复数值。',
       equation: score,
       note: 'ρ 将完整公共区的复数和按两边能量归一化，不能用上一幕抽样箭头的长度替代。亮区 Ω 要求两边 H ≥ 0.15，随候选 k′ 改变。' },
     { id: 'coarse', label: '相关峰定位', chapter: '03 / 估计波矢', title: '得分最高的位置，给出波矢初值。',
@@ -45,7 +45,7 @@
     { id: 'fit', label: '估计幅相', chapter: '04 / 相位与调制度', title: '位置对齐后，求出两份记录的共同幅相。',
       copy: '仍用公共区的同一对复数值，累计“ 0 级共轭 × 旁带”和0 级能量，再相除。复数比同时给出 m 与 φΔ。',
       equation: ratio,
-      note: '分子、分母使用同一个可信公共区，两份频带各除自己的 OTF。分母去掉样品能量的影响；全程只使用相机观测。' },
+      note: '分子、分母使用同一个可信公共区，两份频带先各自完成 OTF 校正。拟合分母归一化共同参考的能量；全程只使用相机观测。' },
     { id: 'read', label: '估计结果', chapter: '04 / 参数估计结果', title: '角度给相位，长度给调制度。',
       copy: '上一幕复数比的角度是 φΔ，长度是 m。补上名义相位，得到各帧实际相位的估计；与波矢、调制度一起用于正式解混。',
       equation: F.handoff,
@@ -64,10 +64,10 @@
     peak: String.raw`$$\text{移动 2 格的分数}=1\times1+4\times4+2\times2=21,\qquad\text{最佳位移}=2\ \text{格}$$`,
   };
   const teachingNotes = {
-    source: 'Aℓ 包含检测 OTF，不含照明系数。波浪号标记临时输出，不代表再次做傅里叶变换；+1 级仍乘着未知 m 和共同相位。',
+    source: 'Aℓ 包含检测 OTF，不含照明系数。' + notation.tilde + notation.band,
     substitute: '要比较同一样品频率 q：0 级取 q，+1 级取 q+k，因为 (q+k)−k=q。此处解释位置关系，尚未求出 k。',
     shared: '两边都包含同一个 S(q)。同色标记追踪它的两个记录位置；OTF 衰减和照明比例不同，数值未必相同。',
-    corrected: '在两边 OTF 都可靠的公共区，分别除对应 H。继续使用原来的频带记号，比较的仍是同一样品信息。',
+    corrected: '在两边 OTF 都可靠的公共区，各自先乘 H*，再除以 |H|²，等价于各除自己的 H。正确对齐后得到相同样品信息，只差共同幅相。',
     copies: '下面另设一维教学例：同一段 1、4、2 在 +1 级中向右错两格。这些是移动与相乘的教学值，不是前面频谱标记的实际读数。',
     aligned: '将 +1 级向左移两格，(q+2)−2=q，同一段内容对齐。真实数据中的 k 仍要通过相关搜索得到。',
   };
@@ -256,6 +256,6 @@
       setSpeed(value) { if (Number.isFinite(value) && value > 0) { speed = clamp(value, .25, 3); emit(); } },
       setReducedMotion(value) { reduced = !!value; if (reduced) seek(target); else emit(); }, destroy: pause };
   }
-  const api = { scenes, durations, index, bandFormulas: F, teachingEquations, complexSteps, complexState, createComplexTeachingExample, createComplexComparison, createTeachingExample, teachingState, realCorrelationState, createLesson, getResult, state, stateForScene, formulaAt, candidateAt, createPlayer, clamp, ramp };
+  const api = { scenes, durations, index, notation, bandFormulas: F, teachingEquations, complexSteps, complexState, createComplexTeachingExample, createComplexComparison, createTeachingExample, teachingState, realCorrelationState, createLesson, getResult, state, stateForScene, formulaAt, candidateAt, createPlayer, clamp, ramp };
   if (node) module.exports = api; else root.SIMParameterStory = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

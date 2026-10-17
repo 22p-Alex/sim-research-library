@@ -8,6 +8,7 @@
   const Estimator = node ? require('../shared/sim-parameter-estimation.js') : root.SIMParameterEstimation;
   const Study = node ? require('../parameter-demo/sim-parameter-two-stage.js') : root.SIMParameterLesson;
   const A = node ? require('../atlas/sim-atlas-core.js') : root.SIMAtlas;
+  const notation = (node ? require('../shared/sim-band-formulas.js') : root.SIMBandFormulas).notation;
   // Acquisition, provisional separation, formal demixing, relocation and the
   // final audit belong to Motion. Only the estimation explanations are added.
   const sceneIds = Object.freeze(Study.scenes.map(scene => scene.id));
@@ -16,35 +17,19 @@
     positiveBandFactor: 'm exp(+i phase)', negativeBandFactor: 'm exp(-i phase)' });
   // Equal, known relative phase steps leave one common offset to estimate.
   // Source: fairSIM (2016), Supplementary Note 1, Parameter estimation.
-  // https://doi.org/10.1038/ncomms10980 — SI pp. 9–10. The explicit
+  // https://doi.org/10.1038/ncomms10980 — SI pp. 10–11. The explicit
   // 1/2 and 2/3 below use this demo's cosine / temporary-band convention.
   const parameterColors = Object.freeze({ k: '#7ad5cd', m: '#efb879', phase: '#b7a5eb' });
-  const parameterBox = (tex, framed, color = '#dce6e1') => '{\\color{' + (framed ? color : 'transparent')
-    + '}\\boxed{{\\color{' + color + '}' + tex + '}}}';
-  const illuminationTex = framed => String.raw`I_j(\mathbf r)=1+` + parameterBox('m', framed, parameterColors.m)
-    + String.raw`\cos\!\left(\frac{2\pi}{N}` + parameterBox('\\mathbf k', framed, parameterColors.k)
-    + String.raw`\cdot\mathbf r+` + parameterBox('\\phi_j', framed, parameterColors.phase) + String.raw`\right)`;
   const colored = (key, tex) => '{\\color{' + parameterColors[key] + '}' + tex + '}';
-  const substitutedIlluminationTex = String.raw`\widehat I_j(\mathbf r)=1+` + colored('m', String.raw`\widehat m`)
-    + String.raw`\cos\!\left(\frac{2\pi}{N}` + colored('k', String.raw`\widehat{\mathbf k}`)
-    + String.raw`\cdot\mathbf r+` + colored('phase', String.raw`\phi'_j+\widehat\phi_\Delta`) + String.raw`\right)`;
-  const actualIlluminationTex = String.raw`I_j(\mathbf r)=1+m\cos\!\left(\frac{2\pi}{N}\mathbf k\cdot\mathbf r+\phi'_j+\phi_\Delta\right)`;
-  const nominalObservationTex = String.raw`D_j=\widetilde A_0+\tfrac12e^{i\phi'_j}\widetilde A_{+1}+\tfrac12e^{-i\phi'_j}\widetilde A_{-1}`;
-  const provisionalContentDuration = 42000, nominalPreludeDuration = 22000;
-  const provisionalDuration = provisionalContentDuration + nominalPreludeDuration;
-  const nominalPreludeStart = .06 * provisionalContentDuration;
-  // Keep all previously established lesson timings after this insertion.
-  const provisionalProgress = p => (Story.clamp(p) * provisionalContentDuration
-    + (p >= .06 ? nominalPreludeDuration : 0)) / provisionalDuration;
-  function nominalFailureState(progress) {
-    const p = Story.clamp(progress), r = Story.ramp;
-    return { progress: p, mode: p < .12 ? 'question' : p < .32 ? 'nominal-card' : p < .62 ? 'vector-failure' : 'phase-failure',
-      lift: r(p, 0, .12), question: r(p, .02, .10), card: r(p, .12, .26),
-      diagram: r(p, .23, .31), relocate: r(p, .32, .43), misregister: r(p, .43, .55),
-      phase: r(p, .64, .79), cancellation: r(p, .79, .86),
-      // Two slow pulses in 4.4 seconds, sampled from the same reversible clock.
-      redPulse: p >= .78 ? .2 + .6 * Math.sin(Math.PI * Story.clamp((p - .78) / .20) * 2) ** 2 : 0 };
-  }
+  const actualIlluminationTex = String.raw`I_j(\mathbf r)=1+` + colored('m', 'm')
+    + String.raw`\cos\!\left(\frac{2\pi}{N}` + colored('k', String.raw`\mathbf k`)
+    + String.raw`\cdot\mathbf r+` + colored('phase', String.raw`\phi_j`) + String.raw`\right)`;
+  const unknownWeightFactorTex = String.raw`\frac1{m}e^{\mp i\phi_\Delta}`;
+  const residualBandTex = String.raw`\widetilde A_{\pm1}(\mathbf f)=m e^{\pm i\phi_\Delta}A_{\pm1}(\mathbf f)`;
+  // Explicit holds between hide/show/restore beats keep explanations separate
+  // from the coefficients they replace. One reversible clock drives all actors.
+  const provisionalDuration = 132000;
+  const nominalFailureStart = 32.5, nominalFailureDuration = 22;
   // Controlled counterfactual, generated from the adopted bands of these frames.
   // No new acquisition, hidden sample or fitted display effect. All three
   // images reconstruct the SAME synthetic observations through A.pipeline.
@@ -99,57 +84,205 @@
     images.forEach(image => image.forEach(v => { maximum = Math.max(maximum, v); minimum = Math.min(minimum, v); }));
     uncorrected.outputPixels.forEach((v, i) => { if (v < uncorrected.outputPixels[minIndex]) minIndex = i; });
     const rms = image => Math.sqrt(image.reduce((sum, v, i) => sum + (v - reference.outputPixels[i]) ** 2, 0) / image.length);
-    return { n, size: 2 * n, k, nominal, delta, phase, m: 1, frames, reference, vector, uncorrected, fields,
-      probes: selected, images, maximum, minimum, profileY: Math.floor(minIndex / (2 * n)),
+    const residual = Float64Array.from(images[2], (v, i) => v - images[0][i]), size = 2 * n;
+    let residualMaximum = 0, residualProfileY = 0, profileEnergy = 0;
+    for (let y = 0; y < size; y++) {
+      let energy = 0;
+      for (let x = 0; x < size; x++) {
+        const v = residual[y * size + x]; energy += v * v; residualMaximum = Math.max(residualMaximum, Math.abs(v));
+      }
+      if (energy > profileEnergy) { profileEnergy = energy; residualProfileY = y; }
+    }
+    // Pick the strongest signed error row, then measure its actual DFT peak.
+    // Neither stripes nor negative pixels are painted into the reconstruction.
+    let residualPeakBin = 0, residualPeakAmplitude = 0;
+    for (let f = 1; f < size / 2; f++) {
+      let re = 0, im = 0;
+      for (let x = 0; x < size; x++) {
+        const v = residual[residualProfileY * size + x], t = 2 * Math.PI * f * x / size;
+        re += v * Math.cos(t); im += v * Math.sin(t);
+      }
+      const amplitude = Math.hypot(re, im);
+      if (amplitude > residualPeakAmplitude) { residualPeakAmplitude = amplitude; residualPeakBin = f; }
+    }
+    return { n, size, k, nominal, delta, phase, m: 1, frames, reference, vector, uncorrected, fields,
+      probes: selected, images, maximum, minimum, profileY: Math.floor(minIndex / size),
+      residual, residualMaximum, residualProfileY, residualPeakBin, residualPeakAmplitude,
       errors: { vector: rms(vector.outputPixels), phase: rms(uncorrected.outputPixels) } };
   }
-  const provisionalFormulas = {
-    compact: String.raw`$$\mathbf A(\mathbf f)=U\cdot\mathbf D(\mathbf f)$$`,
-    question: String.raw`$$\mathbf A(\mathbf f)=U\cdot\mathbf D(\mathbf f)$$`,
-    'nominal-card': String.raw`$$\mathbf p_{\text{标称}},\qquad\phi_0=0,\qquad m=1$$`,
-    'vector-failure': String.raw`$$\Delta\mathbf p=\mathbf p_{\text{标称}}-\mathbf p_d=(0.3,0),\qquad S(\mathbf q+\Delta\mathbf p)\ne S(\mathbf q)$$`,
-    'phase-failure': String.raw`$$\phi_{d,0}=\pi:\quad S(\mathbf q)+e^{i\phi_{d,0}}S(\mathbf q)=0,\qquad e^{-i\phi_{d,0}}e^{i\phi_{d,0}}=1$$`,
-    substitute: '$$' + substitutedIlluminationTex + '$$',
-    model: '$$' + actualIlluminationTex + String.raw`,\qquad\phi'_j=\frac{2\pi j}{3},\ j=0,1,2$$`,
-    expand: String.raw`$$e^{\pm i(\phi'_j+\phi_\Delta)}=e^{\pm i\phi'_j}e^{\pm i\phi_\Delta},\qquad c_\pm=m e^{\pm i\phi_\Delta}$$`,
-    absorb: String.raw`$$\widetilde A_0=HS,\qquad\widetilde A_{\pm1}(\mathbf f)=\underbrace{m e^{\pm i\phi_\Delta}}_{c_\pm}\,H(\mathbf f)S(\mathbf f\mp\mathbf k)$$`,
-    demix: String.raw`$$\widetilde A_0=\frac13\sum_{j=0}^{2}D_j,\qquad\widetilde A_{\pm1}=\frac23\sum_{j=0}^{2}e^{\mp i\phi'_j}D_j$$`,
-    ready: String.raw`$$\widetilde{\mathbf A}(\mathbf f)=\widetilde U\cdot\mathbf D(\mathbf f),\qquad\widetilde U_{0j}=\tfrac13,\quad\widetilde U_{\pm1,j}=\tfrac23e^{\mp i\phi'_j}$$`,
-  };
-  const provisionalSteps = Object.freeze([
-    [0, 'compact'], [.06, 'substitute'], [.28, 'model'], [.40, 'expand'], [.56, 'absorb'], [.74, 'demix'], [.94, 'ready'],
-  ].map(([start, mode]) => Object.freeze({ start, mode })));
-  function provisionalState(progress) {
-    const elapsed = Story.clamp(progress) * provisionalDuration, r = Story.ramp;
-    const prelude = nominalFailureState((elapsed - nominalPreludeStart) / nominalPreludeDuration);
-    const active = elapsed >= nominalPreludeStart && elapsed < nominalPreludeStart + nominalPreludeDuration;
-    const p = (elapsed - (elapsed < nominalPreludeStart ? 0 : active ? elapsed - nominalPreludeStart : nominalPreludeDuration)) / provisionalContentDuration;
-    const mode = active ? prelude.mode : provisionalSteps.filter(item => p >= item.start).at(-1).mode;
-    const window = (start, end) => r(p, start, start + .025) * (1 - r(p, end, end + .025));
-    return { progress: Story.clamp(progress), contentProgress: p, mode, formulaKey: mode, focus: mode === 'substitute' ? 'all' : '', prelude,
-      handoff: r(p, 0, .015), gather: r(p, .01, .04), tokens: 1 - r(p, .035, .05),
-      compact: r(p, .035, .05) * (1 - r(p, .06, .085)) * (1 - .84 * prelude.lift),
-      equationPose: { y: 260 - 215 * prelude.lift, scale: 1 - .28 * prelude.lift },
-      failure: r(elapsed, nominalPreludeStart, nominalPreludeStart + 300) * (1 - r(elapsed, nominalPreludeStart + nominalPreludeDuration, nominalPreludeStart + nominalPreludeDuration + 600)),
-      substitution: window(.06, .28), insert: r(p, .13, .22), model: window(.28, .40),
-      expansion: window(.40, .56), phaseFactor: r(p, .46, .50),
-      absorption: window(.56, .74), absorb: r(p, .62, .70),
-      demix: window(.74, .94), orthogonality: r(p, .80, .85), ready: r(p, .94, .965) };
+  function nominalFailureState(progress) {
+    const p = Story.clamp(progress), t = p * nominalFailureDuration, r = Story.ramp;
+    return { progress: p, mode: t < 3 ? 'nominalPlug' : t < 10 ? 'vectorFailure' : t < 17 ? 'phaseFailure' : 'nominalResidual',
+      diagram: r(t, 2.4, 3.2), relocate: r(t, 3, 4.2), misregister: r(t, 4.6, 6.2),
+      vectorView: r(t, 2.4, 3.2) * (1 - r(t, 9.4, 10)),
+      phaseView: r(t, 10, 10.5) * (1 - r(t, 16.5, 17)), phase: r(t, 10.6, 12.6), cancellation: r(t, 12.6, 13),
+      negative: r(t, 13, 13.6), residualView: r(t, 17, 17.6) };
   }
+  const weightFactorColors = Object.freeze({ known: '#7ad5cd', unknown: '#efb879' });
+  const actualWeightCells = Object.freeze(convention.orders.flatMap((order, row) => [0, 1, 2].map(column => Object.freeze({
+    row, column, x: 625 + 180 * column, y: 260 + 80 * row, selected: row === 1 && column === 1,
+    tex: 'u_{' + (order > 0 ? '+' + order : order) + ',' + column + '}',
+  }))));
+  function actualWeightState(seconds) {
+    const t = seconds, r = Story.ramp, lift = r(t, 57, 59), dock = r(t, 75.5, 77.5);
+    return { matrix: (1 - r(t, 59, 59.6) + r(t, 75.4, 76)) * (1 - r(t, 82, 82.6)),
+      lift, dock, collapse: r(t, 74, 74.8), rowMove: r(t, 82.6, 84.8),
+      highlight: r(t, 56, 56.5) * (1 - r(t, 57.2, 57.8)) + r(t, 77.5, 77.8) * (1 - r(t, 78, 78.4)),
+      selectedPose: { x: 805 - 505 * lift * (1 - dock), y: 340 - 55 * lift * (1 - dock), scale: 1 + .35 * lift * (1 - dock) },
+      indexed: 1 - r(t, 59.6, 59.85) + r(t, 75.05, 75.3),
+      generic: r(t, 59.95, 60.2) * (1 - r(t, 74.7, 74.95)), rhs: r(t, 60.6, 61.2) * (1 - r(t, 74.2, 74.8)),
+      rawPhase: 1 - r(t, 63, 63.35), expandedPhase: r(t, 64, 64.5), phaseSpread: r(t, 63.55, 64.8),
+      rawAmplitude: 1 - r(t, 67, 67.3), splitAmplitudes: r(t, 67.5, 68),
+      parentheses: 1 - r(t, 67, 67.3), factorMove: r(t, 67.5, 70),
+      unknownExponential: r(t, 67.5, 68), multiply: r(t, 70, 70.5),
+      labels: r(t, 70.5, 71) * (1 - r(t, 74, 74.4)),
+      matrixName: 1 - r(t, 78, 78.4), vectors: r(t, 78.5, 79.3),
+      rowFocus: r(t, 80, 80.6) * (1 - r(t, 82, 82.6)),
+      rowTerms: r(t, 82, 82.6), rowOperators: r(t, 84.8, 85.3),
+      rowNote: r(t, 80, 80.6) * (1 - r(t, 86, 86.5)) };
+  }
+  // Keep the completed +1 row until the local substitutions have finished.
+  // Restore all three rows before collecting them into vector/matrix notation.
+  function temporaryNotationState(seconds) {
+    const r = Story.ramp, t = seconds;
+    return { active: t >= 99.5, intro: r(t, 99.5, 100.2),
+      returnRow: r(t, 100.5, 102.5), otherRows: r(t, 102.5, 103.2),
+      scaffold: r(t, 102.3, 103) * (1 - r(t, 104.5, 105)),
+      gather: r(t, 105, 107.5), arrive: r(t, 106.6, 107.5),
+      center: r(t, 104.5, 105), definition: r(t, 108, 108.8) };
+  }
+  function observationExpansionState(seconds) {
+    const r = Story.ramp, t = seconds;
+    return { intro: r(t, 110, 110.6), widen: r(t, 110.6, 112.2),
+      substitute: r(t, 112.2, 113.6), commute: r(t, 116, 118),
+      response: r(t, 118.5, 120), distribute: r(t, 122, 124.5), dock: r(t, 125, 127) };
+  }
+  const sampleVectorTex = String.raw`\begin{bmatrix}S(\mathbf f)\\S(\mathbf f-\mathbf k)\\S(\mathbf f+\mathbf k)\end{bmatrix}`;
+  const temporaryResponseTex = String.raw`\begin{bmatrix}1&0&0\\0&m e^{i\phi_\Delta}&0\\0&0&m e^{-i\phi_\Delta}\end{bmatrix}`;
+  // Same noise-free observation law as SIMBandFormulas.observation/source:
+  // D = H M [S(f), S(f-k), S(f+k)]^T. H(f) is a scalar shared by the frames.
+  // Relative three-phase orthogonality gives U_tilde M = diag(1,m e^iφ,m e^-iφ).
+  const observationTex = String.raw`\mathbf D(\mathbf f)=H(\mathbf f)M` + sampleVectorTex;
+  const temporaryIndexTex = String.raw`\bigl[\widetilde U\bigr]_{\ell j}=\widetilde u_{\ell,j},\quad\ell\in\{0,+1,-1\}`;
+  const provisionalFormulas = Object.freeze({
+    knownWeights: String.raw`$$u_{0,j}=\frac13$$`,
+    unknownWeights: String.raw`$$u_{\pm1,j}=\frac{2}{3m}e^{\mp i\phi_j}$$`,
+    gather: String.raw`$$\mathbf A(\mathbf f)=U\cdot\mathbf D(\mathbf f)$$`,
+    whyEstimate: '$$' + actualIlluminationTex + '$$',
+    nominalPlug: String.raw`$$\mathbf k_{\mathrm{nom}},\qquad m_{\mathrm{nom}}=1,\qquad\phi_{j,\mathrm{nom}}=\frac{2\pi j}{3}$$`,
+    vectorFailure: String.raw`$$\Delta\mathbf k=\mathbf k_{\mathrm{nom}}-\mathbf k=(0.3,0),\qquad S(\mathbf q+\Delta\mathbf k)\ne S(\mathbf q)$$`,
+    phaseTurn: String.raw`$$z+e^{i\delta\phi}z$$`,
+    phaseFailure: String.raw`$$\delta\phi=\pi:\qquad z+e^{i\delta\phi}z=0$$`,
+    nominalResidual: String.raw`$$e_{\mathrm{nom}}=s_{\mathrm{nom}}-s_{\mathrm{matched}},\qquad\min s_{\mathrm{nom}}<0$$`,
+    actualWeights: String.raw`$$U=M^{-1}$$`,
+    extractWeight: String.raw`$$u_{\pm1,j}$$`,
+    showWeight: String.raw`$$u_{\pm1,j}=\frac{2}{3m}e^{\mp i\phi_j}$$`,
+    expandWeight: String.raw`$$u_{\pm1,j}=\frac{2}{3m}e^{\mp i(\phi'_j+\phi_\Delta)}$$`,
+    splitWeight: String.raw`$$u_{\pm1,j}=\underbrace{{\color{#efb879}\frac1m e^{\mp i\phi_\Delta}}}_{\text{未知、三帧共用}}\ \underbrace{{\color{#7ad5cd}\frac23e^{\mp i\phi'_j}}}_{\text{已知、随帧变化}}$$`,
+    rowProduct: String.raw`$$A_{+1}(\mathbf f)=u_{+1,0}D_0(\mathbf f)+u_{+1,1}D_1(\mathbf f)+u_{+1,2}D_2(\mathbf f)$$`,
+    nameKnown: String.raw`$$\widetilde u_{\pm1,j}:={\color{#7ad5cd}\frac23e^{\mp i\phi'_j}},\qquad u_{\pm1,j}=\left({\color{#efb879}\frac1m e^{\mp i\phi_\Delta}}\right)\widetilde u_{\pm1,j}$$`,
+    coefficientScale: String.raw`$$\widetilde u_{\pm1,j}=\left({\color{#efb879}m e^{\pm i\phi_\Delta}}\right)u_{\pm1,j}$$`,
+    outputScale: '$$' + residualBandTex + String.raw`,\qquad\widetilde A_0=A_0$$`,
+    temporaryRow: String.raw`$$\widetilde A_{+1}(\mathbf f)=\widetilde u_{+1,0}D_0(\mathbf f)+\widetilde u_{+1,1}D_1(\mathbf f)+\widetilde u_{+1,2}D_2(\mathbf f)$$`,
+    matrixNotation: String.raw`$$\widetilde A_{\ell}(\mathbf f)=\sum_{j=0}^{2}\widetilde u_{\ell,j}D_j(\mathbf f),\qquad\ell\in\{0,+1,-1\}$$`,
+    vectorNotation: String.raw`$$\widetilde{\mathbf A}(\mathbf f)=\widetilde U\cdot\mathbf D(\mathbf f)$$`,
+    observationModel: String.raw`$$D_j(\mathbf f)=H(\mathbf f)\!\left[S(\mathbf f)+\frac m2e^{i\phi_j}S(\mathbf f-\mathbf k)+\frac m2e^{-i\phi_j}S(\mathbf f+\mathbf k)\right]$$`,
+    substituteObservation: String.raw`$$\widetilde{\mathbf A}(\mathbf f)=H(\mathbf f)\bigl(\widetilde U M\bigr)` + sampleVectorTex + '$$',
+    temporaryResponse: String.raw`$$\widetilde U M=` + temporaryResponseTex + '$$',
+    expandBands: String.raw`$$\widetilde A_0=HS(\mathbf f),\quad\widetilde A_{+1}=m e^{i\phi_\Delta}HS(\mathbf f-\mathbf k),\quad\widetilde A_{-1}=m e^{-i\phi_\Delta}HS(\mathbf f+\mathbf k)$$`,
+    ready: String.raw`$$\widetilde{\mathbf A}(\mathbf f)=\widetilde U\cdot\mathbf D(\mathbf f),\qquad` + temporaryIndexTex + '$$',
+  });
+  const provisionalSteps = Object.freeze([
+    [0, 'knownHighlight', 'knownWeights'], [3.1, 'knownMessage', 'knownWeights'], [5.9, 'knownRestore', 'knownWeights'],
+    [7.8, 'sideHighlight', 'unknownWeights'], [11.1, 'sideMessage', 'unknownWeights'], [14.4, 'sideRestore', 'unknownWeights'],
+    [16, 'gather'], [19.5, 'whyEstimate'], [20.3, 'wavevectorReason', 'whyEstimate'], [25.3, 'amplitudePhaseReason', 'whyEstimate'],
+    [32.5, 'nominalPlug'], [35.5, 'vectorFailure'], [42.5, 'phaseFailure'], [49.5, 'nominalResidual'],
+    [54.5, 'actualWeights'], [57, 'extractWeight'], [60.6, 'showWeight'], [63, 'expandWeight'],
+    [67, 'splitWeight'], [74, 'returnWeight', 'splitWeight'], [78, 'matrixApply', 'gather'],
+    [82, 'rowProduct'], [86, 'nameKnown'], [90, 'coefficientScale'],
+    [94, 'outputScale'], [99.5, 'matrixNotation'], [104.5, 'vectorNotation'],
+    [110, 'observationModel'], [116, 'substituteObservation'], [118.5, 'temporaryResponse'], [122, 'expandBands'], [127, 'ready'],
+  ].map(([seconds, mode, formulaKey = mode]) => Object.freeze({ start: seconds * 1000 / provisionalDuration, mode, formulaKey })));
+  function provisionalState(progress) {
+    const p = Story.clamp(progress), t = p * provisionalDuration / 1000, r = Story.ramp;
+    const window = (start, end) => r(t, start, start + .5) * (1 - r(t, end, end + .5));
+    const step = provisionalSteps.filter(item => p >= item.start).at(-1);
+    const knownCoefficients = 1 - r(t, 2.2, 2.9) + r(t, 6.1, 6.8);
+    const sideCoefficients = 1 - r(t, 10.2, 10.9) + r(t, 14.6, 15.3);
+    const knownMessage = r(t, 3.1, 3.7) * (1 - r(t, 5.3, 5.9));
+    const sideMessage = r(t, 11.1, 11.7) * (1 - r(t, 13.8, 14.4));
+    const hop = start => t <= start || t >= start + .8 ? 0 : Math.sin(Math.PI * (t - start) / .8);
+    const failure = nominalFailureState((t - nominalFailureStart) / nominalFailureDuration);
+    const actual = actualWeightState(t), notation = temporaryNotationState(t), observation = observationExpansionState(t);
+    const centered = notation.center * (1 - observation.dock);
+    const operationPose = { x: 720 - 40 * centered, y: 85 + 200 * centered, scale: .72 + .4 * centered };
+    let formulaKey = step.mode === 'phaseFailure' && failure.phase < 1 ? 'phaseTurn' : step.formulaKey;
+    if (step.mode === 'showWeight' && actual.rhs < 1) formulaKey = 'extractWeight';
+    if (step.mode === 'expandWeight' && actual.phaseSpread < 1) formulaKey = 'showWeight';
+    if (step.mode === 'splitWeight' && actual.labels < 1) formulaKey = 'expandWeight';
+    if (step.mode === 'matrixApply' && actual.vectors < 1) formulaKey = 'splitWeight';
+    if (step.mode === 'rowProduct' && actual.rowOperators < 1) formulaKey = 'gather';
+    if (step.mode === 'nameKnown' && t < 86.8) formulaKey = 'rowProduct';
+    if (step.mode === 'coefficientScale' && t < 91.3) formulaKey = 'nameKnown';
+    if (step.mode === 'outputScale' && t < 94.8) formulaKey = 'coefficientScale';
+    if (step.mode === 'matrixNotation' && notation.otherRows < 1) formulaKey = notation.intro < 1 ? 'outputScale' : 'temporaryRow';
+    if (step.mode === 'vectorNotation') formulaKey = notation.arrive < 1 ? 'matrixNotation' : notation.definition < 1 ? 'vectorNotation' : 'ready';
+    return { progress: p, seconds: t, mode: step.mode, formulaKey, failure, actual, notation, observation, operationPose,
+      focus: t < 7.8 ? 'known-row' : t < 16 ? 'side-rows' : '',
+      matrix: 1 - r(t, 16, 16.25), context: 1 - r(t, 15.4, 16),
+      gather: r(t, 16.25, 18.6), transfer: r(t, 16, 16.25) * (1 - r(t, 18, 18.6)),
+      rows: [
+        { coefficients: knownCoefficients, message: knownMessage, highlight: r(t, .6, 1.3) * (1 - r(t, 7, 7.6)) },
+        { coefficients: sideCoefficients, message: sideMessage, highlight: r(t, 8.1, 8.8) * (1 - r(t, 15.3, 15.9)) },
+        { coefficients: sideCoefficients, message: sideMessage, highlight: r(t, 8.1, 8.8) * (1 - r(t, 15.3, 15.9)) },
+      ],
+      operation: r(t, 17.6, 18.3) * (1 - r(t, 32, 32.5) + r(t, 78.5, 79.3)) * (1 - notation.intro + notation.arrive),
+      whyEstimate: window(19.5, 32), kHop: hop(20.3), amplitudeHop: hop(25.3),
+      kReason: r(t, 21.3, 21.9) * (1 - r(t, 24.1, 24.7)),
+      amplitudeReason: r(t, 26.3, 26.9) * (1 - r(t, 30.2, 30.8)),
+      nominalFailure: r(t, 32.5, 33) * (1 - r(t, 54, 54.5)),
+      actualWeights: r(t, 54.5, 55) * (1 - notation.arrive), phaseFactor: actual.factorMove,
+      coefficientFocus: window(86, 99.5), nameKnown: r(t, 86, 86.8),
+      selectedCoefficient: r(t, 88, 88.8), coefficientScale: r(t, 90.5, 91.3),
+      outputScale: r(t, 94, 94.8), temporaryOperation: r(t, 94, 94.8),
+      ready: r(t, 127, 127.7) };
+  }
+
   function provisionalFormulaAt(state) {
     const s = provisionalState(state.progress);
     const content = {
-      compact: ['解法已经写出，实际权重还待确定。', '刚才求出了含 m、φⱼ 的逆矩阵。要从三帧求回 05 那三份来源，还需确定实际照明参数；先看仅凭已知相对相移能解到哪一步。', '此时得到符号解法；参数还没求出。下面先分开级次，再估计旁带保留的幅相与位置。'],
-      question: ['直接分离可行吗？', '逆矩阵写出来了，但其中的参数该填什么？先试着用硬件预设标称参数完成解混、归位与融合。', '下面讨论的是未经校正就直接重建；按准确相对相移进行粗分离仍然可行。'],
-      'nominal-card': ['先把硬件标称值，直接填进去。', '卡片给出 p标称、φ₀=0、m=1。接下来逐项暴露问题：频带位置是否对准，共同相位是否校正。这里 p 与后文 k 表示同一照明波矢。', '受控对照：重用本批已分离频带，构造 m=1、共同相位 π 的三帧；并非本批实测参数。'],
-      'vector-failure': ['第一重崩塌：只差 0.3 格，也没有对准。', '橙色 +1 级按 −p标称归位。放大重叠区后，两层频谱纹理不再逐点对应；右侧显示这组错误波矢实际重建出的边缘偏差与重影。', '本阶段先校正共同相位，隔离波矢误差。0.3 是输入的频域像素误差；热漂移或光路变化可造成偏差，空间畸变则可能超出单一波矢模型。'],
-      'phase-failure': ['第二重崩塌：相位相反，相加反而相消。', '保持刚才的波矢误差，再省略初相位校正。相位特写取已对齐的同一 q：当共同相位为 π，两根指针反向；右侧由逆 FFT 得到错误重建与负值下冲。', '红色表示数值下冲，曲线保留负值。π 是特意选择的相消示例；一般相位误差不一定完全反向，0.3 格误差也不保证产生相同程度的伪影。'],
-      substitute: ['把待求参数，代回照明公式。', '将 k̂、m̂ 和 φ′ⱼ+φ̂Δ 放入对应位置，得到估计照明 Îⱼ。帽号表示待求估计量，这里先展示它们的作用。', 'φ′ⱼ=2πj/3 是已知且准确的帧间相对相移；φ̂Δ 是待估计的共同偏移，尚未求值。'],
-      model: ['三帧只改变已知的相对相位。', '下面改用无帽号的实际参数写观测方程。同一方向的三帧共用 k、m、φΔ，只有 φ′ⱼ 随帧号改变。', '本例假设样品、OTF、照明平均强度和调制度在三帧间不变；无噪声推导下成立。'],
-      expand: ['展开余弦，把共同相位提出去。', '用欧拉公式拆成 0、+1、−1 三项，再将 e^{±i(φ′ⱼ+φΔ)} 拆成两个因子：随帧变化的相位，与三帧共用的相位。', 'dⱼ=(sIⱼ)∗h，经傅里叶变换得到 Dⱼ；这里没有把未知参数设成已知值。'],
-      absorb: ['共同幅相，吸收到未知频带里。', 'm 与 φΔ 合成不随帧号变化的复系数 c±，与 H·S 一起归入 Ã±₁。k 仍在 S(f∓k) 的平移地址里，整个频带作为未知量求解。', '这里把未知量重新分组：只吸收共同幅相；并没有把波矢 k 变成一个标量系数。'],
-      demix: ['已知相移，就能先解出三个临时频带。', '对三帧求和提取 0 级；乘 e^{∓iφ′ⱼ} 后求和提取 ±1 级。三相正交使另外两项相消，无需预先知道 k、m 或 φΔ。', '1/2 来自余弦展开，所以旁带权重为 2/3。若实际帧间相移偏离已知值，会出现级次串扰。'],
-      ready: ['先粗分离，再从公共区估计参数。', '现在得到 Ã=ŨD：0 级为 H·S，旁带还带着共同幅相。接下来比较 0 级与 +1 级的公共信息，求 k̂、m̂ 和 φ̂Δ。', '粗分离只完成级次分开；幅相校正与频带归位仍需参数估计。依据 fairSIM 2016，Supplementary Note 1。'],
+      knownHighlight: ['先看第一行的三个系数。', '把第一行完整框起来：三个权重都是 1/3。', '先读这一行，再看它是否含待确定的参数。'],
+      knownMessage: ['第一行：已知常数，直接可算。', '系数暂时退去，在同一行说明：这里只需对三帧取平均。', '本行没有未知的相位和调制度。'],
+      knownRestore: ['恢复系数，再看旁带权重。', '说明文字退去，三个 1/3 回到原位。', '第一行保持原来的位置与数值。'],
+      sideHighlight: ['再看第二行和第三行。', '框住两行旁带系数：分母含 m，指数含 φⱼ。', '这两行需要拍摄时的实际调制度与相位。'],
+      sideMessage: ['旁带权重：需要知道 φⱼ 和 m。', '两行系数退去，在对应行说明需要确定的量。', '这里只指出缺少什么，参数来源接下来再讲。'],
+      sideRestore: ['先恢复系数，再收起矩阵。', '说明文字消失，两行权重回到原位；接下来把它们收成紧凑的分离式。', 'A 是三个来源组成的向量；D 是同一组三帧观测组成的向量。'],
+      gather: ['将两列向量与权重，收成一个分离式。', '来源列缩为 A(f)，九个权重收为 U，三帧观测列缩为 D(f)。', '仍然是刚才的 A = U·D；现在看 U 中的参数来自哪里。'],
+      whyEstimate: ['照明公式中的参数，能直接用预设值吗？', '先回到样品处实际形成的条纹，依次看波矢、调制度与相位。', '此处先看参数为什么可能偏离预设，暂不介绍估计方法。'],
+      wavevectorReason: ['先看波矢 k：方向与间距未必等于预设。', '光束夹角、光路对准和像素标定可能有偏差，实际条纹的方向与间距也会随之偏离设定。', 'k 用于频带归位；硬件标称值不能保证实际位置逐频点对齐。'],
+      amplitudePhaseReason: ['再看 m 与 φⱼ：实际反差与位置也会改变。', '两束光强或偏振失配会改变条纹反差；光程漂移会改变条纹位置，因此实际幅相可能偏离控制指令。', '这里讨论三帧共用的幅相偏差；帧间相对相移仍按已知、准确的等间隔值处理。'],
+      nominalPlug: ['直接代回硬件标称值，会发生什么？', '先用标称波矢、m=1 与预设相移完成解混、归位和融合，逐项查看结果。', '受控教学对照：由同批频带重混三帧，实际 m=1、共同相位 π，标称波矢偏差 0.3 格；不改动主线观测。'],
+      vectorFailure: ['结果一：亚像素错位，频带无法准确对齐。', '只改变归位波矢，先正确处理幅相。即使仅偏 0.3 个 DFT 格，公共区纹理也不再逐点对应，重建出现位置误差与重影。', '放大镜读取同一组复数频谱的局部幅度；右侧两图使用同一强度标尺。'],
+      phaseFailure: ['结果二：反相抵消，出现黑边下冲。', '再漏掉共同相位校正。同一频点的复数方向逐渐转向相反，右侧切换到标称值重建，并用剖面保留实际负值。', '左侧相位特写取已对齐、OTF 校正后的同一 q；π 是特意选取的反相例子，一般相位误差不一定完全抵消。'],
+      nominalResidual: ['看实际误差：黑边下冲与周期性残余条纹。', '误差图是标称重建减去匹配参数重建；下方读取误差最强的一行，展示残余振荡及其实际主频。', '所有图像与剖面均由数值管线产生；负值与条纹没有额外绘制。此例展示后果，不代表所有参数偏差都会产生相同伪影。'],
+      actualWeights: ['那么实际的权重应该是什么呢？', '重新看实际照明参数对应的逆矩阵 U，先从旁带两行中选取一个权重。', 'm 与相位仍待确定；这里先整理权重的符号结构。'],
+      extractWeight: ['从 U 中取出旁带权重。', '选中的权重从矩阵中移到左侧并放大；矩阵退去后，把它写成 ±1 级的通式。', 'u±₁,ⱼ 表示正、负旁带在第 j 帧使用的权重。'],
+      showWeight: ['右侧写出刚才求得的系数。', '在 u±₁,ⱼ 右侧出现等号与 2/(3m) exp(∓iφⱼ)。', 'm、φⱼ 表示拍摄时的实际调制度与相位，尚未代入数值。'],
+      expandWeight: ['把实际相位展开为两部分。', '保持左侧权重不动，将右侧 φⱼ 扩展成 φ′ⱼ+φΔ：已知的相对相移，加上未知的共同起点。', '本例假设 φ′ⱼ=2πj/3 已知且准确，三帧共用 m 与 φΔ，且 m ≠ 0。'],
+      splitWeight: ['拆开系数，用颜色区分已知和未知。', '指数拆成两个相位因子，2/(3m) 拆成 1/m 与 2/3；未知因子移到左侧，已知因子移到右侧。', '青色：已知的 2/3 与 φ′ⱼ；橙色：未知的 m 与 φΔ，且三帧共用。'],
+      returnWeight: ['把刚才拆开的 u，放回 U 的原位。', '展开式收回权重符号，恢复具体下标 u₊₁,₁；同一个权重缩小，回到矩阵的第二行、第二列。', '拆开的两部分仍共同构成这个 u；回到矩阵并不表示未知参数已经求出。'],
+      matrixApply: ['U 的一行，决定 A 的一个级次。', '权重归位后，补回左侧的来源向量 A 与右侧的三帧观测 D；框出 +1 级对应的权重行、观测列和输出。', '行依次对应 0、+1、−1 级，列依次对应第 0、1、2 帧；仍在同一个检测频率 f 上运算。'],
+      rowProduct: ['矩阵中的项飞入，组成这一行乘加式。', '把 +1 行的三个 u、对应的三帧 D 和输出 A₊₁ 移到公式中；组好后保留整行，接着只操作其中的权重。', '仍使用矩阵中的同一批符号；每个 u 与同一列的观测 D 配对。'],
+      nameKnown: ['就在这条公式上，展开中间的 u。', '框出刚飞入的 u₊₁,₁；把它在原位置写成 ũ₊₁,₁ 除以 m exp(iφΔ)，其余项保持不动。', notation.tilde + notation.weight],
+      coefficientScale: ['另外两个 u，也有相同的幅相校正。', '仍在同一条乘加式中展开其余两个权重。三个分母相同；等价地，每个临时权重都等于实际权重乘 m exp(iφΔ)。', '这一步只是把 u 的恒等式代回原处，A 与三个 D 没有变化；m 与 φΔ 仍然未知。'],
+      outputScale: ['改用已知的 ũ，输出也随之变为 Ã。', '在原位置改用三个已知临时权重；左侧同步变为临时输出 Ã₊₁。整条公式保持位置，输出保留共同的 m 与相位。', notation.band + '第一行临时权重与实际权重同为 1/3。'],
+      matrixNotation: ['把这条临时乘加式，放回三行矩阵。', '刚才的 Ã₊₁、三个 ũ 与三个 D 回到各自的行列位置；补齐 0 级与 −1 级，三行都作用于同一组三帧观测。', 'ℓ 是输出级次，j 是观测帧序号；+1 行只是这三个逐行乘加关系中的一行。'],
+      vectorNotation: ['在画面中央，收成临时分离式。', '三份输出、九个权重与三帧观测在中央收成 Ã=ŨD；稍作停留，再从同一个 D 展开它与 H、S 的关系。', '矩阵写法只是将三条乘加式合写；ũℓ,ⱼ 就是 Ũ 中第 ℓ 级、第 j 帧对应的元素。'],
+      observationModel: ['从 D 展开：OTF × 条纹照明后的频谱。', '在原式中展开 D：H 作用于同一混合矩阵 M 和三份移频样品频谱。M 仍是前面按实际照明参数写出的矩阵。', '本页 S 是样品频谱；条纹照明使每帧 Dⱼ 混合 S(f)、S(f−k)、S(f+k)，因此这里不能直接写 Dⱼ=HS。'],
+      substituteObservation: ['H 对三帧相同，接着计算 ŨM。', '把当前检测频率的 H 提到前面，让临时权重 Ũ 与原混合矩阵 M 相邻；三份样品频谱继续留在原位置。', 'H(f) 在这里是同一个标量，移过 Ũ 不改变矩阵相乘的先后次序。'],
+      temporaryResponse: ['级次分开，旁带留下共同幅相。', 'ŨM 化为对角矩阵：零级系数是 1，正、负旁带分别保留 m exp(±iφΔ)。', '已知且准确的三步相对相移消去不同级次之间的混合；未知的共同幅相仍保留在旁带。'],
+      expandBands: ['把 H 和各行系数，带到对应频带。', '三个对角系数、H 和三份 S 沿各自的行展开，输出向量同时展开成 0、+1、−1 级；原临时分离式随后缩小移到上方。', '零级得到 Ã₀=H(f)S(f)；两个旁带还包含移频和共同幅相，接下来用公共信息估计它们。'],
+      ready: ['带着临时频带，进入公共区比较。', 'Ũ 由已知临时权重 ũ 组成；Ã=ŨD 是它作用于同一组三帧的输出。接下来展开频谱，利用 0 级与 +1 级的公共信息估计参数。', notation.tilde + notation.band],
     }[s.mode];
     return { equation: provisionalFormulas[s.formulaKey], title: content[0], copy: content[1], note: content[2] };
   }
@@ -167,7 +300,7 @@
     const split = r(p, .30, .52), settle = r(p, .82, .96), reveal = r(p, .32, .40);
     const negative = 1 - .75 * r(p, .66, .74) - .25 * r(p, .74, .82);
     return { progress: p, lessonProgress: Story.clamp((elapsed - sharedEntryDuration) / Study.scene('shared').duration),
-      handoff: r(p, 0, .06), nominal: 1, split, reveal,
+      handoff: r(p, 0, .06), temporary: 1, split, reveal,
       source: 1 - r(p, .30, .40), pictures: r(p, .50, .62), negative, settle,
       labels: 1 - r(p, .94, 1), context: r(p, .94, 1),
       bands: temporaryBands.map(b => ({ order: b.order, x: b.x + (b.finalX - b.x) * settle,
@@ -178,7 +311,7 @@
     const s = sharedEntryState(progress), p = s.progress;
     const title = p < .30 ? '把刚才的粗分离，应用到这组三帧。' : p < .66 ? '从一个向量，展开三个临时级次。'
       : '先保留 0 级与 +1 级，寻找共同信息。';
-    const note = p < .30 ? 'Ũ 只依赖已知相对相移；未知的 m 与 φΔ 留在临时旁带中，并未被设成实际值 1 与 0。'
+    const note = p < .30 ? notation.tilde + notation.matrix
       : p < .66 ? '三份临时频带都来自同一组三帧；旁带仍保留未知的 m 与共同相位偏移。'
       : '−1 级只退出当前比较画面；其数据保留，后面的正式重建仍使用三个级次。';
     return { title, copy: p < .66 ? '沿用同一批观测：青色 0 级、紫色 +1 级、橙色 −1 级，图像与下方公式一一对应。'
@@ -186,7 +319,7 @@
       equation: '$$' + temporaryBands.map(b => '{\\color{' + b.color + '}' + b.symbol + '=' + b.rhs + '}').join('\\qquad') + '$$' };
   }
   const bridges = [
-    { ...provisionalFormulaAt({ progress: 1 }), id: 'provisional-split', label: '为何能粗分离', duration: provisionalDuration },
+    { ...provisionalFormulaAt({ progress: 1 }), id: 'provisional-split', label: '检查预设值', duration: provisionalDuration },
     { id: 'adopted-weights', label: '填回参数', title: '参数填回去，权重就能算出来。',
       copy: '三个方向各自求出参数。将方向 1 的相位和调制度填入 M，得到正式解混用的 U；波矢留给后面的归位。',
       equation: String.raw`$$\begin{gathered}\widehat\phi_j=\phi'_j+\widehat\phi_\Delta,\qquad U=M^{-1}\\M_{j,:}=\begin{bmatrix}1&\frac{\widehat m}{2}e^{i\widehat\phi_j}&\frac{\widehat m}{2}e^{-i\widehat\phi_j}\end{bmatrix}\end{gathered}$$`,
@@ -206,8 +339,8 @@
         : legacyPosition < 14 ? '07 / 频带归位' : legacyPosition < 17 ? '08 / 多方向覆盖'
         : legacyPosition < 21 ? '09 / Wiener 融合' : '10 / 图像与验证' }));
     const bridgeStops = bridges.map(scene => ({ ...scene, owner: 'bridge', sceneId: scene.id,
-      chapter: scene.id === 'provisional-split' ? '05 / 粗分离原理' : '06 / 正式解混',
-      formulaDomain: scene.id === 'provisional-split' ? '照明模型 → 参数估计' : '频域 · ' + scene.label }));
+      chapter: scene.id === 'provisional-split' ? '05 / 参数与标称值' : '06 / 正式解混',
+      formulaDomain: scene.id === 'provisional-split' ? '逆矩阵权重 → 照明参数' : '频域 · ' + scene.label }));
     // The production path proceeds directly from adopted weights to applying
     // them. The base model keeps its proof choreography for isolated algebra
     // checks, while this timeline omits the repeated verification stop.
@@ -259,8 +392,9 @@
     };
   }
   const api = { sceneIds, convention, bridges, provisionalState, provisionalSteps, provisionalFormulaAt, provisionalFormulas,
-    provisionalDuration, provisionalContentDuration, nominalPreludeDuration, provisionalProgress, nominalFailureState, createNominalFailure,
+    provisionalDuration, unknownWeightFactorTex, residualBandTex, createNominalFailure, nominalFailureState, nominalFailureStart, nominalFailureDuration,
     sharedEntryDuration, sharedDuration, sharedEntryState, sharedEntryFormulaAt, temporaryBands,
-    parameterColors, parameterBox, illuminationTex, substitutedIlluminationTex, actualIlluminationTex, nominalObservationTex, plan, create };
+    notation, parameterColors, actualIlluminationTex, weightFactorColors, actualWeightCells, actualWeightState,
+    temporaryNotationState, temporaryIndexTex, observationExpansionState, observationTex, sampleVectorTex, temporaryResponseTex, plan, create };
   if (node) module.exports = api; else root.SIMMotionParameterChapter = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

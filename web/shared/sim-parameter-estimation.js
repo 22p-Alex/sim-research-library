@@ -1,8 +1,9 @@
 /* Teaching estimator: provisional separation, OTF-corrected overlap,
  * normalized complex correlation, then complex least-squares scale.
  * Method: Müller et al. 2016, doi:10.1038/ncomms10980, Supplementary Note 1.
- * This is a documented teaching implementation, NOT a port of fairSIM's
- * fitPeak/commonRegion search, masks or normalization. Coordinates: x right,
+ * Each band is corrected by its own H: conj(H) A / |H|^2 = A/H.
+ * This is the algebra used by fairSIM commonRegion's divideByOtf branch.
+ * This is NOT a port of its search, masks or normalization. Coordinates: x right,
  * y down; forward FFT has a negative exponential; frequencies are DFT bins.
  */
 (function (root) {
@@ -14,6 +15,18 @@
   const wrapPhase = phase => Math.atan2(Math.sin(phase), Math.cos(phase));
   const defaults = Object.freeze({ n: A.N, cutoff: A.KC, minH: .15, minPoints: 20,
     minRadius: 3, maxRadius: 10, nominalPhases: [0, TAU / 3, 2 * TAU / 3] });
+
+  // Keep both steps explicit for the lesson and for complex-OTF unit checks.
+  // The capture below still uses the existing real, nonnegative circular OTF.
+  // Threshold selection must precede this pointwise inverse; no regularizer
+  // is added here, since that would no longer be equal to division by H.
+  function correctOtf(value, transfer) {
+    const power = transfer.re ** 2 + transfer.im ** 2;
+    if (!(power > 0) || !Number.isFinite(power)) throw new Error('OTF 校正需要非零且有限的 H。');
+    const weighted = { re: transfer.re * value.re + transfer.im * value.im,
+      im: transfer.re * value.im - transfer.im * value.re };
+    return { power, weighted, corrected: { re: weighted.re / power, im: weighted.im / power } };
+  }
 
   // Only this forward generator sees illumination truth. Its raw frames have
   // neither phase nor wave-vector metadata. The estimator takes raw+config.
@@ -62,9 +75,10 @@
     const points = [], { n, cutoff, minH } = config;
     for (let y = -Math.ceil(cutoff); y <= cutoff; y++) for (let x = -Math.ceil(cutoff); x <= cutoff; x++) {
       const h = A.otf(x, y, cutoff);
-      if (h < minH) continue;
+      if (h <= 0 || h < minH) continue;
       const i = A.idx(x, y, n), z = separated.bands[0];
-      points.push({ x, y, i, h, re: z.re[i] / h, im: z.im[i] / h });
+      const raw = { re: z.re[i], im: z.im[i] };
+      points.push({ x, y, i, h, raw, correction: correctOtf(raw, { re: h, im: 0 }) });
     }
     return { config, separated, points };
   }
@@ -77,12 +91,19 @@
     const points = [];
     for (const point of ctx.points) {
       const h = A.otf(point.x + kx, point.y + ky, cutoff);
-      if (h < minH) continue;
+      if (h <= 0 || h < minH) continue;
       const z = shifted || separated.bands[1], i = shifted ? point.i : A.idx(point.x + Math.round(kx), point.y + Math.round(ky), n);
-      const xr = point.re, xi = point.im, yr = z.re[i] / h, yi = z.im[i] / h;
+      const rawY = { re: z.re[i], im: z.im[i] };
+      const zero = point.correction, side = correctOtf(rawY, { re: h, im: 0 });
+      // At a fixed q, U is independent of k'. The sideband address and the
+      // comparison set change with k'; each operand uses its own OTF.
+      const xr = zero.corrected.re, xi = zero.corrected.im, yr = side.corrected.re, yi = side.corrected.im;
       const cr = xr * yr + xi * yi, ci = xr * yi - xi * yr, energy = xr * xr + xi * xi;
       xx += energy; yy += yr * yr + yi * yi; re += cr; im += ci; count++;
-      if (keepPoints) points.push({ q: [point.x, point.y], h0: point.h, h1: h, x: { re: xr, im: xi }, y: { re: yr, im: yi }, cross: { re: cr, im: ci }, energy });
+      if (keepPoints) points.push({ q: [point.x, point.y], h0: point.h, h1: h,
+        rawX: point.raw, rawY, weightedX: zero.weighted, weightedY: side.weighted,
+        power0: zero.power, power1: side.power,
+        x: { re: xr, im: xi }, y: { re: yr, im: yi }, cross: { re: cr, im: ci }, energy });
     }
     const valid = count >= minPoints && xx > 1e-14 && yy > 1e-14;
     const score = valid ? Math.min(1, Math.hypot(re, im) / Math.sqrt(xx * yy)) : 0;
@@ -90,13 +111,64 @@
     return { kx, ky, valid, score, count, xx, yy, cross: { re, im }, alpha, points };
   }
 
+  // Negative-exponent forward FFT; inverse normalization is 1/(n*n).
+  // Thus sum_q conj(P[q]) Q[q+k] = n*n FFT(conj(IFFT(P)) IFFT(Q))[k].
+  // Indices are circular. The compact OTF support in this lesson lies clear
+  // of the periodic boundary for every admitted search candidate.
+  function correlateSpatial(a, b, n) {
+    const product = { re: new Float64Array(n*n), im: new Float64Array(n*n) };
+    for (let i=0;i<n*n;i++) {
+      product.re[i]=a.re[i]*b.re[i]+a.im[i]*b.im[i];
+      product.im[i]=a.re[i]*b.im[i]-a.im[i]*b.re[i];
+    }
+    const correlation=A.spectrum(product.re,n,product.im);
+    for(let i=0;i<n*n;i++){correlation.re[i]*=n*n;correlation.im[i]*=n*n;}
+    return {product,correlation};
+  }
+  function correlationMap(first, second, n) {
+    const spatial=[A.spatial(first,n),A.spatial(second,n)];
+    return {...correlateSpatial(...spatial,n),spatial};
+  }
+  function fixedCorrelation(ctx) {
+    const {n,cutoff,minH,minPoints}=ctx.config, size=n*n;
+    const zeros=()=>({re:new Float64Array(size),im:new Float64Array(size)});
+    const inputs=[zeros(),zeros()],masks=[zeros(),zeros()],energies=[zeros(),zeros()];
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++) {
+      const i=y*n+x,h=A.otf(A.bin(x,n),A.bin(y,n),cutoff);
+      if(h<=0 || h<minH)continue;
+      for(let b=0;b<2;b++) {
+        const z=ctx.separated.bands[b],value=correctOtf({re:z.re[i],im:z.im[i]},{re:h,im:0}).corrected;
+        inputs[b].re[i]=value.re;inputs[b].im[i]=value.im;masks[b].re[i]=1;
+        energies[b].re[i]=value.re**2+value.im**2;
+      }
+    }
+    const main=correlationMap(...inputs,n);
+    const maskSpatial=masks.map(z=>A.spatial(z,n)),energySpatial=energies.map(z=>A.spatial(z,n));
+    const xx=correlateSpatial(energySpatial[0],maskSpatial[1],n).correlation;
+    const yy=correlateSpatial(maskSpatial[0],energySpatial[1],n).correlation;
+    const counts=correlateSpatial(...maskSpatial,n).correlation;
+    const score=new Float64Array(size);
+    function at(kx,ky) {
+      const i=A.idx(kx,ky,n),count=Math.max(0,Math.round(counts.re[i]));
+      const ex=Math.max(0,xx.re[i]),ey=Math.max(0,yy.re[i]);
+      const cross={re:main.correlation.re[i],im:main.correlation.im[i]};
+      const valid=count>=minPoints && ex>1e-14 && ey>1e-14;
+      const value=valid?Math.min(1,Math.hypot(cross.re,cross.im)/Math.sqrt(ex*ey)):0;
+      return {kx,ky,valid,count,xx:ex,yy:ey,cross,score:value,
+        alpha:valid?{re:cross.re/ex,im:cross.im/ex}:{re:0,im:0}};
+    }
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++)score[y*n+x]=at(A.bin(x,n),A.bin(y,n)).score;
+    return {...main,inputs,masks,energies,xx,yy,counts,score,at,n};
+  }
+
   function estimate(group, options = {}) {
     const ctx = context(group, options), { config } = ctx, extent = Math.ceil(config.maxRadius);
+    const fft = fixedCorrelation(ctx);
     const coarse = [];
     for (let ky = -extent; ky <= extent; ky++) for (let kx = -extent; kx <= extent; kx++) {
       const radius = Math.hypot(kx, ky);
       if (radius < config.minRadius || radius > config.maxRadius) coarse.push({ kx, ky, score: 0, valid: false, count: 0 });
-      else coarse.push(compare(ctx, kx, ky));
+      else coarse.push(fft.at(kx, ky));
     }
     let best = coarse.reduce((a, b) => b.valid && (!a || b.score > a.score) ? b : a, null);
     if (!best || best.score < .55) return { ok: false, reason: '有效公共区不足，或没有可靠的相关峰。', context: ctx, coarse, extent };
@@ -117,7 +189,7 @@
     const fit = compare(ctx, best.kx, best.ky, true), m = Math.hypot(fit.alpha.re, fit.alpha.im), phase = Math.atan2(fit.alpha.im, fit.alpha.re);
     if (!Number.isFinite(m) || m < .05 || m > 1.1 || fit.score < .8) return { ok: false, reason: '调制度或公共区匹配未通过本示例的有效性检查。', context: ctx, coarse, coarseBest, rounds, extent, fit };
     const phases = config.nominalPhases.map(p => p + phase);
-    return { ok: true, context: ctx, coarse, coarseBest, rounds, extent, fit,
+    return { ok: true, context: ctx, coarse, coarseBest, rounds, extent, fit, fft,
       kx: best.kx, ky: best.ky, m, phase, phases, angle: Math.atan2(best.ky, best.kx) * 180 / Math.PI,
       period: config.n / Math.hypot(best.kx, best.ky), precision: .01 };
   }
@@ -204,6 +276,6 @@
     if (pipeline.groups.some(group => group.fallback)) throw new Error('全方向重建的调制度触发了核心回退。');
     return { pipeline, parameters, estimates, raw: reconstructionRaw, config, modulationFallback: false };
   }
-  const api = { defaults, capture, separate, context, compare, estimate, reconstruct, estimateDataset, reconstructDataset, wrapPhase };
+  const api = { defaults, capture, separate, correctOtf, context, compare, correlationMap, fixedCorrelation, estimate, reconstruct, estimateDataset, reconstructDataset, wrapPhase };
   if (node) module.exports = api; else root.SIMParameterEstimation = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
