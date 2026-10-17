@@ -700,7 +700,7 @@
       }
       else {
         motionAlpha = 0; parameterAlpha = 1 - enter; adoptedAlpha = enter;
-        parameterView.drawScene('read', 1); pairAlpha = 1 - enter;
+        parameterView.drawScene('least-squares-fit', 1); pairAlpha = 1 - enter;
       }
     } else if (frame.owner === 'parameters') {
       motionAlpha = 0;
@@ -718,11 +718,11 @@
         setText($('scene-title'), copy.title); setText($('scene-description'), copy.copy);
         setText($('scene-svg-description'), copy.copy + ' ' + copy.note);
         setText($('stage-caption'), split.progress < 1 ? 'Ã → 0、+1、−1 → 0、+1' : '0 级 + +1 级 / 相机数据估计');
-      } else if(frame.sceneId==='refine') {
-        const copy=window.SIMParameterLesson.refinementNarrative(frame.progress);
+      } else if(frame.sceneId==='refine'||frame.sceneId==='least-squares-fit') {
+        const copy=window.SIMParameterLesson[frame.sceneId==='refine'?'refinementNarrative':'leastSquaresNarrative'](frame.progress);
         setText($('scene-title'),copy.title);setText($('scene-description'),copy.copy);
-        setText($('scene-svg-description'),copy.copy+' '+window.SIMParameterLesson.scene('refine').note);
-        setText($('stage-caption'),copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
+        setText($('scene-svg-description'),copy.copy+' '+window.SIMParameterLesson.scene(frame.sceneId).note);
+        setText($('stage-caption'),frame.sceneId==='least-squares-fit'?'共同复系数 → 全部公共点拟合 → 参数回填':copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
       }
       const useEntryFormula = split && split.progress < 1;
       const formula = useEntryFormula ? bridgeView.drawEntryFormula(frame.progress) : parameterFormulaView.draw(state);

@@ -12,10 +12,10 @@
 | [atlas/sim-atlas.js](atlas/sim-atlas.js) | 图谱渲染、频谱探针与交互 | 全流程图谱 |
 | [atlas/sim-atlas-demix-coefficients.js](atlas/sim-atlas-demix-coefficients.js) | 无 DOM 的可复用系数计算；读取实际逆矩阵权重，计算逐帧复系数及其和 | 全流程图谱、解混数值校验 |
 | [atlas/sim-atlas.css](atlas/sim-atlas.css) | 图谱样式 | 全流程图谱 |
-| [motion/](motion/README.md) | 十章、35 停点的完整重建动画，矩阵解混、可逆时间轴与复数融合 | [完整重建动画](../sim_motion_demo.html) |
+| [motion/](motion/README.md) | 十章、33 停点的完整重建动画，矩阵解混、可逆时间轴与复数融合 | [完整重建动画](../sim_motion_demo.html) |
 | [shared/sim-parameter-estimation.js](shared/sim-parameter-estimation.js) | 无 DOM 的教学参数估计；临时分离、公共区相关、复数比例与正式解混接口 | 参数估计 Demo，供后续主线复用 |
 | [parameter-demo/](parameter-demo/README.md) | 十幕两阶段参数估计章节；承接临时频带并交回估计参数，本地进度可由主时间轴接管 | [参数估计 Demo](../sim_parameter_demo.html) |
-| [motion/sim-motion-parameter-chapter.js](motion/sim-motion-parameter-chapter.js) | 已启用参数估计章节：共享观测、35 步组合、全方向估计与重建出口 | [并轨方案与去重规则](motion/PARAMETER-INTEGRATION.md) |
+| [motion/sim-motion-parameter-chapter.js](motion/sim-motion-parameter-chapter.js) | 已启用参数估计章节：共享观测、33 步组合、全方向估计与重建出口 | [并轨方案与去重规则](motion/PARAMETER-INTEGRATION.md) |
 
 依赖方向是 `lab → shared`、`atlas → shared`、`motion → atlas/sim-atlas-core → shared`。`sim-atlas-demix-coefficients.js` 同样是无 DOM 的可复用计算模块，供图谱使用，并用于主动画的数值校验，保留既有路径。参数章节的 model、view 与 chapter 适配器单独列为可复用的展示组件，位于计算层之上；独立 app、全局事件与页面样式仍由各页面持有。共享计算层不读取 DOM、不反向依赖章节。动画 demo 从图谱进入，并返回图谱；两个主要学习页面保持原有导航关系。新增前端 JS/CSS 时放入对应目录，并更新 [模块归属清单](../tests/sim-page-boundary.test.cjs)。
 

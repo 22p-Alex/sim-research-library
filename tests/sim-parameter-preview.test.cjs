@@ -10,11 +10,11 @@ const katex = require('../vendor/katex/katex.min.js');
 const near = (x, y, tolerance = 1e-9) => assert.ok(Number.isFinite(x) && Math.abs(x - y) < tolerance, `${x} != ${y}`);
 const capture = E.capture(), lesson = M.createLesson({ raw: capture.raw, config: capture.config });
 
-test('the standalone draft brackets the eleven production scenes without changing the Motion scene list', () => {
-  assert.equal(P.scenes.length, 16);
+test('the standalone draft brackets the eight production scenes without changing the Motion scene list', () => {
+  assert.equal(P.scenes.length, 13);
   assert.deepEqual(P.scenes.map(s => s.id), ['pending', 'temporary', ...L.scenes.map(s => s.id), 'refill', 'solve', 'relocation']);
-  assert.equal(P.durations.length, 16);
-  assert.equal(P.durations[P.index('fit')], 16000);
+  assert.equal(P.durations.length, 13);
+  assert.equal(P.durations[P.index('least-squares-fit')], 64000);
   assert.equal(P.durations[P.index('solve')], 11000);
   assert.equal(M.durations[M.index('fit')], 8000, 'presentation timing does not mutate the base chapter model');
   assert.match(P.scenes[P.index('refine')].note, /5×5.*10×10/);
@@ -28,7 +28,7 @@ test('the standalone draft brackets the eleven production scenes without changin
       if (s.parameter) assert.deepEqual(s.parameter, L.stateForScene(s.id, s.progress));
     }
   }
-  assert.equal(P.state(0).id, 'pending'); assert.equal(P.state(16).id, 'relocation');
+  assert.equal(P.state(0).id, 'pending'); assert.equal(P.state(13).id, 'relocation');
   assert.throws(() => P.state(NaN), /有限/);
 });
 
@@ -41,13 +41,13 @@ test('the scan writes actual valid candidate scores and ends at the coarse peak,
     near(candidate.score, independent.score); assert.equal(candidate.count, independent.count);
   }
   for (let i = 0; i <= 100; i++) {
-    const f = P.fittingState('fit', i / 100, lesson.estimate.fit.count);
+    const f = P.leastSquaresState(lesson, i / 100);
     if (f.divide > 0) assert.equal(f.count, lesson.estimate.fit.count, 'the ratio never uses unfinished sums');
   }
-  const count = lesson.estimate.fit.count, from = P.fittingState('fit', 1, count), to = P.fittingState('read', 0, count);
+  const count = lesson.estimate.fit.count, from = P.leastSquaresState(lesson, .84), to = P.leastSquaresState(lesson, .85);
   assert.equal(from.count, to.count); assert.equal(from.divide, to.divide);
   const p = .73;
-  assert.deepEqual(P.fittingState('fit', p, count), P.fittingState('fit', p, count), 'state has no independent timer');
+  assert.deepEqual(P.leastSquaresState(lesson, p), P.leastSquaresState(lesson, p), 'state has no independent timer');
 });
 
 test('every entry and exit formula compiles, with explicit provisional factors and estimated parameters', () => {

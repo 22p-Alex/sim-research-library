@@ -6,10 +6,7 @@
   const colors = L.bandColors, names = ['P', 'Q', 'R'];
   let instance = 0;
   const num = (x, digits = 3) => (Math.abs(x) < .5 * 10 ** -digits ? 0 : x).toFixed(digits);
-  const polar = (r, p) => ({ re: r * Math.cos(p), im: r * Math.sin(p) });
-  const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
   const magnitude = z => Math.hypot(z.re, z.im);
-  const angle = z => Math.atan2(z.im, z.re);
   function renderMath(container, wrapped) {
     const options = { displayMode: true, output: 'mathml', throwOnError: true, strict: 'error' };
     if (root.katex.render) root.katex.render(wrapped.slice(2, -2), container, options);
@@ -208,15 +205,16 @@
     label(filterGuide, 1110, 409, '下一步：改变 k′，比较整片公共区', 'pe-two-small');
     function plane(parent, title, tag) {
       const g = el('g', { 'data-complex-plane': tag }, parent);
-      el('circle', { r: 58, fill: 'none', stroke: '#36525d', 'stroke-width': 1 }, g);
-      line(g, -76, 0, 80, 0); line(g, 0, -76, 0, 76);
-      label(g, 83, 15, 'Re', 'pe-two-small'); label(g, 15, -77, 'Im', 'pe-two-small');
-      label(g, 0, -97, title, 'pe-two-text', colors[2]);
+      const frame = el('g', {}, g);
+      el('circle', { r: 58, fill: 'none', stroke: '#36525d', 'stroke-width': 1 }, frame);
+      line(frame, -76, 0, 80, 0); line(frame, 0, -76, 0, 76);
+      label(frame, 83, 15, 'Re', 'pe-two-small'); label(frame, 15, -77, 'Im', 'pe-two-small');
+      label(frame, 0, -97, title, 'pe-two-text', colors[2]);
       const u = path(g, colors[0], { 'data-vector-u': tag }), v = path(g, colors[1], { 'data-vector-v': tag });
       const prediction = path(g, colors[2], { 'data-vector-prediction': tag, 'stroke-dasharray': '5 3' });
       const product = path(g, colors[2], { 'data-vector-product': tag });
       const scaleLabel = label(g, 0, 112, '', 'pe-two-small');
-      return { group: g, u, v, prediction, product, scaleLabel };
+      return { group: g, frame, u, v, prediction, product, scaleLabel };
     }
     const planes = data.selected.map((_, i) => plane(stage, names[i], names[i]));
     const legend = label(stage, 1100, 422, '青： 0 级 U   紫：旁带 V   虚线：同一系数预测', 'pe-two-small');
@@ -302,38 +300,9 @@
     label(fftRoot,720,485,'各图独立对数色阶 · 仅显示模长，计算保留完整复数值','pe-two-small');
     const fftPeak=el('rect',{x:0,y:0,width:cell+6,height:cell+6,fill:'none',stroke:colors[2],'stroke-width':2,'data-fft-peak':''},grid);
     const refineView=L.createRefinementView({parent:stage,defs,lesson,el,label,line,path,arrow,raster,fieldURL,set,text,opacity,heat,uid});
-    const miniTitle = label(stage, 205, 163, '样品频率 q · 固定位置', 'pe-two-text');
-    const miniCoordinates = data.selected.map((point, i) => label(stage, 205, 347 + i * 25, `${names[i]}：q = (${point.q.join(', ')})`, 'pe-two-small'));
-    const locked = label(stage, 205, 448, '', 'pe-two-small', colors[2]);
-    const geometryReadout = label(stage, 882, 454, '', 'pe-two-value', colors[2]);
-    const geometryReason = label(stage, 882, 130, '', 'pe-two-text', colors[2]);
-    const fit = el('g', { 'data-fitting': '' }, stage);
-    const accumulator = plane(fit, '全部公共点的复数乘积和', 'sum'); set(accumulator.group, 'transform', 'translate(640 280)');
-    const energy = label(fit, 640, 442, '', 'pe-two-text');
-    const accumulated = label(fit, 640, 476, '', 'pe-two-small');
-    const accumulatingPoint = el('circle', { r: 5, fill: colors[2], 'data-accumulating-point': '' }, stage);
-    const accumulatingLink = path(stage, colors[2], { 'stroke-width': 1, 'stroke-dasharray': '3 5' });
-    const ratioRoot = el('g', { 'data-ratio-plane': '' }, stage);
-    set(ratioRoot, 'transform', 'translate(1130 280)');
-    el('circle', { r: 100, fill: 'none', stroke: '#526a71' }, ratioRoot);
-    line(ratioRoot, -120, 0, 125, 0); line(ratioRoot, 0, -120, 0, 120);
-    label(ratioRoot, 133, 14, 'Re', 'pe-two-small'); label(ratioRoot, 17, -121, 'Im', 'pe-two-small'); label(ratioRoot, 105, -9, '1', 'pe-two-small');
-    label(ratioRoot, 0, -147, '共同系数 α̂ · 单位圆', 'pe-two-text');
-    const ratioArrow = path(ratioRoot, colors[2], { 'data-study-ratio': '' });
-    const phaseArc = path(ratioRoot, colors[1], { 'stroke-width': 1.5 });
-    const ratioNumber = label(ratioRoot, 0, 157, '', 'pe-two-text', colors[2]);
-    const ratioPhase = label(ratioRoot, 0, 185, '', 'pe-two-small');
-    const divideCue = label(stage, 875, 281, '÷ E₀ →', 'pe-two-text', colors[2]);
-    const lightCanvas = doc.createElement('canvas');
-    const light = el('g', { 'data-illumination-preview': '' }, stage);
-    const lightImage = el('image', { x: 486, y: 175, width: 310, height: 220, style: 'image-rendering:pixelated' }, light);
-    label(light, 641, 141, '用估计值重画照明 · 同一方向', 'pe-two-text');
-    const lightPhase = label(light, 641, 434, '', 'pe-two-text');
-    const lightModulation = label(light, 641, 469, '', 'pe-two-text');
-    let lastLight = '', lastMask = '';
+    let lastMask = '';
     const maxInput = Math.max(1e-12, ...data.examples.flatMap(c => c.points.filter(p => data.selected.some(t => t.q.join(',') === p.q.join(','))).flatMap(p => [magnitude(p.x), magnitude(p.y)])));
-    const maxAlignedInput = Math.max(1e-12, ...data.selected.flatMap(p => [magnitude(p.x), magnitude(p.y)]));
-    const maxProduct = Math.max(1e-12, ...data.selected.map(p => magnitude(p.cross)));
+    const fitView = L.createFitView({ parent: stage, lesson, planes, initialMaximum: maxInput, el, label, line, path, vector, set, text, opacity, renderMath });
     const lineRoot = el('g', { 'data-line-bridge': '' }), lineView = L.createLineView(lineRoot, lesson);
     function drawScene(id, progress) {
       const s = L.stateForScene(id, progress), p = s.progress, early = s.phase === 'position';
@@ -355,13 +324,13 @@
       const spatial = id === 'shared' ? 0 : id === 'shift' ? handoff.arrange : 1;
       const relocate = id === 'shared' ? 0 : id === 'shift' ? handoff.relocate : 1;
       const filtering = L.otfState(id === 'otf' ? p : s.step > L.index('otf') ? 1 : 0);
-      const reduce = id === 'geometry' ? M.ramp(p, 0, .15) : s.step > L.index('geometry') ? 1 : 0;
-      const inputMaximum = maxInput + (maxAlignedInput - maxInput) * reduce;
+      const reduce = id === 'least-squares-fit' ? L.leastSquaresState(lesson, p).gather : 0;
+      const inputMaximum = maxInput;
       const comparisonReveal = M.ramp(relocate, .82, 1);
       // Center the solitary map (x=80, width=685) in the 1440-unit stage.
       // Both spectra share this presentation offset, independently of −k′.
       const centerOffset = id === 'shift' ? (720 - (80 + 685 / 2)) * spatial * (1 - comparisonReveal) : 0;
-      const mini = `translate(${25 * reduce + centerOffset} ${140 * reduce}) scale(${1 - .62 * reduce})`;
+      const mini = `translate(${15 * reduce + centerOffset} ${60 * reduce}) scale(${1 - .32 * reduce})`;
       set(frequency, 'transform', mini); set(sharedRoot, 'transform', mini);
       set(sharedRoot, 'clip-path', spatial === 1 ? 'url(#' + uid + '-spectrum-clip)' : 'none');
       set(frequency, 'data-presentation-offset-x', centerOffset);
@@ -531,42 +500,22 @@
       opacity(operationNote, M.ramp(filtering.multiply, .85, 1));
       text(normalizationNote, filtering.name > 0 ? '相同 q 的 U 固定；V 与可靠公共区随候选 k′ 改变'
         : '两步合起来等价于除以 H；只处理已筛选的可靠点');
-      const conjugateView = id === 'conjugate' || id === 'fit' && p < .12;
-      const cp = id === 'fit' ? 1 : p, previousAlpha = id === 'fit' ? 1 - M.ramp(p, 0, .12) : 1;
-      const showPlanes = ['geometry', 'conjugate'].includes(id) || id === 'fit' && p < .12;
-      const earlyPlanes = id === 'match', planeAlpha = id === 'match' ? M.ramp(p, .12, .23) : previousAlpha;
-      opacity(legend, showPlanes ? planeAlpha : 0);
-      set(legend, 'x', earlyPlanes ? 1100 : 882); set(legend, 'y', earlyPlanes ? 445 : 419);
-      text(legend, conjugateView && cp >= .52 ? '橙：共轭乘积 U*V · 各点留下共同方向' : '青：U · 紫：V · 橙虚线：同一系数的预测值');
+      const earlyPlanes = id === 'match', planeAlpha = id === 'match' ? M.ramp(p, .12, .23) : 1;
+      opacity(legend, 0); set(legend, 'x', 1100); set(legend, 'y', 422);
       data.selected.forEach((point, i) => {
         const row = candidate.points.find(t => t.q.join(',') === point.q.join(',')), plane = planes[i];
-        const x = (922 + i * 185) * (1 - reduce) + (552 + i * 315) * reduce, y = earlyPlanes ? 292 : 279, scale = 1 + .30 * reduce;
-        set(plane.group, 'transform', `translate(${x} ${y}) scale(${scale})`);
-        opacity(plane.group, showPlanes && row ? planeAlpha : 0);
+        set(plane.group, 'transform', `translate(${922 + i * 185} 279) scale(1)`);
+        opacity(plane.group, 0); opacity(plane.frame, 1);
         if (!row) {
-          text(stats[i].ratio, '当前不在可靠公共区'); text(stats[i].phase, '');
           [plane.u, plane.v, plane.prediction, plane.product].forEach(node => { vector(node, { re: 0, im: 0 }, 1); opacity(node, 0); });
           text(plane.scaleLabel, '当前候选不可比较'); return;
         }
-        // The arrows appear after both OTF-correction steps. Their stored
-        // operands also expose the actual conjugate-weighted intermediate.
-        let u = s.correction === 1 ? row.x : s.otfMultiply === 1 ? row.weightedX : row.rawX;
-        let v = s.correction === 1 ? row.y : s.otfMultiply === 1 ? row.weightedY : row.rawY;
-        if (conjugateView) u = polar(magnitude(row.x), angle(row.x) * (1 - 2 * s.conjugation));
+        const u = s.correction === 1 ? row.x : s.otfMultiply === 1 ? row.weightedX : row.rawX;
+        const v = s.correction === 1 ? row.y : s.otfMultiply === 1 ? row.weightedY : row.rawY;
         vector(plane.u, u, 58 / inputMaximum); vector(plane.v, v, 58 / inputMaximum);
-        const transform = L.transformState(lesson, p);
-        const alpha = id === 'geometry' ? polar(transform.m, transform.phase) : candidate.alpha;
-        vector(plane.prediction, multiply(row.x, alpha), 58 / inputMaximum);
-        const inputAlpha = conjugateView ? 1 - M.ramp(cp, .46, .53) : 1;
-        opacity(plane.u, inputAlpha); opacity(plane.v, inputAlpha);
-        opacity(plane.prediction, id === 'geometry' ? M.ramp(p, .05, .15) : id === 'match' ? 1 : 0);
-        const z = conjugateView ? polar(magnitude(row.cross) * s.product, angle(row.y) - angle(row.x) * s.product) : row.cross;
-        vector(plane.product, z, 58 / maxProduct); opacity(plane.product, conjugateView ? M.ramp(cp, .53, .59) : 0);
-        text(plane.scaleLabel, conjugateView && cp >= .52 ? '乘积 / N⁴ · 能量标尺' : '值 / N² · 圈半径 ' + num(inputMaximum / n ** 2, 4));
-        const ratio = magnitude(row.y) / Math.max(1e-30, magnitude(row.x));
-        const delta = Math.atan2(row.cross.im, row.cross.re);
-        text(stats[i].ratio, '长度比 ' + num(ratio));
-        text(stats[i].phase, '角度差 ' + num(delta) + ' rad');
+        vector(plane.prediction, { re: 0, im: 0 }, 1); vector(plane.product, { re: 0, im: 0 }, 1);
+        opacity(plane.u, 1); opacity(plane.v, 1); opacity(plane.prediction, 0); opacity(plane.product, 0);
+        text(plane.scaleLabel, '值 / N² · 圈半径 ' + num(inputMaximum / n ** 2, 4));
       });
       stats.forEach(t => {
         set(t.ratio, 'y', 392); set(t.phase, 'y', 416);
@@ -581,42 +530,6 @@
         gridCells.forEach((g, i) => { const c = e.coarse[i]; set(g, 'fill', !c.valid ? '#091115' : done.has(c.kx + ',' + c.ky) ? heat(c.score) : '#13262e'); });
         set(gridCursor, 'x', gx + (candidate.kx + e.extent) * cell); set(gridCursor, 'y', gy + (candidate.ky + e.extent) * cell);
       }
-      opacity(miniTitle, reduce); miniCoordinates.forEach(node => opacity(node, reduce));
-      opacity(locked, early ? 0 : 1); text(locked, `k̂ = (${num(e.kx, 2)}, ${num(e.ky, 2)}) · ${data.best.count} 个公共点`);
-      opacity(geometryReadout, id === 'geometry' || id === 'conjugate' ? 1 : 0);
-      const transform = L.transformState(lesson, p);
-      opacity(geometryReason, id === 'geometry' ? reduce : 0);
-      text(geometryReason, p < .14 ? '同一 S(q) → V = m·exp(iφΔ) U'
-        : p < .59 ? '乘单位模复数：角度加 φΔ，长度不变' : '再乘正实数 m：长度乘 m，角度不变');
-      text(geometryReadout, id === 'geometry' ? `${transform.trial ? '试探共同角度' : '拟合共同角度'} ${num(transform.phase)} rad   ·   长度比例 ${num(transform.m)} 倍` : p < .5 ? '取共轭：各点自己的 θj 变为 −θj' : '同一方向 φΔ 留下；长度为 m × 参考能量');
-      const fitting = id === 'fit' || id === 'read', f = L.fittingState(id, p, data.best.count), total = data.sums[f.count];
-      opacity(fit, id === 'fit' ? M.ramp(p, 0, .12) : 0); opacity(ratioRoot, fitting ? (id === 'fit' ? M.ramp(p, 0, .12) : 1) : 0); opacity(divideCue, id === 'fit' ? f.divide : 0);
-      opacity(accumulator.u, 0); opacity(accumulator.v, 0); opacity(accumulator.prediction, 0); opacity(accumulator.product, 1);
-      vector(accumulator.product, total, 75 / Math.max(1e-30, magnitude(data.best.cross)));
-      text(accumulator.scaleLabel, '复数和 / N⁴ · 累计标尺');
-      text(energy, '参考能量 E₀ / N⁴ = ' + num(total.energy / n ** 4, 6));
-      text(accumulated, `已累计 ${f.count} / ${data.best.count} 个公共频点`);
-      const current = data.best.points[Math.min(f.count, data.best.count - 1)], qx = (cx + current.q[0] * unit) * .38 + 25, qy = (cy + current.q[1] * unit) * .38 + 140;
-      set(accumulatingPoint, 'cx', qx); set(accumulatingPoint, 'cy', qy); set(accumulatingPoint, 'data-q', current.q.join(','));
-      set(accumulatingLink, 'd', `M ${qx} ${qy} Q 395 162 563 245`);
-      const accumulating = id === 'fit' && p >= .12 && f.count < data.best.count ? 1 : 0;
-      opacity(accumulatingPoint, accumulating); opacity(accumulatingLink, accumulating);
-      set(fit, 'data-count', f.count); set(fit, 'data-sum-re', total.re); set(fit, 'data-sum-im', total.im); set(fit, 'data-energy', total.energy); set(fit, 'data-divide', f.divide);
-      vector(ratioArrow, data.best.alpha, 100); opacity(ratioArrow, fitting ? f.divide : 0);
-      const arc = polar(42, e.phase), large = Math.abs(e.phase) > Math.PI ? 1 : 0;
-      set(phaseArc, 'd', `M 42 0 A 42 42 0 ${large} ${e.phase >= 0 ? 0 : 1} ${arc.re} ${-arc.im}`); opacity(phaseArc, fitting ? f.divide : 0);
-      text(ratioNumber, f.divide ? '长度 m̂ = ' + num(e.m) : '累计完成后，再相除');
-      text(ratioPhase, f.divide ? '角度 φ̂Δ = ' + num(e.phase) + ' rad' : '分母： 0 级参考能量 E₀');
-      opacity(light, id === 'read' ? 1 : 0);
-      if (id === 'read') {
-        const phase = e.phase * f.phase, modulation = 1 + (e.m - 1) * f.modulation, key = phase + ',' + modulation;
-        if (lastLight !== key) {
-          set(lightImage, 'href', raster(64, 64, (x, y) => { const v = Math.round(127.5 * (1 + modulation * Math.cos(2 * Math.PI * (e.kx * x + e.ky * y) / 64 + phase))); return [v, v, v, 255]; }, lightCanvas)); lastLight = key;
-        }
-        set(light, 'data-phase', phase); set(light, 'data-modulation', modulation);
-        text(lightPhase, '相位 ' + num(phase) + ' rad · 条纹沿法线平移');
-        text(lightModulation, '调制度 ' + num(modulation) + ' · 条纹对比度');
-      }
       const footers = {
         shared: '',
         shift: p < .40 ? '二维频率有横纵两个分量；候选写作 k′，真实 k 仍待估计。' : p < .68 ? '面板共用坐标原点后，0 级保持固定；随后用候选 −k′ 搬回旁带。' : '旁带与 OTF 一起移动 −k′；仅在 k′=k 时，同名频点重合。',
@@ -624,10 +537,8 @@
         match: p < .12 ? '接住上一幕的 U、V，再开始尝试候选位移。' : p < .72 ? '公共区逐点共轭相乘、累计；算完后把分数送到对应的 k′ 格。' : '完整二维扫描要重复 N² 遍乘加；能否一次算出所有位移？',
         coarse: p < .12 ? '原有元素先变暗，保留刚才的评分图。' : p < .26 ? '展开两张完整固定频谱：可靠区除自身 H，圈外置零。' : p < .46 ? '两张频谱在原位分别逆 FFT，成为空域复数场 u、v。' : p < .71 ? '三个光标取同一像素：u 取共轭后乘 v，逐点扫出乘积图。' : p < .86 ? '整张乘积图原位做正 FFT，再按两边能量归一化。' : p < .96 ? '整张结果移回原评分图，坐标、色标和候选分数都保持一致。' : '同一评分图、同一整数峰；接下来只在峰附近做小数细化。',
         refine: p < .30 ? '空间相位斜坡随像素位置变化 → 小数频移；下一幕的共同相位则处处相同。' : p < .9 ? '本页半宽 0.5→0.1→0.02；fairSIM 半宽 2.5→0.5→0.1，均为频率格。' : '波矢已锁定。接下来从 V=m·exp(iφΔ)U 解释复数值的旋转与伸缩。',
-        geometry: p < .59 ? 'exp(iφΔ) 只改变复数值的角度；各点 q 与条纹方向保持固定。' : '共同相位控制条纹位置，调制度控制对比度；在复平面对应角度差与长度比。',
-        conjugate: '各点的样品相位被消去，才能把共同的照明相位保留下来。',
-        fit: f.divide ? '分子除以 0 级能量 → 一个共同复系数；这也是复数最小二乘解。' : '先对复数乘积求和；全部公共点累计完，才除以参考能量。',
-        read: '把 m̂、φ̂j 填回混合矩阵，正式求逆；k̂ 继续用于频带归位。',
+        'least-squares-fit': L.leastSquaresNarrative(p).note,
+
       };
       text(footer, footers[id] || ''); opacity(footer, footers[id] ? 1 : 0);
       const scanning=id==='match',fftScene=id==='coarse',fft=L.fftState(fftScene?p:0);
@@ -730,7 +641,7 @@
         const returning=refinement.returnView;
         if(returning.overview>0) {
           // Restore the original actors, not raster copies of the overview.
-          // Their final pose is exactly geometry(0), which then shrinks them.
+          // Their final pose is the fit entry; the same actors continue.
           const scale=.72+.28*returning.overview;
           const overviewPose=`translate(${cx*(1-scale)} ${cy*(1-scale)}) scale(${scale})`;
           set(frequency,'transform',overviewPose);set(sharedRoot,'transform',overviewPose);
@@ -739,6 +650,15 @@
           planes.forEach((plane,i)=>opacity(plane.group,candidate.points.some(t=>t.q.join(',')===data.selected[i].q.join(','))?returning.values:0));
           opacity(legend,returning.values);
         }
+      }
+      fitView.draw(id === 'least-squares-fit' ? p : null);
+      if (id === 'least-squares-fit') {
+        const narrative = L.leastSquaresNarrative(p);
+        text(cue, narrative.title);
+        text(footer, p < .25 ? '同一 q · 各自除 H → U、V · 理想条件下只差共同 α'
+          : p < .60 ? '固定 U 与 V，仅变换橙色副本；白色虚线表示真实残差。'
+          : p < .85 ? 'P、Q、R 只是示例；C、Eᵤ、J 都使用全部可靠公共点。'
+          : '三相相对步进已知且准确 · 估计幅相填回 M · 波矢留给频带归位');
       }
       if (id === 'shift') {
         opacity(stage, handoff.actual); opacity(sharedRoot, handoff.actual);
@@ -790,31 +710,13 @@
         } else if(mode==='refine-phaseRamp'&&options.lesson) {
           group.setAttribute('class','pe-study-formula pe-refine-formula');
           parts.refinement=L.createRefinementFormulaView({parent:group,document:doc,lesson:options.lesson,compile});
-        } else if (s.id === 'geometry') {
-          group.setAttribute('class', 'pe-two-derivation pe-two-geometry');
-          const source = doc.createElement('div'); source.setAttribute('class', 'pe-two-geometry-source'); group.appendChild(source);
-          renderMath(source, L.formulas.coefficient);
-          const operations = doc.createElement('div'); operations.setAttribute('class', 'pe-two-derivation-row'); group.appendChild(operations);
-          parts.input = compile(operations, 'input', String.raw`U_j=r_j e^{i\theta_j}`);
-          parts.rotation = compile(operations, 'rotation', String.raw`\xrightarrow{\ |e^{i\phi_\Delta}|=1\ }r_j e^{i(\theta_j+\phi_\Delta)}`);
-          parts.scaling = compile(operations, 'scaling', String.raw`\xrightarrow{\ m\ge0\ }V_j=m r_j e^{i(\theta_j+\phi_\Delta)}`);
-        } else if (s.id === 'conjugate') {
-          parts.input = compile(group, 'conjugate-input', String.raw`U_j^*V_j=`);
-          parts.conjugate = compile(group, 'conjugate', String.raw`r_j e^{-i\theta_j}`);
-          parts.side = compile(group, 'side', String.raw`\,m r_j e^{i(\theta_j+\phi_\Delta)}`);
-          parts.product = compile(group, 'product', String.raw`=m r_j^2 e^{i\phi_\Delta}`);
-        } else if (s.id === 'fit') {
-          const fraction = doc.createElement('div'); fraction.setAttribute('class', 'pe-study-fraction'); group.appendChild(fraction);
-          parts.numerator = compile(fraction, 'numerator', String.raw`\sum_{\Omega}U^*V`);
-          parts.energy = compile(fraction, 'energy', String.raw`\sum_{\Omega}|U|^2`);
-          parts.result = compile(group, 'result', String.raw`=\widehat\alpha=\widehat m e^{i\widehat\phi_\Delta}`);
         } else renderMath(group, formula.equation);
         cache.set(mode, { group, parts });
       }
       const { group, parts } = cache.get(mode);
       if (active !== mode || !Array.from(container.children).includes(group)) { clear(); container.appendChild(group); active = mode; }
       container.setAttribute('data-formula-mode', mode);
-      const p = s.progress, f = L.fittingState(s.id, p, 1);
+      const p = s.progress;
       if(parts.refinement){parts.refinement.draw(p);return formula;}
       if (mode === 'shared-derive') {
         const state = L.sharedState(p);
@@ -838,15 +740,6 @@
         parts.residual.style.opacity = String(1 - arrived); parts.residual.setAttribute('aria-hidden', arrived === 1);
         parts.same.style.opacity = String(arrived); parts.same.setAttribute('aria-hidden', arrived === 0);
         return formula;
-      }
-      const emphasis = s.id === 'geometry' ? { input: p < .18, rotation: p >= .18 && p < .59, scaling: p >= .59 }
-        : s.id === 'conjugate' ? { conjugate: p < .5, side: p >= .5 && p < .7, product: p >= .7 }
-        : { numerator: p < .60, energy: p >= .2 && p < .72, result: f.divide > 0, nominal: s.id === 'read' };
-      for (const [name, part] of Object.entries(parts)) {
-        part.setAttribute('data-emphasized', !!emphasis[name]);
-        const reveal = s.id === 'geometry' ? name === 'rotation' ? M.ramp(p, .16, .24) : name === 'scaling' ? M.ramp(p, .57, .65) : 1
-          : s.id === 'conjugate' && name === 'product' ? M.ramp(p, .53, .67) : s.id === 'fit' && name === 'result' ? f.divide : 1;
-        part.style.opacity = String(reveal); part.setAttribute('aria-hidden', reveal === 0);
       }
       return formula;
     }

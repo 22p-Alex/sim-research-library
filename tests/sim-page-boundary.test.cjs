@@ -26,7 +26,7 @@ const SHARED=['web/shared/sim-core.js','web/shared/sim-experiment.js'];
 const REUSABLE=['web/atlas/sim-atlas-core.js','web/atlas/sim-atlas-demix-coefficients.js','web/shared/sim-parameter-estimation.js','web/shared/sim-band-formulas.js'];
 // Reusable presentation components sit above computation. The preview uses
 // them in both the preview and the integrated Motion timeline.
-const CHAPTER=['web/parameter-demo/sim-parameter-line-view.js','web/parameter-demo/sim-parameter-model.js','web/parameter-demo/sim-parameter-two-stage.js','web/parameter-demo/sim-parameter-refinement-view.js','web/parameter-demo/sim-parameter-two-stage-view.js','web/parameter-demo/sim-parameter-two-stage.css','web/parameter-demo/sim-parameter-study.css','web/motion/sim-motion-parameter-chapter.js'];
+const CHAPTER=['web/parameter-demo/sim-parameter-fit-view.js','web/parameter-demo/sim-parameter-line-view.js','web/parameter-demo/sim-parameter-model.js','web/parameter-demo/sim-parameter-two-stage.js','web/parameter-demo/sim-parameter-refinement-view.js','web/parameter-demo/sim-parameter-two-stage-view.js','web/parameter-demo/sim-parameter-two-stage.css','web/parameter-demo/sim-parameter-study.css','web/motion/sim-motion-parameter-chapter.js'];
 const MAIN_PAGES=['sim_interactive_demo.html','sim_pipeline_atlas.html'];
 // Static visual pages: pure SVG diagrams with no computation, therefore they do
 // NOT load the shared layer. They must stay fully local (offline-first project)

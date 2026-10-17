@@ -4,7 +4,7 @@
   "scripts": {
     "preview": "python3 -m http.server 8765 --bind 127.0.0.1",
     "capture:guide": "node scripts/capture_sim_single_direction.cjs",
-    "check": "node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-atlas-notation.test.cjs tests/sim-atlas-demix-coefficients.test.cjs tests/sim-atlas-fusion.test.cjs tests/sim-motion.test.cjs tests/sim-parameter.test.cjs tests/sim-parameter-preview.test.cjs tests/sim-parameter-two-stage.test.cjs tests/sim-parameter-refinement.test.cjs tests/sim-parameter-dataset.test.cjs tests/sim-motion-parameter-chapter.test.cjs tests/sim-motion-integration.test.cjs tests/sim-page-boundary.test.cjs",
+    "check": "node --test tests/sim-core.test.cjs tests/sim-experiment.test.cjs tests/sim-atlas.test.cjs tests/sim-atlas-notation.test.cjs tests/sim-atlas-demix-coefficients.test.cjs tests/sim-atlas-fusion.test.cjs tests/sim-motion.test.cjs tests/sim-parameter.test.cjs tests/sim-parameter-preview.test.cjs tests/sim-parameter-two-stage.test.cjs tests/sim-parameter-fit.test.cjs tests/sim-parameter-refinement.test.cjs tests/sim-parameter-dataset.test.cjs tests/sim-motion-parameter-chapter.test.cjs tests/sim-motion-integration.test.cjs tests/sim-page-boundary.test.cjs",
     "test:ui": "node tests/sim-browser.test.cjs && node tests/sim-atlas-browser.test.cjs",
     "test": "npm run check && npm run test:ui"
   }

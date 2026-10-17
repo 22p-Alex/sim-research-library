@@ -7,18 +7,18 @@ const Study = require('../web/parameter-demo/sim-parameter-two-stage.js');
 const boot = require('./helpers/motion-dom.cjs');
 const near = (a, b, eps = 1e-9) => assert.ok(Number.isFinite(+a) && Math.abs(+a - b) < eps, `${a} != ${b}`);
 
-test('36 stops preserve every complete scene interval and the existing reconstruction transitions', () => {
+test('33 stops preserve every complete scene interval and the existing reconstruction transitions', () => {
   const flow = Chapter.plan(Motion);
-  assert.equal(flow.scenes.length, 36); assert.equal(flow.durations.length, 35);
+  assert.equal(flow.scenes.length, 33); assert.equal(flow.durations.length, 32);
   assert.equal(flow.index('inverse-demix'), 9);
   assert.equal(flow.index('provisional-split'), 10);
   assert.equal(flow.index('parameters.shared'), 11);
   assert.equal(flow.index('parameters.line-shift'), 12);
   assert.equal(flow.index('parameters.shift'), 13);
-  assert.equal(flow.index('adopted-weights'), 22);
+  assert.equal(flow.index('adopted-weights'), 19);
   assert.equal(flow.index('verify-demix'), -1);
-  assert.equal(flow.index('separate-bands'), 23);
-  assert.equal(flow.index('relocate-bands'), 24);
+  assert.equal(flow.index('separate-bands'), 20);
+  assert.equal(flow.index('relocate-bands'), 21);
   for (const id of Chapter.sceneIds) {
     const end = flow.index('parameters.' + id);
     for (const p of [.000001, .02, .16, .5, .99, 1]) {
@@ -30,13 +30,13 @@ test('36 stops preserve every complete scene interval and the existing reconstru
     assert.equal(flow.durations[end - 1], Study.scene(id).duration + (id === 'shared' ? Chapter.sharedEntryDuration : 0));
   }
   for (const p of [.01, .12, .43, .99, 1]) {
-    const frame = flow.frame(22 + p);
+    const frame = flow.frame(19 + p);
     assert.ok(frame.baseTime >= 10.28 && frame.baseTime <= 11);
     assert.equal(Motion.demixState(frame.baseTime).panels.proof, 0, 'the skipped proof cannot flash during the handoff');
   }
-  assert.equal(flow.sceneIndex(22.05), 22, 'keep adopted weights during the entry fade');
-  assert.equal(flow.sceneIndex(22.2), 23);
-  for (let old = 11; old <= 23; old++) near(flow.frame(old + 12).baseTime, old);
+  assert.equal(flow.sceneIndex(19.05), 19, 'keep adopted weights during the entry fade');
+  assert.equal(flow.sceneIndex(19.2), 20);
+  for (let old = 11; old <= 23; old++) near(flow.frame(old + 9).baseTime, old);
 
 });
 
@@ -72,8 +72,8 @@ test('production host estimates the same nine frames and drives the chapter and 
     g.phases.forEach((phi, j) => near(phi, p.phases[j]));
     lesson.pipeline.raw.groups[d].frames.forEach((frame, j) => assert.equal(frame.pixels, supplied.raw.groups[d].frames[j].pixels));
   });
-  assert.equal(byId.get('scene-stops').children.length, 36);
-  assert.equal(byId.get('progress').max, '35');
+  assert.equal(byId.get('scene-stops').children.length, 33);
+  assert.equal(byId.get('progress').max, '32');
   const seek = t => { byId.get('progress').value = String(t); byId.get('progress').dispatch('input'); };
   // The production 03→04 interval teaches Euler and Fourier before showing
   // spectral copies, transporting persistent MathML tokens on one playhead.
@@ -196,7 +196,7 @@ test('production host estimates the same nine frames and drives the chapter and 
   assert.equal(fLabels.length, 3); fLabels.forEach(label => assert.equal(label.textContent, 'f'));
   const snapshot = () => Object.fromEntries(['motion-content', 'provisional-stage', 'split-handoff-stage', 'parameter-stage', 'adopted-stage'].map(id => [id, byId.get(id).style.opacity]));
   const saved = new Map();
-  const positions = Array.from({ length: 36 }, (_, i) => i).flatMap(i => i ? [i - .99, i - .8, i - .5, i - .01, i] : [0]);
+  const positions = Array.from({ length: 33 }, (_, i) => i).flatMap(i => i ? [i - .99, i - .8, i - .5, i - .01, i] : [0]);
   for (const t of [...positions, ...positions.toReversed()]) {
     seek(t);
     const frame = flow.frame(t), index = flow.sceneIndex(t);
@@ -249,8 +249,8 @@ test('production host estimates the same nine frames and drives the chapter and 
     else samePositions.set(t, transforms);
   }
   const ratio = nodes.find(el => el.attrs['data-study-ratio'] !== undefined);
-  seek(flow.index('parameters.fit')); const endpoint = ratio.attrs.d;
-  seek(flow.index('parameters.read') - .99); assert.equal(ratio.attrs.d, endpoint);
+  seek(flow.index('parameters.least-squares-fit') - .12); const endpoint = ratio.attrs.d;
+  seek(flow.index('parameters.least-squares-fit'));  assert.equal(ratio.attrs.d, endpoint);
   seek(flow.index('parameters.coarse') - .5);
   const candidateGroup = nodes.find(el => el.attrs['data-candidate-panel'] !== undefined);
   const kx = Number(candidateGroup.attrs['data-kx']), ky = Number(candidateGroup.attrs['data-ky']);
@@ -275,7 +275,7 @@ test('production host estimates the same nine frames and drives the chapter and 
     near(byId.get('progress').value, i); assert.equal(pending.size, 0);
     assert.equal(byId.get('chapter-replay').hidden, true);
   }
-  doc.dispatch('keydown', { key: 'End', target: byId.get('stage') }); near(byId.get('progress').value, 35);
+  doc.dispatch('keydown', { key: 'End', target: byId.get('stage') }); near(byId.get('progress').value, 32);
   assert.equal(players, 1); assert.equal(captures, 1, 'replay never acquires new observations');
   windowEvents.pagehide.forEach(callback => callback());
   assert.equal(pending.size, 0); assert.equal(byId.get('parameter-stage').children.length, 0);

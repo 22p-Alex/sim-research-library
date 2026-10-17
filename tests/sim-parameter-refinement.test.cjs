@@ -166,7 +166,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
     ...nodes.filter(n=>n.attrs['data-band-panel']!==undefined||n.attrs['data-otf-band']!==undefined||n.attrs['data-reference-point']!==undefined
       ||['P','Q','R'].includes(n.attrs['data-complex-plane'])||['P','Q','R'].includes(n.attrs['data-vector-u'])||['P','Q','R'].includes(n.attrs['data-vector-v']))];
   const before=overviewNodes.map(n=>({...n.attrs}));
-  lessonView.drawScene('geometry',0);
+  lessonView.drawScene('least-squares-fit',0);
   assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'18 ends in the exact frequency and complex-value pose used by 19 at entry');
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined),originalImages,'the handoff never replaces spectrum nodes');
   assert.deepEqual(h.errors,[]);

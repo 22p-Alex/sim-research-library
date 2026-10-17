@@ -260,14 +260,14 @@ test('Euler factorization and three-phase orthogonality justify the displayed no
   assert.ok(leakage.some((z, b) => Math.hypot(z.re - components[b].re, z.im - components[b].im) > .01), 'wrong relative phases cannot be absorbed into one common coefficient');
 });
 
-test('the active chapter inserts two handoffs and all eleven estimation scenes before direct formal separation', () => {
+test('the active chapter inserts two handoffs and all eight estimation scenes before direct formal separation', () => {
   const plan = Chapter.plan(Motion), ids = plan.stops.map(stop => stop.id);
   assert.equal(plan.active, true); assert.equal(Motion.parameterSlot.active, true);
   assert.equal(Motion.parameterSlot.after, 'inverse-demix');
   assert.equal(Motion.parameterSlot.before, 'verify-demix');
   assert.equal(Motion.parameterSlot.requiresProvisionalSplit, true);
   assert.equal(new Set(ids).size, ids.length);
-  assert.deepEqual(Chapter.sceneIds, Story.scenes.map(scene => scene.id), 'standalone and embedded views expose the same eleven scenes');
+  assert.deepEqual(Chapter.sceneIds, Story.scenes.map(scene => scene.id), 'standalone and embedded views expose the same eight scenes');
   const after = ids.indexOf(Motion.parameterSlot.after), before = ids.indexOf('separate-bands');
   assert.equal(ids.includes('verify-demix'), false, 'production omits the repeated coefficient proof');
   assert.deepEqual(Motion.sceneIds.slice(8, 12), ['mixed-sources', 'inverse-demix', 'verify-demix', 'separate-bands']);

@@ -42,10 +42,11 @@
     local: String.raw`$$k'_{r,a}=c_{r,a}+\frac{j-2}{2}s_r,\quad j=0,\ldots,4,\quad a\in\{x,y\},\qquad s_r\in\{0.50,0.10,0.02\}\ \text{格}$$`,
     lockedAddresses: String.raw`$$\mathbf k'=\widehat{\mathbf k},\qquad\widetilde A_0(\mathbf q)\ \longleftrightarrow\ \widetilde A_{+1}(\mathbf q+\widehat{\mathbf k})$$`,
     coefficient: String.raw`$$U_j=S(\mathbf q_j),\qquad V_j=m e^{i\phi_\Delta}U_j$$`,
-    geometry: String.raw`$$U_j=r_j e^{i\theta_j}\ \xrightarrow{\ \text{旋转 }\phi_\Delta\ }\ r_j e^{i(\theta_j+\phi_\Delta)}\ \xrightarrow{\ \text{缩放 }m\ }\ V_j=m r_j e^{i(\theta_j+\phi_\Delta)}$$`,
-    conjugate: String.raw`$$U_j^*V_j=r_j e^{-i\theta_j}\,m r_j e^{i(\theta_j+\phi_\Delta)}=m r_j^2e^{i\phi_\Delta}$$`,
-    fit: String.raw`$$\widehat\alpha=\frac{\sum_{\Omega}U^*V}{\sum_{\Omega}|U|^2},\qquad\widehat m=|\widehat\alpha|,\qquad\widehat\phi_\Delta=\arg\widehat\alpha$$`,
-    read: String.raw`$$I_j(\mathbf r)=1+\widehat m\cos\!\left(\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r+\phi'_j+\widehat\phi_\Delta\right),\qquad\widehat\phi_j=\phi'_j+\widehat\phi_\Delta$$`,
+    relationModel: String.raw`$$\begin{gathered}U_j=\frac{\widetilde A_0(\mathbf q_j)}{H(\mathbf q_j)}=S(\mathbf q_j),\qquad V_j=\frac{\widetilde A_{+1}(\mathbf q_j+\widehat{\mathbf k})}{H(\mathbf q_j+\widehat{\mathbf k})},\\V_j\simeq\alpha U_j,\qquad\alpha={\color{#efb879}m}e^{i{\color{#b7a5eb}\phi_\Delta}},\quad\mathbf q_j\in\Omega\end{gathered}$$`,
+    complexPlaneTransform: String.raw`$$e^{i\phi_\Delta}=\cos\phi_\Delta+i\sin\phi_\Delta,\qquad\begin{bmatrix}\operatorname{Re}V_j\\\operatorname{Im}V_j\end{bmatrix}\simeq {\color{#efb879}m}\underbrace{\begin{bmatrix}\cos\phi_\Delta&-\sin\phi_\Delta\\\sin\phi_\Delta&\cos\phi_\Delta\end{bmatrix}}_{\text{同步旋转 }\phi_\Delta}\begin{bmatrix}\operatorname{Re}U_j\\\operatorname{Im}U_j\end{bmatrix}$$`,
+    leastSquaresFit: String.raw`$$\widehat\alpha=\operatorname*{arg\,min}_{\alpha\in\mathbb C}\underbrace{\sum_{\mathbf q\in\Omega}|V(\mathbf q)-\alpha U(\mathbf q)|^2}_{J(\alpha)}=\frac{\overbrace{\sum_\Omega U^*V}^{C}}{\underbrace{\sum_\Omega|U|^2}_{E_U}}$$`,
+    fit: String.raw`$$J(\alpha)=E_U\left|\alpha-\frac C{E_U}\right|^2+E_V-\frac{|C|^2}{E_U},\qquad\frac{J(\widehat\alpha)}{E_V}=1-\rho^2$$`,
+    readParameters: String.raw`$$\widehat\alpha={\color{#efb879}\widehat m}e^{i{\color{#b7a5eb}\widehat\phi_\Delta}},\quad {\color{#efb879}\widehat m}=|\widehat\alpha|,\quad {\color{#b7a5eb}\widehat\phi_\Delta}=\arg C,\qquad\widehat\phi_j=\frac{2\pi j}{3}+\widehat\phi_\Delta$$`,
   };
   const definitions = [
     ['shared', '找公共区', '同一样品频率，在两个级次中记录在哪里？', '0 级在检测坐标 f=q 记录 S(q)，+1 级在 f=q+k 记录同一分量。真实 k 尚未知；试用 k′ 时，比较 Ã₀(q) 与 Ã₊₁(q+k′)，并只保留两处 OTF 都达到阈值的频点。', 'region', 'k 是真实未知波矢，k′ 是候选，k̂ 是估计值。画面用 k′=k 演示正确对应，不能由单个点的示意确定 k；后面会用公共区内多个频点的复数匹配搜索。OTF 阈值只筛选可比较的通带，还须检查有效点数与信号能量。', 28000],
@@ -55,10 +56,7 @@
     ['match', '逐格填分数', '试一个位移，算一个分数，填一个格。', '保持 0 级固定。每换一个 k′，就在公共区逐点共轭相乘、累计，再把分数送入右侧对应格。先看清几次计算，再加速填满候选图。', 'match', '主线只保留乘加与填图。匹配分数取乘积和的模并做能量归一化；越亮表示匹配越强，深色格未纳入搜索。', 36000],
     ['coarse', 'FFT 一次成图', '换到空域，只乘一次，算出整张图。', '原有元素先变暗。两个未平移频带各自校正、圈外置零，分别逆 FFT；在同一空域位置逐点共轭相乘，扫出乘积图，再正 FFT、归一化，让结果归位到同一评分图。', 'fftCorrelation', '图中 u、v 是固定预处理频谱的逆变换，仍为复数场。分数的能量与有效点数也用 FFT 批量计算，保持和逐格扫描相同的色标与结果。', 44000],
     ['refine', '细化位移', '整数峰只给出初值，波矢也可落在频率格之间。', '接住上一幕的整数峰，放大其周围 ±0.5 个 DFT 格。用空域相位斜坡计算小数位移处的频谱，再做三轮 5×5 局部搜索，最终搜索步长为 0.01 格；锁定后回到同一对完整频谱。', 'gridLimit', '教学实现采用三轮 5×5（步长 0.25 → 0.05 → 0.01 格）；原版 fairSIM fitPeak 采用三轮 10×10（半宽 2.5 → 0.5 → 0.1 格）。搜索步长不是测量精度。位置锁定后进入共同幅相估计。', 68000],
-    ['geometry', '转动与缩放', '为什么相位是旋转，调制度是伸缩？', '位移锁定后，完成 OTF 校正的 U 与 V 含同一个 S(q)，只差 m·exp(iφΔ)。exp(iφΔ) 的模为 1，相乘只把复数角度加上 φΔ；再乘实数 m，只把长度变成 m 倍。因此每个频点都应有相同角度差与长度比。', 'geometry', '此处 V 简记锁定位移 k̂ 后的校正值。频率点 q 不动；旋转发生在 Re–Im 平面，共同的是角度差和长度比。', 24000],
-    ['conjugate', '消去自身相位', '取共轭，消去各个点自己的相位。', '继续使用刚才的 P、Q、R。把 0 级箭头取共轭，再与对应旁带相乘；三个乘积留下相同的相位方向。', 'conjugate', '星号表示共轭：相位取反。相乘后自己的 θj 消掉，剩下 φΔ；乘积使用单独的能量标尺。', 16000],
-    ['fit', '合起来拟合', '把公共点合起来，求出同一个系数。', '将三个点的解释扩展到完整可靠公共区。复数乘积先求和， 0 级能量同时累计，最后相除得到共同系数。', 'fit', '弱参考点的逐点相除可能不稳定；这里以全部公共点做复数最小二乘拟合。分子、分母使用同一批点。', 16000],
-    ['read', '回看条纹', '把幅相放回条纹，看看照明怎样变。', '保留刚求出的比例箭头。先在照明预览中加入相位，再加入调制度，随后将估计参数填回混合矩阵。', 'read', '照明预览没有重新曝光。k̂ 决定周期与法线方向，φ̂Δ 决定条纹位置，m̂ 决定对比度。', 14000],
+    ['least-squares-fit', '共同幅相拟合', '位置对齐并除 H 后，所有公共点共享同一个复系数。', '固定波矢与可靠公共区，沿用 P、Q、R 的实际复数值。先解释同一次旋转和伸缩，再用全部可靠点拟合共同系数，并读出相位与调制度。', 'readParameters', '三相相对步进已知且准确；理想对齐、无噪声时 V=αU，实际拟合保留残差。相位斜坡用于小数频移，共同相位用于复数值旋转。', 64000],
   ];
   const scenes = definitions.map(([id, label, title, copy, formula, note, duration], i) => ({ id, label, title, copy, equation: formulas[formula], note, duration,
     chapter: i < 7 ? '① 找位置 / 频率坐标' : '② 求幅相 / 复数值', phase: i < 7 ? 'position' : 'coefficient' }));
@@ -70,10 +68,8 @@
     return { id, step, progress: p, position: step + p, phase: s.phase,
       otfMultiply: id === 'otf' ? otfState(p).multiply : step > index('otf') ? 1 : 0,
       correction: id === 'otf' ? otfState(p).cancel : step > index('otf') ? 1 : 0,
-      rotation: id === 'geometry' ? ramp(p, .18, .49) : step > index('geometry') ? 1 : 0,
-      scaling: id === 'geometry' ? ramp(p, .59, .88) : step > index('geometry') ? 1 : 0,
-      conjugation: id === 'conjugate' ? ramp(p, .16, .43) : step > index('conjugate') ? 1 : 0,
-      product: id === 'conjugate' ? ramp(p, .55, .87) : step > index('conjugate') ? 1 : 0 };
+      rotation: id === 'least-squares-fit' ? ramp(p, .25, .43) : 0,
+      scaling: id === 'least-squares-fit' ? ramp(p, .43, .60) : 0 };
   }
   function reasoningAt(s) {
     const p = Math.round(s.progress*1e12)/1e12;
@@ -124,10 +120,10 @@
     }
     const reasoning = reasoningAt(s);
     if (reasoning) return { equation: reasoning.equation, note: reasoning.note };
-    if (s.id === 'geometry') return { equation: formulas.geometry, note: p < .14
-      ? '为什么能共用一个系数？正确对齐后，U_j=S(q_j)，V_j=m·exp(iφΔ)U_j。实际使用估计 k̂，噪声与对齐误差会使该关系近似成立。这个关系来自临时分离的成像式。'
-      : p < .59 ? '欧拉公式 exp(iφΔ)=cosφΔ+i·sinφΔ，模长为 1。乘到 r_j·exp(iθ_j) 上，角度变为 θ_j+φΔ，长度 r_j 不变；试探错误角度时不能同时对准旁带。'
-      : 'm 是非负实数：乘 m 后长度变为 m·r_j，角度保持 θ_j+φΔ。因而 |V_j|/|U_j|=m、arg V_j−arg U_j=φΔ；这两个参数在所有可靠点上共同拟合。' };
+    if (s.id === 'least-squares-fit') {
+      const narrative = leastSquaresNarrative(p);
+      return { equation: formulas[narrative.mode], note: narrative.note };
+    }
     return { equation: data.equation, note: data.note };
   }
   function sharedState(progress) {
@@ -181,6 +177,7 @@
   }
   function formulaMode(s) {
     const p = s.progress;
+    if (s.id === 'least-squares-fit') return s.id + '-' + leastSquaresNarrative(p).mode;
     const reasoning = reasoningAt(s);
     if (reasoning) return reasoning.key;
     return s.id + (s.id === 'shared' ? p < .78 ? '-derive' : p < .94 ? '-common' : '-reliable'
@@ -331,16 +328,41 @@
       }};
     refinementCache.set(lesson,result);return result;
   }
-  function transformState(lesson, progress) {
-    const p = clamp(progress), phase = lesson.estimate.phase, trial = phase + .65;
-    return { phase: p < .32 ? trial * ramp(p, .14, .32) : trial + (phase - trial) * ramp(p, .32, .57),
-      m: 1 + (lesson.estimate.m - 1) * ramp(p, .64, .92), trial: p < .57 };
+  // Geometric exploration does not run the estimator: it moves only copies
+  // of U. The measured targets, q addresses, fit and raw frames stay fixed.
+  function leastSquaresNarrative(progress) {
+    const p = Math.round(clamp(progress) * 1e12) / 1e12;
+    const mode = p < .25 ? 'relationModel' : p < .60 ? 'complexPlaneTransform' : p < .85 ? 'leastSquaresFit' : 'readParameters';
+    const copy = {
+      relationModel: ['位置对齐并除 H 后，所有公共点共享同一个复系数。', '每个点有自己的样品相位和长度；对应的 Uⱼ、Vⱼ 却应有相同的角度差与长度比。P、Q、R 仍是刚才公共区里的实际频点。', '理想对齐、无噪声时 Vⱼ=αUⱼ；使用估计波矢与带噪观测时近似成立。两边各除自己的 H，且仅使用可靠公共区。'],
+      complexPlaneTransform: ['在复平面上，共同相位是旋转，调制度是伸缩。', p < .43 ? '橙色副本先试探共同角度，再回到拟合方向。三个副本同步转动，长度保持不变；青色参考与紫色观测始终固定。' : '方向对齐后，三个副本同步乘同一个长度比例。白色虚线连接预测与观测，表示残差；有噪声时它不一定消失。', '试探仅演示复数乘法，数值解由后面的闭式拟合给出。主线相位接近 0，不把演示角度当成实测相位。频率坐标 q 与锁定波矢均不变。'],
+      leastSquaresFit: ['用全部可靠公共点做复数最小二乘，一次算出 m̂ 与 φ̂Δ。', '将 P、Q、R 扩展到完整公共区。所有点共用一个 α；累计 C=ΣU*V 与参考能量 Eᵤ，再相除。最小化的是全部残差的平方和。', 'U*V 消去各点自身的样品相位。配平方得 J(α)=Eᵤ|α−C/Eᵤ|²+Eᵥ−|C|²/Eᵤ，因此 α̂=C/Eᵤ；用相同公共区和权重时，J(α̂)/Eᵥ=1−ρ²。'],
+      readParameters: ['取模长得到调制度 m̂，取相角得到共同相位偏移 φ̂Δ。', '临时分离的 2/3 已补偿余弦展开的 1/2，所以 |α̂| 直接给出 m̂。加上已知相对相移，得到各帧相位，再将估计值填回解混矩阵。', '第 18 步的相位斜坡随像素位置变化，用于小数频移；这里的共同相位对所有公共频点相同。采用等间隔三相模型，下面填回正式解混权重。'],
+    }[mode];
+    return { mode, title: copy[0], copy: copy[1], note: copy[2] };
   }
-  function fittingState(id, progress, count) {
-    const p = clamp(progress), read = id === 'read';
-    return { count: read ? count : Math.floor(ramp(p, .12, .60) * count), divide: read ? 1 : ramp(p, .72, .94),
-      phase: read ? ramp(p, .15, .45) : 0, modulation: read ? ramp(p, .58, .88) : 0 };
+  function leastSquaresState(lesson, progress) {
+    const p = Math.round(clamp(progress) * 1e12) / 1e12, e = lesson.estimate;
+    const trialAngle = e.phase + .65;
+    const phase = p < .32 ? trialAngle * ramp(p, .25, .32)
+      : trialAngle + (e.phase - trialAngle) * ramp(p, .32, .43);
+    const m = 1 + (e.m - 1) * ramp(p, .43, .60);
+    const alpha = { re: m * Math.cos(phase), im: m * Math.sin(phase) };
+    const best = dataFor(lesson).best;
+    // Sum the actual residuals (stable near a perfect fit), not E_V-|C|²/E_U.
+    const loss = z => best.points.reduce((sum, point) => {
+      const re = point.y.re - (z.re * point.x.re - z.im * point.x.im);
+      const im = point.y.im - (z.re * point.x.im + z.im * point.x.re);
+      return sum + re * re + im * im;
+    }, 0);
+    return { ...leastSquaresNarrative(p), progress: p, phase, m, alpha,
+      trial: p >= .25 && p < .43, gather: ramp(p, .02, .14), merge: ramp(p, .25, .29),
+      prediction: ramp(p, .25, .27), cloud: ramp(p, .60, .66),
+      count: Math.min(best.count, Math.floor((ramp(p, .64, .75) + 1e-12) * best.count)),
+      divide: ramp(p, .76, .82), read: ramp(p, .85, .91), cards: ramp(p, .91, .97),
+      residual: loss(alpha), minimum: loss(best.alpha), energy: best.yy,
+      k: [e.kx, e.ky] };
   }
-  const api = { scenes, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, sharedState, sharedPointState, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, transformState, fittingState };
+  const api = { scenes, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, sharedState, sharedPointState, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, leastSquaresNarrative, leastSquaresState };
   if (node) module.exports = api; else root.SIMParameterLesson = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -39,3 +39,7 @@
 .pe-refine-formula [data-emphasized=true]{text-shadow:0 0 13px #efb87966}
 .pe-refine-phase-diagram{display:block;width:160px;height:100px}
 .pe-refine-formula-numeric{font-size:11px;line-height:1.5;color:#8eabb6;text-align:center;font-variant-numeric:tabular-nums}
+
+/* Fixed SVG formula slots in the common-coefficient story. */
+.pe-fit-math { color: #e5efed; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.pe-fit-math .katex-display { margin: 0; }

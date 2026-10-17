@@ -32,12 +32,12 @@
         $('pe-chapter').textContent = data.chapter; $('pe-title').textContent = data.title; $('pe-copy').textContent = data.copy;
         $('pe-step-number').textContent = String(scene + 1).padStart(2, '0');
         $('pe-svg-title').textContent = data.title; $('pe-svg-description').textContent = data.copy + ' ' + data.note;
-        $('pe-stage-label').textContent = data.section === 'entry' ? 'ENTRY / 解法 → 临时数据' : data.section === 'exit' ? 'EXIT / 估计参数 → 正式重建' : scene < P.index('geometry') ? '① 找位置 / 频率坐标' : '② 求幅相 / 复数值';
+        $('pe-stage-label').textContent = data.section === 'entry' ? 'ENTRY / 解法 → 临时数据' : data.section === 'exit' ? 'EXIT / 估计参数 → 正式重建' : scene < P.index('least-squares-fit') ? '① 找位置 / 频率坐标' : '② 求幅相 / 复数值';
         stops.forEach((button, index) => index === scene ? button.setAttribute('aria-current', 'step') : button.removeAttribute('aria-current'));
         if (!scrubbing) stops[scene].scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
       }
-      if(s.id==='refine') {
-        const copy=root.SIMParameterLesson.refinementNarrative(s.progress);
+      if(s.id==='refine'||s.id==='least-squares-fit') {
+        const copy=root.SIMParameterLesson[s.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.progress);
         $('pe-title').textContent=copy.title;$('pe-copy').textContent=copy.copy;
         $('pe-svg-title').textContent=copy.title;$('pe-svg-description').textContent=copy.copy+' '+data.note;
       }

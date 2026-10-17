@@ -554,36 +554,43 @@
       return Chapter.sharedEntryFormulaAt(progress);
     }
 
-    label(adopted, 720, 35, '仍用这九帧，各方向填入自己的估计参数。');
+    const directionSummary = create('g', { 'data-adopted-summary': '' }, adopted);
+    label(directionSummary, 720, 35, '仍用这九帧，各方向填入自己的估计参数。');
     reconstruction.parameters.forEach((p, d) => {
       const x = 285 + d * 435;
-      label(adopted, x, 76, `方向 ${d + 1}：k̂ = (${compact(p.kx)}, ${compact(p.ky)}) · θ̂ = ${p.angle.toFixed(1)}°`);
-      label(adopted, x, 106, `m̂ = ${compact(p.m)} · φ̂Δ = ${compact(p.phase)} rad`, { class: 'svg-muted', 'data-adopted-direction': d });
+      label(directionSummary, x, 76, `方向 ${d + 1}：k̂ = (${compact(p.kx)}, ${compact(p.ky)}) · θ̂ = ${p.angle.toFixed(1)}°`);
+      label(directionSummary, x, 106, `m̂ = ${compact(p.m)} · φ̂Δ = ${compact(p.phase)} rad`, { class: 'svg-muted', 'data-adopted-direction': d });
     });
-    label(adopted, 720, 149, '先看方向 1：把相位与调制度填回 M。', { fill: M.colors[2] });
+    const focusDirection = label(adopted, 720, 149, '方向 1：φ̂ⱼ = 2πj/3 + φ̂Δ；将 m̂、φ̂ⱼ 填入 M。', { fill: M.colors[2] });
     const group = lesson.group;
     const mixing = create('g', {}, adopted), inverse = create('g', {}, adopted);
     label(mixing, 390, 195, 'M · 把三个来源混成一帧'); label(inverse, 1090, 195, 'U · 从三帧中取出一个来源');
-    const matrixRows = [], inverseRows = [];
+    const matrixRows = [], inverseRows = [], symbolicRows = [], phaseLabels = [];
     for (let j = 0; j < 3; j++) {
       const mRow = create('g', { 'data-adopted-matrix-row': j }, mixing);
+      const symbolic = create('g', { 'data-adopted-symbolic-row': j }, mixing);
+      symbolicRows.push(symbolic);
       const uRow = create('g', { 'data-adopted-weight-row': j }, inverse), y = 263 + j * 75;
       M.orders.forEach((order, b) => {
         const amplitude = order === 0 ? 1 : group.m / 2, phase = order * group.phases[j];
         const z = { re: amplitude * Math.cos(phase), im: amplitude * Math.sin(phase) };
+        const tex = order === 0 ? '1' : String.raw`\frac{\widehat m}{2}e^{` + (order > 0 ? 'i' : '-i') + String.raw`\widehat\phi_` + j + '}';
+        formulaBox(symbolic, 127 + b * 185, y - 36, 156, 59, '$$' + tex + '$$');
         label(mRow, 205 + b * 185, y, complex(z), { class: 'adopted-coefficient', fill: M.colors[b],
           'data-adopted-matrix': `${j}:${b}`, 'data-re': z.re, 'data-im': z.im });
         const w = group.weights[j][b];
         label(uRow, 905 + b * 185, y, complex(w), { class: 'adopted-coefficient', fill: M.colors[j],
           'data-adopted-inverse': `${j}:${b}`, 'data-re': w.re, 'data-im': w.im });
       });
+      phaseLabels.push(label(mixing, 390, y + 25, `第 ${j} 帧：φ̂${['₀','₁','₂'][j]} = ${compact(group.phases[j])} rad`, { class: 'svg-muted' }));
       matrixRows.push(mRow); inverseRows.push(uRow);
     }
     create('path', { d: 'M 120 217 H 105 V 436 H 120 M 666 217 H 681 V 436 H 666 M 820 217 H 805 V 436 H 820 M 1366 217 H 1381 V 436 H 1366', class: 'guide-line' }, adopted);
     const process = create('g', {}, adopted);
     formulaBox(process, 676, 270, 125, 74, String.raw`$$\longrightarrow$$`);
     label(process, 740, 353, '求逆', { fill: M.colors[2] });
-    const application = label(adopted, 720, 508, '同一组三帧观测，分别算出三份正式频带。', { fill: M.colors[0] });
+    const restoredFactor = formulaBox(adopted, 130, 440, 1180, 53, String.raw`$$u_{\pm1,j}=\underbrace{\frac1{\widehat m}e^{\mp i\widehat\phi_\Delta}}_{\text{补回共同幅相}}\,\widetilde u_{\pm1,j},\qquad\widehat{\mathbf k}\ \longrightarrow\ \text{频带归位}$$`);
+    const application = label(adopted, 720, 524, '同一组三帧观测，分别算出三份正式频带。', { fill: M.colors[0] });
     return { resetEntry, drawEntry, drawEntryFormula, drawProvisionalFormula, draw(id, progress) {
       if (id === 'provisional-split') {
         const s = Chapter.provisionalState(progress);
@@ -623,9 +630,14 @@
           opacity(node, alpha); attr(node, 'aria-hidden', alpha === 0);
         }
       } else {
-        matrixRows.forEach((g, j) => opacity(g, M.ramp(progress, .12 + j * .12, .24 + j * .12)));
-        inverseRows.forEach((g, j) => opacity(g, M.ramp(progress, .56 + j * .10, .66 + j * .10)));
-        opacity(process, M.ramp(progress, .48, .60)); opacity(application, M.ramp(progress, .88, 1));
+        const s = Chapter.adoptedState(progress);
+        attr(adopted, 'data-adopted-progress', s.progress);
+        opacity(directionSummary, s.directions); opacity(focusDirection, s.focus);
+        matrixRows.forEach((g, j) => opacity(g, s.rows[j]));
+        symbolicRows.forEach((g, j) => opacity(g, s.focus * (1 - s.rows[j])));
+        phaseLabels.forEach((g, j) => opacity(g, s.rows[j]));
+        inverseRows.forEach((g, j) => opacity(g, s.inverse[j]));
+        opacity(process, s.process); opacity(restoredFactor, s.factor); opacity(application, s.application);
 
       }
     } };

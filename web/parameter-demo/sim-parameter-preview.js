@@ -1,4 +1,4 @@
-/* Standalone connection study. The eleven estimation scenes remain reusable.
+/* Standalone connection study. The eight estimation scenes remain reusable.
  * These entry/exit scenes are deliberately NOT loaded by the Motion page.
  * Method: fairSIM SimAlgorithm.java, provisional separation at 181–190,
  * adopted-parameter separation at 601–603, then frequency relocation. */
@@ -53,7 +53,7 @@
     if (s.id === 'temporary' && s.progress < .23) return { equation: phaseModel, note: '已知 φ′ⱼ，未知 φΔ。只用 φ′ⱼ 做加权；临时旁带仍保留未知的 m 与共同相位。' };
     return { equation: scenes[s.step].equation, note: scenes[s.step].note };
   }
-  const { fittingState, matchingState } = Study;
+  const { leastSquaresState, matchingState } = Study;
   const createFormulaView = (container,lesson) => Study.createFormulaView(container, { formulaAt,lesson });
   const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
   function dataFor(lesson) {
@@ -266,6 +266,6 @@
     return { draw, data, connectionGroups: groups, estimationGroups: estimationView.groups, estimationView,
       destroy() { estimationView.destroy(); owned.forEach(g => g.remove()); } };
   }
-  const api = { scenes, durations, index, state, formulaAt, dataFor, createView, fittingState, matchingState, createFormulaView };
+  const api = { scenes, durations, index, state, formulaAt, dataFor, createView, leastSquaresState, matchingState, createFormulaView };
   if (node) module.exports = api; else root.SIMParameterPreview = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
