@@ -140,7 +140,7 @@
         label = '无法重建';
         if (r.reason === 'no-data') status = '没有采集帧。请开启至少一个采集方向。';else if (r.reason === 'blocked') status = '激发光被阻断，无法重建。请增大照明周期或调整光路。';else if (r.reason === 'phase-rank') status = `相位矩阵秩为 ${r.system.rank}/3。请使用三个不同相位；0 与 2π 等价。`;else status = '相位过于接近，无法稳定重建。请拉开三个相位的间隔。';
       } else if (r.reason === 'widefield') {
-        label = '仅零级频带';
+        label = '仅 0 级频带';
         tone = 'amber';
         // The known-m run on identical raw isolates screening from real bandwidth loss.
         const screenedOut = !isKnown && known.result.ok && known.result.reason !== 'widefield';
@@ -214,7 +214,7 @@
         if (!t) return `<tr><td>${i + 1}</td><td colspan="6">未采集该方向</td></tr>`;
         const detail = e ? `${reasons[e.reason]}<small>${e.points} 点 · 相关 ${e.correlation === undefined ? '—' : e.correlation.toFixed(3)} · 残差 ${e.residual == null ? '—' : e.residual.toFixed(3)}</small>` : '无可用帧或无激发';
         const estimate = e?.ok ? e.m.toFixed(3) : `—${e?.rawM != null ? `<small>候选 ${e.rawM.toFixed(3)}</small>` : ''}`;
-        return `<tr><td>${i + 1}<small>${p.angles[i]}°</small></td><td>${t.m > 0 ? t.period.toFixed(3) : '无调制载频'}</td><td>${t.mean.toFixed(3)}<small>透过 ${t.plus.T.toFixed(2)} / ${t.minus.T.toFixed(2)}</small></td><td>${t.mean ? t.edge < 1 ? `${t.m.toFixed(3)}<small>v×${t.edge.toFixed(2)}</small>` : t.m.toFixed(3) : '无激发'}</td><td class="${e?.ok ? '' : 'unreliable'}">${estimate}</td><td>${used === undefined ? '—' : used > 0 ? used.toFixed(3) : '仅零级'}</td><td class="${e?.ok ? '' : 'unreliable'}">${detail}</td></tr>`;
+        return `<tr><td>${i + 1}<small>${p.angles[i]}°</small></td><td>${t.m > 0 ? t.period.toFixed(3) : '无调制载频'}</td><td>${t.mean.toFixed(3)}<small>透过 ${t.plus.T.toFixed(2)} / ${t.minus.T.toFixed(2)}</small></td><td>${t.mean ? t.edge < 1 ? `${t.m.toFixed(3)}<small>v×${t.edge.toFixed(2)}</small>` : t.m.toFixed(3) : '无激发'}</td><td class="${e?.ok ? '' : 'unreliable'}">${estimate}</td><td>${used === undefined ? '—' : used > 0 ? used.toFixed(3) : '仅 0 级'}</td><td class="${e?.ok ? '' : 'unreliable'}">${detail}</td></tr>`;
       }).join('');
       drawMap(p, r);
       latest = {
@@ -251,7 +251,7 @@
       const estMis = a || ph || oe,
         est = latest.estimated.estimates,
         rel = est.filter(e => e.ok).length;
-      if (estMis && $('wAreconMode').value === 'known') segs.push(`估计筛查通过 ${rel}/${est.length} 个方向；当前使用真值 m，一级频带不因调制度估计被拒而丢弃`);else if (estMis && rel < est.length) segs.push(`失配同时进入估计器：筛查通过 ${rel}/${est.length} 个方向，被拒方向降级为零级${r.reason === 'widefield' ? '，重建已退化为宽场，拖滑块看似无效——这是估计器的自我保护，不是伪影本身' : ''}`);else if (estMis) segs.push(`筛查通过 ${rel}/${est.length}、一级频带保留：失配直接表现为频带错位、泄漏、鬼影与方向性条纹`);
+      if (estMis && $('wAreconMode').value === 'known') segs.push(`估计筛查通过 ${rel}/${est.length} 个方向；当前使用真值 m，一级频带不因调制度估计被拒而丢弃`);else if (estMis && rel < est.length) segs.push(`失配同时进入估计器：筛查通过 ${rel}/${est.length} 个方向，被拒方向降级为 0 级${r.reason === 'widefield' ? '，重建已退化为宽场，拖滑块看似无效——这是估计器的自我保护，不是伪影本身' : ''}`);else if (estMis) segs.push(`筛查通过 ${rel}/${est.length}、一级频带保留：失配直接表现为频带错位、泄漏、鬼影与方向性条纹`);
       $('wAerrImpact').textContent = (segs.length ? '只改变估计与重建、不重新生成 raw。' : '未注入失配：拖动任一滑块看它的单独影响。') + (segs.length ? segs.join('；') + '。' : '') + `正则 ε=${fmt(eps)}：|T|=${fmt(eps)} 处融合权重减半，越大越平滑。`;
     }
     function fillModal() {

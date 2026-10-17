@@ -31,11 +31,14 @@
     function at(x, y) {
       const sample = 0.5 + 0.5 * Math.cos(TAU * fs * x);
       const illumination = ex.mean * (1 + ex.m * Math.cos(TAU * (kx*x + ky*y) + p.phase));
+      const differencePre = ex.mean * ex.m / 4 * Math.cos(TAU * (dx*x + dy*y) - p.phase);
       const difference = ex.mean * ex.m / 4 * hd * Math.cos(TAU * (dx*x + dy*y) - p.phase);
       const camera = ex.mean * (0.5 + 0.5 * hs * Math.cos(TAU * fs*x)
         + ex.m / 2 * hi * Math.cos(TAU * (kx*x + ky*y) + p.phase)
         + ex.m / 4 * hu * Math.cos(TAU * (sx*x + sy*y) + p.phase)) + difference;
-      return { sample, illumination, emission: sample * illumination, camera, difference };
+      return { sample, illumination, emission: sample * illumination, camera,
+        differencePre, difference, referencePre: ex.mean / 2 + differencePre,
+        referencePost: ex.mean / 2 + difference };
     }
     return { at, ex, exPeriod, kc, fs, fi, kx, ky, dx, dy, hd, hs, hi,
       diff: Math.hypot(dx, dy), maxGain: ex.mean && ex.m > 0 ? 1 + fi/kc : 1 };

@@ -2,6 +2,19 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const C = require('../web/shared/sim-core'), A = require('../web/atlas/sim-atlas-core');
 const N = A.N;
 const take = p => A.capture({ sample: 'star-points', directions: 3, noise: 'none', m: .8, ...p });
+test('calibrated modulation reconstructs directly without running the external estimator', () => {
+  const E = require('../web/shared/sim-experiment');
+  const cap = take(), estimate = E.estimate;
+  E.estimate = () => { throw new Error('calibrated reconstruction called the external estimator'); };
+  try {
+    const p = A.pipeline(cap.raw, cap.calibration, {}, .8);
+    assert.equal(p.ok, true);
+    assert.equal(p.bands.length, 9);
+    assert.deepEqual(p.estimates, []);
+    assert.ok(p.groups.every(g => g.m === .8 && !g.fallback));
+    assert.ok(p.outputPixels.every(Number.isFinite));
+  } finally { E.estimate = estimate; }
+});
 test('siemens star still spans three frequency zones after fairSIM apodization', () => {
   const cap = take(), p = A.pipeline(cap.raw, cap.calibration, { eps: 0 }, .8);
   const wf = A.radialProfile(cap.truth.widefield), sm = A.radialProfile(p.pixels);

@@ -1,0 +1,19 @@
+/* Shared linked-study diagrams and persistent formula parts. */
+.pe-study-title{font-size:19px;font-weight:500;fill:#d7e4e1}.pe-study-number{font-size:20px;fill:var(--orange);font-variant-numeric:tabular-nums}.pe-study-weight{font-size:15px;fill:#b9cdd2;font-family:"SFMono-Regular",Consolas,monospace}
+.pe-study-formula{display:flex;align-items:center;justify-content:center;gap:24px;width:max-content;margin-inline:auto;padding:4px 8px;font-size:18px}.pe-study-fraction{display:flex;flex-direction:column;align-items:stretch;text-align:center;gap:3px}.pe-study-fraction>.pe-study-formula-part:first-child{border-bottom:1px solid #bdcdd1;padding-bottom:7px}.pe-study-formula-part{display:flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:4px}.pe-study-formula-part[data-emphasized=true]{background:#7ad5cd15;box-shadow:inset 0 0 0 1px #7ad5cd50}.pe-study-formula-part[data-formula-part=result]{color:var(--orange)}.pe-phase-part{color:var(--violet)}.pe-study-formula-part>.katex{display:block;width:max-content;margin-inline:auto}[data-formula-mode=read] .pe-study-formula{gap:45px}
+[data-formula-mode=read] .pe-study-read-formula{flex-direction:column;gap:8px}.pe-study-read-factors{display:flex;align-items:center;justify-content:center;gap:45px}
+.pe-study-coordinate-formula{position:relative;margin-inline:auto;display:grid;justify-items:center;align-items:center;width:max-content;font-size:17px;line-height:1.2;padding:2px 0}
+.pe-study-coordinate-rows{grid-area:1/1;display:flex;flex-direction:column;gap:3px;align-items:center;justify-content:center}
+.pe-study-coordinate-row{display:flex;align-items:center;justify-content:center;gap:2px;min-height:42px}
+.pe-study-coordinate-slot{display:grid;align-items:center;justify-items:center;flex:0 0 auto}
+.pe-study-coordinate-slot>.pe-study-formula-part{grid-area:1/1;padding:2px 4px;white-space:nowrap}
+.pe-study-coordinate-formula>.pe-study-coordinate-slot{grid-area:1/1}
+.pe-study-coordinate-cue{grid-area:2/1;display:block;margin:3px auto 0;font-size:14px;color:var(--cyan);min-height:24px}
+.pe-study-coordinate-row>span>.katex{display:block;margin-inline:auto;width:max-content}
+.pe-study-matching-formula{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-inline:auto;width:max-content;font-size:17px;line-height:1.2;gap:5px}
+.pe-study-match-equation,.pe-study-match-numerator{display:flex;align-items:center;justify-content:center;gap:2px}
+.pe-study-match-fraction{display:flex;flex-direction:column;align-items:center}
+.pe-study-conjugate-star{align-self:flex-start;padding:5px 0;margin-left:-8px;color:var(--cyan)}
+.pe-study-match-denominator{display:block;overflow:hidden;border-top:solid #b7c9cd;font-size:13px;max-height:0;opacity:0}
+.pe-study-match-denominator>.katex{display:block;width:max-content;margin-inline:auto}
+.pe-study-matching-formula>.pe-study-coordinate-slot{font-size:13px;color:#a6bfc3;min-height:27px}

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>SIM · 参数估计衔接 Demo</title>
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter.css?v=two-stage-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=otf-before-after-5">
+</head>
+<body>
+<div class="pe-app" id="pe-app" aria-busy="true">
+  <header class="pe-header">
+    <a class="pe-brand" href="sim_motion_demo.html" aria-label="返回完整 SIM 演示"><svg viewBox="0 0 44 40" aria-hidden="true"><circle cx="17" cy="14" r="10"/><circle cx="28" cy="14" r="10"/><circle cx="22.5" cy="24" r="10"/></svg><b>SIM</b><span>/</span><small>PARAMETER STUDY</small></a>
+    <span class="pe-mode"><i></i> 参数估计 · 移动、评分与幅相读出</span>
+    <div class="pe-links"><a class="pe-back" href="web/parameter-demo/README.md">方法与来源 ↗</a><a class="pe-back" href="sim_motion_demo.html">返回完整演示 ↗</a></div>
+  </header>
+  <main>
+    <section class="pe-heading" aria-labelledby="pe-title">
+      <div class="pe-chapter" id="pe-chapter">01 / 估计的起点</div>
+      <div><h1 id="pe-title">从求逆公式出发，跑通参数估计…</h1><p id="pe-copy">入口衔接 → 参数估计 → 回填矩阵 → 正式解混与归位</p></div>
+      <div class="pe-count"><span id="pe-step-number">01</span><small id="pe-step-total">/ 16</small></div>
+    </section>
+    <section class="pe-stage" id="pe-stage" aria-label="参数估计动画">
+      <div class="pe-stage-meta"><span id="pe-stage-label">PROVISIONAL BANDS → ESTIMATION</span><span>第 1 方向 · 同一份三相位数据</span></div>
+      <svg id="pe-svg" viewBox="0 0 1440 560" role="img" aria-labelledby="pe-svg-title pe-svg-description"><title id="pe-svg-title">SIM 参数估计章节</title><desc id="pe-svg-description">先说明矩阵中的未知量，通过临时分离估计参数，再回填同一个矩阵，正式解混和归位。</desc><g id="pe-art"></g></svg>
+      <button id="pe-previous" class="pe-edge pe-edge-left" type="button" aria-label="上一步">←</button>
+      <button id="pe-next" class="pe-edge pe-edge-right" type="button" aria-label="下一步">→</button>
+    </section>
+    <section class="pe-formula" aria-label="当前步骤的公式与解释"><span>原理 · 对应当前动作</span><div><div id="pe-equation"></div><p id="pe-note"></p></div></section>
+  </main>
+  <footer class="pe-footer">
+    <div class="pe-transport"><span class="pe-hint">← 返回 <span>/</span> 右侧继续 → <span>·</span> 空格暂停</span><span id="pe-status" role="status" aria-live="polite">准备中</span><div><button id="pe-replay" type="button">↺ 重看这一步</button><button id="pe-restart" type="button">↺ 重来</button><button id="pe-speed" type="button" aria-label="播放速度，当前 1 倍">1×</button><button id="pe-play" type="button">下一步 →</button></div></div>
+    <div class="pe-timeline"><div id="pe-timeline-track"><input id="pe-progress" type="range" min="0" max="16" value="0" step="0.001" aria-label="参数估计时间轴"><div id="pe-stops" class="pe-stops" role="group" aria-label="十六个停点"></div></div></div>
+  </footer>
+</div>
+<div id="pe-error" class="pe-error" role="alert" hidden></div>
+<noscript>这个 Demo 需要启用 JavaScript；公式与方法可阅读 web/parameter-demo/README.md。</noscript>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="web/shared/sim-core.js"></script>
+<script src="web/shared/sim-experiment.js"></script>
+<script src="web/shared/sim-band-formulas.js?v=2"></script>
+<script src="web/atlas/sim-atlas-core.js"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=2"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=order-symbols-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=otf-before-after-5"></script>
+<script src="web/parameter-demo/sim-parameter-line-view.js?v=return-2d-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=otf-before-after-5"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=order-symbols-1"></script>
+<script src="web/parameter-demo/sim-parameter-preview.js?v=order-symbols-1"></script>
+<script src="web/parameter-demo/sim-parameter-app.js?v=two-stage-1"></script>
+</body>
+</html>

@@ -50,6 +50,30 @@ test('both blocked beams give zero emission; zero modulation keeps uniform light
   near(dark.ex.mean,0);near(dark.at(3,7).emission,0);near(dark.at(3,7).camera,0);
   near(uniform.ex.mean,1);near(uniform.at(3,7).illumination,1);
 });
+test('beat references separate pre-OTF and post-OTF difference without changing measured signals',()=>{
+  const cases=[
+    {...sceneParams,angle:37,phase:1.17},
+    {...sceneParams,samplePeriod:8,illumPeriod:20,cutoffPeriod:24,angle:37,phase:.83},
+    {...sceneParams,m:0},
+    {...sceneParams,mode:'widefield',m:.9},
+    {...sceneParams,illumPeriod:6}
+  ];
+  for(const p of cases) {
+    const s=C.scene(p),x=17.25,y=120,point=s.at(x,y);
+    const theta=p.angle*Math.PI/180,fs=1/p.samplePeriod,fi=1/p.illumPeriod;
+    const dx=fs-fi*Math.cos(theta),dy=-fi*Math.sin(theta),phase=2*Math.PI*(dx*x+dy*y)-p.phase;
+    const expectedPre=s.ex.mean/2+s.ex.mean*s.ex.m/4*Math.cos(phase);
+    const expectedPost=s.ex.mean/2+s.ex.mean*s.ex.m/4*s.hd*Math.cos(phase);
+    near(point.referencePre,expectedPre);near(point.referencePost,expectedPost);
+    near(point.differencePre,expectedPre-s.ex.mean/2);near(point.difference,expectedPost-s.ex.mean/2);
+    near(point.emission,point.sample*point.illumination);
+    if(p.mode==='widefield'||p.m===0)near(point.referencePre,s.ex.mean/2);
+    if(p.illumPeriod===6)near(point.referencePre,0);
+  }
+  const edge=C.scene({...sceneParams,samplePeriod:8,illumPeriod:20,cutoffPeriod:24,angle:37,phase:.83});
+  near(edge.hd,0);assert.ok(Math.abs(edge.at(17.25,120).differencePre)>1e-6);
+  near(edge.at(17.25,120).referencePost,edge.ex.mean/2);
+});
 test('excitation bound scales with the same objective and does not force contrast roll-off',()=>{
   const a=C.scene({...sceneParams,cutoffPeriod:20,illumPeriod:16});
   near(a.exPeriod,15);near(a.ex.m,.9);

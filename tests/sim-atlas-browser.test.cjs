@@ -42,97 +42,129 @@ console.log('Screenshots:', shotDir);
     }
 
     ok('offline assets load and pipeline renders', await page.locator('.katex').count() > 0);
+
+    // ---- P0 teaching additions ----
+    // 1. Compact opening retains the reconstruction premise and causal route
+    ok('compact opening states the shared unknowns and reconstruction route', await page.evaluate(() => {
+      const t = document.getElementById('core-question')?.textContent || '';
+      return t.includes('三帧') && t.includes('三个未知分量') && t.includes('分离频带') && t.includes('样品坐标');
+    }));
+    ok('fixed atlas omits experiments and uses calibrated modulation', await page.evaluate(() =>
+      !document.getElementById('experiment') && Object.isFrozen(window.SIMAtlasPage.state)
+      && window.SIMAtlasPage.state.m === .8 && window.SIMAtlasPage.pipe.estimates.length === 0));
+    // 3/4. step 02 spectrum copies: four panels, three tagged orders, centres at ±k_d
+    ok('encoding spectrum has four panels with three tagged orders', await page.evaluate(() => {
+      const el = document.getElementById('s2-spectrum');
+      const panels = [...el.querySelectorAll('.encoding-panel')];
+      const orders = panels.map(p => p.dataset.order).filter(o => o !== 'sum');
+      return panels.length === 4 && orders.length === 3 && ['0', '1', '-1'].every(o => orders.includes(o));
+    }));
+    ok('encoding spectrum +1 copy centres at +k_d and -1 at -k_d', await page.evaluate(() => {
+      const el = document.getElementById('s2-spectrum');
+      const kx = Number(el.dataset.kx), ky = Number(el.dataset.ky);
+      const get = o => el.querySelector(`.encoding-panel[data-order="${o}"]`);
+      const p1 = get('1'), m1 = get('-1');
+      return kx !== 0 || ky !== 0
+        ? (Number(p1.dataset.centerX) === kx && Number(p1.dataset.centerY) === ky
+          && Number(m1.dataset.centerX) === -kx && Number(m1.dataset.centerY) === -ky)
+        : (Number(p1.dataset.centerX) === kx && Number(m1.dataset.centerX) === -kx);
+    }));
+    // Each observation shows its complete equation, with exact coefficients.
+    ok('three acquisition equations attach fractional weights to all components', await page.evaluate(() => {
+      const el = document.getElementById('acquisition-weights');
+      const equations = JSON.parse(el.dataset.equations);
+      const system = el.querySelector('.acquisition-system [data-tex]').dataset.tex;
+      return equations.length === 3 && system.includes('begin{array}') && equations.every(({ coefficients, tex }, j) => {
+        return tex.startsWith(`D_{${j}}=A_0+`) && tex.includes('A_{+1}') && tex.includes('A_{-1}')
+          && tex.includes('\\frac') && !/\d+\.\d+/.test(tex)
+          && coefficients.length === 3 && coefficients.every(([re, im], column) =>
+            Math.abs(Math.hypot(re, im) - (column === 0 ? 1 : .4)) < 1e-10);
+      }) && !el.querySelector('table') && !el.querySelector('.katex-error') && !el.textContent.includes('和 =');
+    }));
+    // 7/8. matrix derivation is available in a disclosure; M^{-1}M agrees with live weights.
+    ok('demix overview is collapsed with D=MA and A=M^{-1}D, no KaTeX error', await page.evaluate(() => {
+      const el = document.getElementById('demix-overview');
+      const tex = document.querySelector('#demix-overview-matrix [data-tex]')?.dataset.tex || '';
+      return !document.getElementById('demix-matrix-details').open && tex.includes('M^{-1}') && tex.includes('begin{bmatrix}')
+        && el.querySelectorAll('.katex-error').length === 0;
+    }));
+    ok('displayed matrix M satisfies M^{-1}M ≈ I against the actual separation weights', await page.evaluate(() => {
+      const M = JSON.parse(document.getElementById('demix-overview-matrix').dataset.matrix)
+        .map(row => row.map(([re, im]) => ({ re, im })));
+      const W = window.SIMAtlasPage.pipe.groups[0].weights; // W = M^{-1}
+      const mul = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
+      const add = (a, b) => ({ re: a.re + b.re, im: a.im + b.im });
+      let worst = 0;
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) {
+        // (W M)[r][c] = sum_j W[r][j] M[j][c]
+        let acc = { re: 0, im: 0 };
+        for (let j = 0; j < 3; j++) acc = add(acc, mul(W[r][j], M[j][c]));
+        const target = r === c ? 1 : 0;
+        worst = Math.max(worst, Math.hypot(acc.re - target, acc.im));
+      }
+      return worst < 1e-10;
+    }));
+    // 9. step 05 no longer frames orders as a fixed low/mid/high scale ranking
+    ok('step 05 drops the misleading "three scales" framing', await page.evaluate(() => {
+      const t = document.getElementById('b5').textContent;
+      return !t.includes('三种尺度') && !t.includes('级次必然按频率高低排序');
+    }));
+    // 10. step 08 teaching formula uses P_apo while the pipeline still reads apodization
+    ok('step 08 uses P_apo in teaching text and still computes apodization', await page.evaluate(() => {
+      const tex = [...document.querySelectorAll('#b8 [data-tex]')].map(e => e.dataset.tex).join(' ');
+      return tex.includes('P_{\\mathrm{apo}}') && window.SIMAtlasPage.pipe.apodization.length === 256 * 256;
+    }));
+    // 6/11 are exercised further below after interaction setup.
+
     const plates = await page.evaluate(() => [1, 2, 3, 4, 5, 6, 7, 8, 9].map(i => document.querySelectorAll('#b' + i + ' canvas').length));
     ok('all nine bands draw plates', plates.every(n => n > 0) && plates.reduce((a, b) => a + b, 0) >= 40);
     ok('zone legend lists the three resolution zones', await page.locator('#zones .zone').count() === 3);
-    ok('status reports sim with nine fused bands', await page.evaluate(() => document.getElementById('status').textContent.includes('sim') && document.getElementById('status').textContent.includes('9/9')));
+    ok('fairSIM reconstructs all nine fixed bands', await page.evaluate(() => window.SIMAtlasPage.pipe.reason === 'sim' && window.SIMAtlasPage.pipe.bands.length === 9));
 
     // probe interaction
     const before = await page.locator('#probe').textContent();
     await page.locator('#s4 canvas').first().click({ position: { x: 200, y: 128 } });
     const after = await page.locator('#probe').textContent();
-    ok('clicking the spectrum moves the probe bin', before !== after && after.includes('检测 bin'));
+    ok('clicking the spectrum moves the probe bin', before !== after && after.includes('检测频率 f'));
     ok('probe shows three orders and shift targets', await page.evaluate(() => {
       const t = document.getElementById('order-results').textContent;
-      return t.includes('0 级') && t.includes('+1 级') && t.includes('−1 级') && t.includes('原样品频率');
+      return t.includes('0 级') && t.includes('+1 级') && t.includes('−1 级') && t.includes('归位样品坐标');
     }));
 
-    // direction switch changes frame count
-    await page.selectOption('#c-dir', '1');
-    ok('single direction renders three frames', await page.locator('#s3a figure').count() === 3);
-    await page.selectOption('#c-dir', '3');
-    ok('three directions render nine frames', await page.locator('#s3a figure').count() === 9);
-
-    // sample switch keeps the atlas alive and changes the zone story
-    await page.selectOption('#c-sample', 'gratings');
-    await page.waitForFunction(() => window.SIMAtlasPage.pipe.ok);
-    ok('legacy gratings sample still renders', await page.locator('#s1 canvas').count() >= 2);
-    await page.selectOption('#c-sample', 'star-points');
-    await page.waitForFunction(() => window.SIMAtlasPage.pipe.ok);
-
-    // mismatch scope still behaves as designed on the new page
-    const rmseOf = () => page.evaluate(() => {
-      return Number(document.getElementById('status').dataset.rmse);
-    });
-    const base = await rmseOf();
-    // The mismatch controls live inside a collapsed <details>; set them programmatically.
-    const set = (id, v) => page.evaluate(([id, v]) => {
-      const el = document.getElementById(id); el.value = v; el.dispatchEvent(new Event('change', { bubbles: true }));
-    }, [id, v]);
-    await set('c-angle', '3'); await set('c-scope', 'recon');
-    await page.waitForFunction(() => window.SIMAtlasPage.state.angle === 3 && window.SIMAtlasPage.state.scope === 'recon');
-    const hurt = await rmseOf();
-    ok('recon-only angle mismatch changes reconstruction', Math.abs(hurt - base) > 1e-5);
-    await set('c-scope', 'both');
-    await page.waitForFunction(() => window.SIMAtlasPage.state.scope === 'both');
-    ok('external estimator reports a mismatch', await page.evaluate(() => window.SIMAtlasPage.pipe.estimates.some(e => !e.ok)));
-    await set('c-angle', '0'); await set('c-scope', 'recon');
-    await page.waitForFunction(() => window.SIMAtlasPage.state.angle === 0);
-
-    // New controls must change only their intended stage of the computation.
-    await page.locator('#reset').click();
-    await page.evaluate(() => { window.captureForTest = window.SIMAtlasPage.capture; });
-    await set('c-eps', '.08');
-    ok('regularization reuses exactly the same capture', await page.evaluate(() => window.captureForTest === window.SIMAtlasPage.capture));
-    ok('regularization updates transfer and the actual denominator', await page.evaluate(() => {
-      const p = window.SIMAtlasPage.pipe, i = 15;
-      return p.effectiveTransfer[i] > 0 && p.effectiveTransfer[i] < 1 && Math.abs(p.regularizedDenominator[i] - p.denominator[i] - .08 ** 2) < 1e-12;
-    }));
-    await page.locator('[data-preset="noise"]').click();
-    ok('noise preset applies acquisition and regularization together', await page.evaluate(() => window.SIMAtlasPage.state.noise === 'low' && window.SIMAtlasPage.state.eps === .08));
-    await page.locator('[data-preset="mismatch"]').click();
-    ok('mismatch preset exposes its changed parameters', await page.evaluate(() => window.SIMAtlasPage.state.angle === 3 && window.SIMAtlasPage.state.scope === 'recon' && document.querySelector('.advanced').open));
-    await page.locator('#reset').click();
+    // View controls inspect the same fixed data rather than changing acquisition.
+    const set = (id, value, event = 'change') => page.evaluate(([id, value, event]) => {
+      const el = document.getElementById(id); el.value = value;
+      el.dispatchEvent(new Event(event, { bubbles: true }));
+    }, [id, value, event]);
+    const resetInspection = async () => {
+      await set('c-inspect', '0'); await set('c-view', '24');
+      await page.locator('button[data-order="2"]').click();
+      await page.locator('#probe-reset').click();
+      await page.locator('#demix-replay').click();
+      await set('c-profile-y', '80', 'input');
+    };
+    await page.evaluate(() => { window.fixedCaptureForTest = window.SIMAtlasPage.capture; window.fixedPipeForTest = window.SIMAtlasPage.pipe; });
     await page.selectOption('#c-inspect', '2');
-    ok('inspection direction updates the probe and shifted bands', (await page.locator('#s4 figcaption').textContent()).includes('方向 3') && (await page.locator('#s6b').textContent()).includes('(4, -7)') && await page.locator('#s6b canvas').count() === 3);
-    await page.selectOption('#c-dir', '1');
-    ok('single direction resets and disables unavailable inspection directions', await page.evaluate(() => document.getElementById('c-inspect').value === '0' && document.getElementById('c-inspect').options[2].disabled));
-    await page.locator('#probe-reset').click();
-    await page.locator('#s4 canvas').focus();
-    await page.keyboard.press('ArrowRight');
+    ok('inspection direction updates the probe and shifted bands', (await page.locator('#s4 figcaption').first().textContent()).includes('方向 3') && (await page.locator('#s6b').textContent()).includes('(4, -7)'));
+    await resetInspection();
+    await page.locator('#s4 canvas').first().focus(); await page.keyboard.press('ArrowRight');
     ok('keyboard moves the frequency probe by one bin', (await page.locator('#probe').textContent()).includes('f = (7, 0)'));
     await page.selectOption('#c-view', '64');
-    ok('full spectrum view preserves the chosen detector frequency', (await page.locator('#probe').textContent()).includes('f = (7, 0)'));
-    await page.selectOption('#c-sample', 'points');
-    ok('point sample has a shared-row profile and no star-zone claim', await page.locator('#zones').isHidden() && await page.locator('#s9c svg').count() === 1);
-    await page.selectOption('#c-sample', 'gratings');
-    ok('grating sample shows its actual row rather than a radial statistic', await page.locator('#s9c svg').count() === 1);
-    await page.locator('#reset').click();
-    ok('reset restores all controls and the ideal preset', await page.evaluate(() => window.SIMAtlasPage.state.angle === 0 && window.SIMAtlasPage.state.noise === 'none' && document.getElementById('c-view').value === '24' && document.querySelector('[data-preset="ideal"]').getAttribute('aria-pressed') === 'true'));
+    ok('full spectrum view preserves the detector frequency', (await page.locator('#probe').textContent()).includes('f = (7, 0)'));
+    ok('viewing does not regenerate capture or reconstruction', await page.evaluate(() => window.fixedCaptureForTest === window.SIMAtlasPage.capture && window.fixedPipeForTest === window.SIMAtlasPage.pipe));
+    await resetInspection();
     ok('every equation renders without KaTeX errors', await page.locator('.katex-error').count() === 0 && await page.locator('.katex').count() >= 10);
-    ok('all acquisition directions contain exactly three phases', await page.locator('#s3a .frame-group').count() === 3 && await page.locator('#s3a .frame-group').evaluateAll(groups => groups.every(g => g.querySelectorAll('figure').length === 3)));
+    ok('all acquisition directions contain exactly three phases', await page.evaluate(() => {
+      const groups = [...document.querySelectorAll('#s3a .frame-group, #s3-other .frame-group')]
+        .filter(g => g.querySelector('.frame-kind')?.textContent.includes('采集帧'));
+      return groups.length === 3 && groups.every(g => g.querySelectorAll('figure').length === 3);
+    }));
     ok('fusion displays its actual output spectrum', await page.locator('#s8 canvas').count() === 4);
     ok('final image uses the doubled reconstruction grid', await page.evaluate(() => window.SIMAtlasPage.pipe.spectrumSize === 256 && window.SIMAtlasPage.pipe.outputPixels.length === 256 * 256));
-    await set('c-apo', '1.5');
-    ok('apodization changes the actual reconstruction', await page.evaluate(() => window.SIMAtlasPage.pipe.settings.apoCutoff === 1.5));
-    await page.locator('#c-fusion-q').evaluate(el => { el.value = '16'; el.dispatchEvent(new Event('input', { bubbles: true })); });
-    ok('frequency inspector reports computed pre/post apodization values', await page.evaluate(() => {
-      const p=window.SIMAtlasPage.pipe, el=document.getElementById('fusion-readout');
-      return Math.abs(Number(el.dataset.final) - Math.hypot(p.spectrum.re[16], p.spectrum.im[16])/128**2) < 1e-12 && document.getElementById('o-fusion-q').textContent === '16';
-    }));
+    ok('apodization uses the fixed fairSIM cutoff', await page.evaluate(() => window.SIMAtlasPage.pipe.settings.apoCutoff === 1.9));
     await page.locator('#c-profile-y').evaluate(el => { el.value='98'; el.dispatchEvent(new Event('input', {bubbles:true})); });
     ok('profile slider follows the same image row', (await page.locator('#s9c svg').getAttribute('aria-label')).includes('98'));
-    await page.locator('#reset').click();
+    await resetInspection();
 
     await page.locator('#demix-theory summary').click();
     await page.locator('#demix-theory a[href="#source-review"]').click();
@@ -153,12 +185,7 @@ console.log('Screenshots:', shotDir);
       ok(`order ${order} stays linked to results and relocation`, await page.evaluate(order => document.querySelectorAll('#order-results .order-result')[order].classList.contains('selected') && document.getElementById('shift-example').textContent.includes(['0', '+1', '−1'][order] + ' 级'), order));
     }
     ok('the worked example has three products and cancellation factors', await page.locator('.term-card').count() === 3 && await page.locator('.response-item').count() === 3 && await page.locator('.response-item.retained').count() === 1);
-    await set('c-phase', '15');
-    ok('changing assumed phases keeps arithmetic linked and reports the assumption', await page.evaluate(() => {
-      const page = window.SIMAtlasPage, p = window.SIMAtlas.probe(page.pipe, 0, 6, 0);
-      return Math.abs(Number(document.getElementById('demix-calculation').dataset.resultRe) - p.orders[2].value.re) < 1e-12 && document.getElementById('probe').textContent.includes('计算采用相位 15°') && Number(document.getElementById('demix-cancellation').dataset.closureError) < 1e-12;
-    }));
-    await page.locator('#reset').click();
+    await resetInspection();
     await page.locator('#demix-images summary').click();
     ok('spectrum images can be opened with instructions for their marked point', await page.locator('#s5a').isVisible() && (await page.locator('#demix-images').textContent()).includes('红圈'));
     await page.locator('#demix-images summary').click();
@@ -178,7 +205,7 @@ console.log('Screenshots:', shotDir);
         const pr = window.SIMAtlas.probe(window.SIMAtlasPage.pipe, 0, 6, 0), el = document.getElementById('demix-animation');
         return Math.abs(Number(el.dataset.resultRe) - pr.orders[order].value.re) < 1e-12 && Math.abs(Number(el.dataset.resultIm) - pr.orders[order].value.im) < 1e-12;
       }, order));
-      ok(`animation ${order} cancels contributions without declaring their A zero`, await animation.locator('.cancelled-term').count() === 2 && (await animation.locator('.cancelled-term').first().textContent()).includes('并非 A 本身为零'));
+      ok(`animation ${order} cancels contributions without declaring their A zero`, await animation.locator('.cancelled-term').count() === 2 && (await animation.locator('.cancelled-term').first().textContent()).includes('A 本身可以非零'));
     }
     // Read the rendered stripe field back into an FFT: it must contain the
     // advertised source frequency, not a decorative or detector-frequency wave.
@@ -208,19 +235,119 @@ console.log('Screenshots:', shotDir);
     await page.evaluate(() => window.SIMAtlasPage.probe({ x: 7, y: 0 }));
     ok('a new probe resets playback and updates all source frequencies', await animation.getAttribute('data-step') === '0' && await animation.getAttribute('data-playing') === 'false' && await page.locator('.order-result').nth(2).getAttribute('data-frequency-x') === '15');
     await page.locator('[data-follow-order="0"]').click();
-    ok('a component card can select its own derivation', await page.locator('button[data-order="0"]').getAttribute('aria-pressed') === 'true' && (await page.locator('#shift-example').textContent()).includes('0 级：A → C'));
-    await set('c-m', '0');
-    ok('vanishing sidebands do not acquire an invented phase pattern', await page.locator('.order-result').nth(1).getAttribute('data-pattern-visible') === 'false' && await page.locator('.order-result').nth(2).getAttribute('data-pattern-visible') === 'false');
-    await page.locator('#reset').click();
+    ok('a component card can select its own derivation', await page.locator('button[data-order="0"]').getAttribute('aria-pressed') === 'true' && (await page.locator('#shift-example').textContent()).includes('0 级：Â → C'));
+    await resetInspection();
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.locator('#demix-next').click();
     ok('reduced-motion mode keeps steps usable without equation motion', await animation.getAttribute('data-step') === '1' && await page.evaluate(() => document.querySelector('#demix-equation').getAnimations().length === 0));
     await page.emulateMedia({ reducedMotion: 'no-preference' });
+    // 11. clicking each sidebar link makes it the unique aria-current step
+    for (let n = 1; n <= 9; n++) {
+      await page.locator(`.stage-nav a[href="#b${n}"]`).click();
+      ok(`sidebar click highlights step 0${n} as the unique current step`, await page.evaluate(n => {
+        const cur = [...document.querySelectorAll('.stage-nav a[aria-current="step"]')];
+        return cur.length === 1 && cur[0].getAttribute('href') === `#b${n}`;
+      }, n));
+    }
+    await page.locator(`.stage-nav a[href="#b1"]`).click();
+
+    // ---- R-round acceptance A1-A8: step 02/03 must track ACQUISITION truth ----
+    // A1: the combined panel is the true frame-0 emission FFT (pixel-level).
+    const emissionPixelsMatch = () => page.evaluate(() => {
+      const cap = window.SIMAtlasPage.capture, A = window.SIMAtlas;
+      const dir = Number(document.getElementById('s2-spectrum-label').textContent.match(/方向 (\d+)/)[1]) - 1;
+      const E = A.spectrum(cap.truth.emission[dir][0], 128);
+      let mx = 0; for (let i = 0; i < E.re.length; i++) mx = Math.max(mx, Math.hypot(E.re[i], E.im[i]));
+      const cv = document.querySelector('#s2-spectrum .encoding-panel[data-order="sum"] canvas');
+      const ctx = cv.getContext('2d');
+      const viewHalf = 24;
+      return [[3, 3], [20, 40], [60, 10], [100, 90], [40, 70], [80, 30]].every(([x, y]) => {
+        const fx = Math.floor((x / 128 * 2 - 1) * viewHalf), fy = Math.floor((y / 128 * 2 - 1) * viewHalf);
+        const i = ((fy % 128 + 128) % 128) * 128 + ((fx % 128 + 128) % 128);
+        const v = Math.log(1 + Math.hypot(E.re[i], E.im[i])) / Math.log(1 + mx);
+        const g = Math.round(255 * Math.max(0, Math.min(1, v)));
+        const d = ctx.getImageData(2 * x, 2 * y, 1, 1).data;
+        return Math.abs(d[0] - g) <= 1 && Math.abs(d[1] - g) <= 1 && Math.abs(d[2] - g) <= 1;
+      });
+    });
+    ok('A1 combined encoding panel equals the true emission FFT (dir 1)', await emissionPixelsMatch());
+    await page.selectOption('#c-inspect', '1');
+    ok('A1 combined encoding panel equals the true emission FFT (dir 2)', await emissionPixelsMatch());
+    await page.selectOption('#c-inspect', '2');
+    ok('A1 combined encoding panel equals the true emission FFT (dir 3)', await emissionPixelsMatch());
+    await page.selectOption('#c-inspect', '0');
+    // Fixed parameters skip the external estimator; geometry is inspected below.
+    // A7: direction switching relabels step 02/03 and matches steps 04-07.
+    await page.selectOption('#c-inspect', '1');
+    ok('A7 direction switch relabels step 02/03 to the inspected direction', await page.evaluate(() => {
+      const s2 = document.getElementById('s2-spectrum-label').textContent;
+      const s3 = document.getElementById('s3-direction-label').textContent;
+      return s2.includes('方向 2') && s2.includes('(4, 7)') && s3.includes('方向 2');
+    }));
+    await resetInspection();
+    // A8: default reading shows one paired set, then the phase explanation, rest collapsed.
+    ok('A8 phase explanation follows the first paired set, rest collapsed', await page.evaluate(() => {
+      const order = ['s3a', 's3b', 's3-magnitude-warning', 'acquisition-weights', 's3-other-directions']
+        .map(id => document.getElementById(id));
+      const pos = order.map(el => { let p = 0, n = el; while ((n = n.previousElementSibling)) p++; return p; });
+      // monotonic document order among siblings
+      for (let i = 1; i < pos.length; i++) if (pos[i] <= pos[i - 1]) return false;
+      return document.getElementById('s3-other-directions').open === false
+        && document.querySelectorAll('#s3a figure').length === 3;
+    }));
+
+    // R2 follow-up: the step-02 frequency point follows the live probe in all
+    // four spectra, and the short status only claims transfer when valid.
+    const probeLink = () => page.evaluate(() => document.getElementById('s2-probe-link').textContent);
+    ok('step-02 probe example follows the step-04 probe', await (async () => {
+      const before = await probeLink();
+      await page.evaluate(() => window.SIMAtlasPage.probe({ x: 7, y: 0 }));
+      const after = await probeLink();
+      const mapped = await page.locator('#s2-spectrum .encoding-panel').evaluateAll(nodes => nodes.map(n => n.dataset.mappedFrequency));
+      return before.includes('(14, 0) → (6, 0)')
+        && after.includes('(15, 0) → (7, 0)')
+        && JSON.stringify(mapped) === JSON.stringify(['[15,0]', '[23,0]', '[7,0]', '[7,0]']);
+    })());
+    ok('in-band probe gives the short frequency-mapping status', await (async () => {
+      await page.evaluate(() => window.SIMAtlasPage.probe({ x: 6, y: 0 }));
+      const t = await probeLink();
+      return t.includes('(14, 0) → (6, 0)') && t.includes('由圈外移入圈内');
+    })());
+    ok('out-of-band probe gives the no-transfer status and does not pin off-view points', await (async () => {
+      await page.evaluate(() => window.SIMAtlasPage.probe({ x: 20, y: 0 }));
+      const t = await probeLink();
+      const visible = await page.locator('#s2-spectrum .encoding-panel').evaluateAll(nodes => nodes.map(n => n.dataset.markerVisible));
+      return t.includes('落在圈边/圈外，无信号传递')
+        && JSON.stringify(visible) === JSON.stringify(['false', 'false', 'true', 'true']);
+    })());
+    await resetInspection();
+    ok('reset restores the default in-band probe example', (await probeLink()).includes('(14, 0) → (6, 0)'));
+
+    // Review regressions: physical cutoff, modulation fallback, and evaluation
+    // distinguish reconstruction error from directional frequency recovery.
+    await page.evaluate(() => window.SIMAtlasPage.probe({ x: 10, y: 0 }));
+    ok('cutoff bin has zero transmission and never claims high-frequency capture', await page.evaluate(() => {
+      const p = window.SIMAtlas.probe(window.SIMAtlasPage.pipe, 0, 10, 0);
+      const text = document.getElementById('s2-probe-link').textContent;
+      return p.orders.every(o => o.h === 0)
+        && p.observed.every(z => Math.hypot(z.re, z.im) < 1e-14)
+        && text.includes('落在圈边/圈外，无信号传递');
+    }));
+    await resetInspection();
+    await resetInspection();
+    ok('evaluation retains image error and brightness bias', await page.evaluate(() => {
+      const cards = [...document.querySelectorAll('#quality-readout .quality-card')];
+      return cards.length === 2 && cards[0].textContent.includes('0.2643')
+        && cards[1].textContent.includes('-0.2240') && cards[1].textContent.includes('71.85%')
+        && !document.getElementById('s9').textContent.includes('该朝向没被恢复');
+    }));
+    ok('all new derivations render without formula errors', await page.locator('.katex-error').count() === 0);
+
     await page.locator('[data-demix-step="3"]').click();
     await animation.screenshot({ path: path.join(shotDir, 'demix-animation-sum.png'), animations: 'disabled' });
     await page.locator('[data-demix-step="4"]').click();
     await animation.screenshot({ path: path.join(shotDir, 'demix-animation-cancel.png'), animations: 'disabled' });
-    await page.locator('#reset').click();
+    await resetInspection();
     await page.locator('#b5').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band5-worked-results.png') });
     await page.locator('#b6').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band6-linked-shift.png') });
     await page.locator('#b3').screenshot({ style:'.topbar,.sidebar,.skip{visibility:hidden!important}', path: path.join(shotDir, 'band3-acquisition.png') });

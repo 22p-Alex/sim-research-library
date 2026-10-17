@@ -1,0 +1,735 @@
+
+===== PDF PAGE 1 =====
+Effect of OTF attenuation on single-slice SR-SIM reconstruction
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 1: Actin filaments in U2OS cells, labelled with Phalloidin-Atto488, measured on
+a DeltaVision|OMX, excited at 488 nm wavelength. (a) Wide-field, (b) Wiener-filtered wide-field, (c)
+reconstruction using a standard 2D OTF, (d) reconstruction using the attenuated OTF (strength 0.995,
+FWHM 2 cycles/micron). Due to the 2D OTFs missing cone problem, background artifacts emerge
+when reconstructing with an unmodified OTF (c). For 3-beam data (where the bands overlap each
+others missing cones) and for 2-beam data (trading lateral resolution improvement for a larger
+overlap) the missing cones can be filled from other bands through the OTF attenuation, and the
+artifacts are mitigated (d). Thus, the reconstruction gains optical sectioning. Scale bar 5 μm, inset 2.0
+μm.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 2 =====
+SR-SIM of actin filaments in liver sinusoidal endothelial cells
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 2: Actin filaments in liver sinusoidal endothelial cells (LSECs).
+DeltaVision|OMX, excited at 488 nm wavelength. (a) Wide-field, (b) Wiener-filtered wide-field, (c)
+single-slice reconstruction by fairSIM,  (d) same slice from full 3D reconstruction by manufacturer
+software. Note that because the single slice reconstruction in (c) is less restricted in the axial
+direction, it appears to provide more detail than the 3D reconstruction in (d). This is, however,
+mitigated e.g. when showing the full 3D data as an intensity projection (not shown). Scale bar 5 μm,
+inset 1.6 μm.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 3 =====
+SR-SIM of U2OS osteosarcoma cells stained for tubulin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 3: Tubulin stain (Alexa 488) in U2OS osteosarcoma cells, DeltaVision|OMX,
+excited at 488 nm wavelength. (a) Wide-field, (b) Wiener-filtered wide-field, (c) single-slice
+reconstruction by fairSIM, (d) same slice from full 3D reconstruction by manufacturer software. Note
+the significant background reduction through the use of optical sectioning (attenuation strength
+0.998, FWHM 1.5 cycles/μm). Scale bar 5 μm, inset 2.0 μm.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 4 =====
+SR-SIM of mitochondria in U2OS cells
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 4: Mitrochondria (Mito-Tracker) in U2OS cells, DeltaVision|OMX, excited at
+568 nm wavelength. (a) Wide-field, (b) Wiener-filtered wide-field , (c) single-slice reconstruction by
+fairSIM, (d) same slice from full 3D reconstruction by manufacturer software. Please note, that the
+single-slice reconstruction suffers from large background and noise levels, but parameter extraction
+and reconstruction is still possible. Scale bar 5 μm, inset 2.0 μm.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 5 =====
+SR-SIM of actin filaments in U2OS cells
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 5: Actin filaments in U2OS cells, measured on a Zeiss Elyra S1, excited at 488
+nm wavelength. Wide-field, (b) Wiener-filtered wide-field , (c) single-slice reconstruction by fairSIM,
+(d) same slice from full 3D reconstruction by manufacturer software. Scale bar 5 μm, inset 1.6 μm.
+Raw datasets1 courtesy of Marcus Behringer and Markus Sauer, University of Würzburg.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 6 =====
+SR-SIM of mitochondria in U2OS cells
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 6: Mitochondria in U2OS cells, measured on a Zeiss Elyra S1, excited at 565 nm
+wavelength. Wide-field, (b) Wiener-filtered wide-field , (c) single-slice reconstruction by fairSIM, (d)
+same slice from full 3D reconstruction by manufacturer software. Scale bar 5 μm, inset 1.6 μm. Raw
+datasets1 courtesy of Marcus Behringer and Markus Sauer, University of Würzburg.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 7 =====
+ TIRF-SIM of tubulin in cells
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 7: Tubulin filaments, measured on a 2D TIRF SIM setup, reconstruction of 9
+raw data frames (3 angles, 3 phases), excited at 488nm wavelength. Wide-field, (b) Wiener-filtered
+wide-field , (c) single-slice reconstruction by fairSIM, which is able to successfully extract the
+reconstruction parameters from TIRF datasets. Scale bar 5µm, inset 1.6µm. Raw datasets2, 3 courtesy
+of Peter Kner, University of Georgia.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 8 =====
+Illustration of SR-SIM band overlap
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Supplementary Figure 8: Common region of two SIM bands. Left: Power spectra of band 𝑆̃0 (green),
+shifted band 𝑆̃2 (blue) and the common region (magenta), defined here by ℎ(𝑘⃗ ), ℎ(𝑘⃗                 + 𝑝 )   >   0.05,
+i.e. both bands’ OTFs are above a certain threshold. Right: Composite spatial representation of only
+frequencies from the common region, with 𝑆0 (green) and 𝑆2 (blue), base dataset U2OS actin. See
+Supplementary Note 1 for how the cross-correlation of this band overlap is used in the SR-SIM
+parameter estimation process.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 9 =====
+Supplementary Note 1: Parameter estimation and reconstruction
+
+In super-resolved structured illumination microscopy a sample is illuminated with a series of
+harmonic illumination intensity patterns. The image sequence 𝐷𝑛(𝑟 ) acquired by the
+microscope is given by1
+
+                                   𝑀
+                     𝐷𝑛(𝑟 )  =    ∑      [𝑆(𝑟 ) 𝑎𝑚  exp{𝑖𝑚(2𝜋𝑝 𝑟      + 𝜙𝑛)} ]     ⊗  ℎ̃(𝑟 ).
+
+                                𝑚=−𝑀
+Here 𝑆(𝑟 ) denotes the fluorophores’ response to light, i.e. the property to be measured. M
+denotes the number of harmonics, so 𝑀             =    1 for two-beam, and 𝑀 =          2 for three-beam
+illumination. 𝑝  is the modulation light wave vector, i.e. the pattern orientation and spacing.
+𝜙𝑛 denotes the phase,  𝑎𝑚 the modulation depth of the pattern. ℎ̃                (𝑟 ) is the point-spread
+function, which causes the resolution limit. Switching to Fourier space, each harmonic
+illumination pattern transforms to delta-peaks at 𝛿(±𝑚𝑝 ) and, using their folding and
+translation properties
+
+                                         𝑀
+                           ̃   ⃗                  {        }     ̃  ⃗               ⃗
+                          𝐷𝑛(𝑘)    =    ∑     exp   𝑖𝑚𝜙𝑛     𝑎𝑚 𝑆(𝑘   −  𝑚𝑝 )  ⋅ ℎ(𝑘)
+                                      𝑚=−𝑀
+is obtained.  The translation of 𝑆̃ to 𝑘⃗     −  𝑚𝑝 , caused by the delta-peaks’ position at 𝛿(𝑚𝑝 ), is
+what allows previously unobservable frequencies in 𝑆̃ to move into the support of ℎ(𝑘⃗ ), thus
+                                                                           ̃   ⃗          ⃗
+yielding the resolution improvement in SIM. The component 𝑆𝑚(𝑘)                    =  𝑆(𝑘   −  𝑚𝑝 ) is
+referred to as the 𝑚’th band. Bands are symmetric by construction, i.e. 𝑆−𝑚 contains the
+                                                                                ⃗
+same information as 𝑆𝑚. Now, acquiring 𝑁 measurements of 𝐷𝑛(𝑘), with varying (usually
+equi-distant) phases 𝜙𝑛, but fixed 𝑝 , allows to rewrite the equation to matrix form as
+
+                                               ̃   ⃗            ⃗
+                                               𝑫(𝑘)   =  𝑴𝑪(𝑘)
+
+with vectors
+                            ̃   ⃗            ⃗            ⃗
+                            𝑫(𝑘)   =  [ 𝐷1(𝑘),   …  ,𝐷𝑁(𝑘)],
+                               ⃗               ⃗           ⃗            ⃗
+                            𝑪(𝑘)   =  [ 𝐶−𝑀(𝑘),    … , 𝐶0(𝑘),  …  ,𝐶𝑀(𝑘)]
+                                           ⃗                  ⃗          ⃗
+                                       =[𝐶(𝑘 +  𝑚𝑝 ),  … , 𝐶(𝑘),  …  ,𝐶(𝑘   −  𝑚𝑝 )]
+
+and where
+                                                                  ⃗       ̃ ⃗      ⃗
+                           𝑴𝑛𝑚    =   𝑎𝑚  exp  𝑖𝑚𝜙𝑛   and   𝐶(𝑘)      =  𝑆(𝑘) ℎ(𝑘)
+With a sufficient number (𝑁        ≥  𝑀) of known phases 𝜙𝑛, 𝑴 can be inverted2, so with
+
+                                                 ⃗        −1  ̃   ⃗
+                                              𝑪(𝑘)  =   𝑴     𝑫(𝑘)
+
+all bands 𝑆̃𝑚(𝑘⃗ ) in 𝑪(𝑘⃗ ) can be extracted. This step is referred to as band separation.
+
+
+
+1 Mathematical naming conventions largely follow the ones used by Heintzmann et. al.
+
+2 For an over-defined matrix (𝑁  >  𝑀), the Moore-Penrose pseudo-inverse is used to invert 𝑴.
+
+
+
+===== PDF PAGE 10 =====
+                               ̃    ⃗
+Afterwards, the  bands 𝑆𝑚(𝑘) are  moved to  their  correct position ±𝑚𝑝  in  Fourier  space,
+added  up  and  transformed  back  to  a  high  resolution  image  in  real  space.  The                        image
+assembly in Fourier space is usually performed through a Wiener filter:
+                                        ∑𝑀          ∗  ⃗                  ⃗
+                          𝑆̃  (𝑘⃗ ) =      𝑚=−𝑀    ℎ  (𝑘  +  𝑚𝑝 )  ⋅ 𝐶𝑚(𝑘    +  𝑚𝑝 )   𝐴(𝑘⃗ )
+                           𝑆𝑅                   2    ∑𝑀           2  ⃗
+                                             𝜔    +    𝑚=−𝑀     ℎ  (𝑘  +  𝑚𝑝 )
+The filtering compensates for the frequency dampening introduced by ℎ(𝑘⃗ ), the parameter
+𝜔 dampens the degree of compensation especially in regions where ℎ is low. It should thus
+                                                                     ⃗
+be set in accordance to the SNR of the input data. 𝐴(𝑘) is the apodization, compensating for
+ringing artifacts.
+
+A SIM reconstruction thus amounts to Fourier-transforming the input, carrying out band-
+separation, shifting the bands to 𝑚𝑝 , summing them up through (e.g.) a Wiener filter, and
+transforming the result back to a high resolution image. The resolution gain is given by the
+                                                3                                              ⃗                      4
+length |𝑀𝑝 |, which is approximately              limited to the same cut-off as ℎ(𝑘) for linear SIM                   .
+Thus, SIM typically doubles the resolution in comparison to a wide-field measurement.
+Parameter estimation:
+The SIM reconstruction introduced so far needs correct parameters (pattern spacing and
+orientation 𝑝 , phases 𝜙𝑛) to be carried out, which are typically5 extracted from the input
+data. A reliable algorithm to obtain this estimation is often much more involved than the
+reconstruction itself. The method employed be fairSIM follows the method by Gustaffson et.
+al.4. Because the original publication provides little detail on the parameter estimation, we
+briefly lay out the mathematical background here. In general, the use of cross- and
+autocorrelation of frequency components for SIM parameter estimation is documented in a
+number of recent publications4, 5, 6.
+Assuming equi-distant phases 𝜙𝑚′            , differing from correct phases 𝜙𝑚           =  𝜙𝑚′  +  𝜙Δ only by a
+global offset 𝜙Δ, the band-separation step is carried out.
+For linear SIM6, the separated and OTF-corrected bands 𝑆̃𝑚 will have common, overlapping
+regions (see Supplementary Fig. 8 for an illustration).With 𝑘⃗ ′ denoting only components
+                            ̃    ⃗ ′                ̃   ⃗ ′
+within these regions, 𝑆𝑚(𝑘          +  𝑚𝑝 ) and 𝑆0(𝑘      ) should only differ by a constant, complex
+factor 𝑎′   . As
+          𝑚
+                                          ̃    ⃗ ′               ′    ̃   ⃗ ′
+                                         𝑆𝑚(𝑘     +  𝑚𝑝 )   =  𝑎𝑚   ⋅ 𝑆0(𝑘   )
+
+only holds for the correct shift vector 𝑝 , the cross-correlation
+
+
+3 For an exact number, wavelength change (Stokes-shift) has to be taken into account, and TIRF illumination
+will further shift the limit somewhat.
+4 Non-linear SIM completely circumvents the limit by using effects such as photo-switching, depletion, or two-
+photon excitation.
+5 Stable systems, especially SLM-based, should yield rather constant reconstruction parameters over time.
+However, retrieving a parameter estimate from data should often be much easier than characterizing them
+from the experimental properties. It might then be used to run multiple reconstructions.
+6 For non-linear SIM, at least neighboring bands 𝑆𝑚−1,    𝑆𝑚 will overlap (otherwise, frequencies are missing from
+the reconstruction), thus the process can be carried out iteratively.
+
+
+===== PDF PAGE 11 =====
+                          𝒞(𝑝 )  =  [ 𝑆̃𝑚 ⋆  𝑆̃0 ](𝑝 )=   ∑   𝑆̃𝑚∗(𝑘⃗ ′+ 𝑚𝑝 ) 𝑆̃0(𝑘⃗ ′)
+
+                                                          ⃗ ′
+                                                          𝑘
+again with summation ∑⃗ ′(…) limited to a region common to both band, will reach a
+                              𝑘
+maximum at the correct 𝑝 . This can be used in an iterative search to find 𝑝 , and
+implemented effectively, to sub-pixel precision, via the Fourier shift theorem. FairSIM
+provides visual feedback of this fit process, so the user can check it for plausibility.
+Now, at the correct 𝑝 , the equivalence given above holds, so 𝑎′                is found as
+                                                                             𝑚
+                                                    ∑     ̃∗  ⃗ ′           ̃  ⃗ ′
+                                         𝒞(𝑝 )        ⃗ ′𝑆𝑚(𝑘     +  𝑚𝑝 ) 𝑆0(𝑘    )
+                               𝑎𝑚′  =           =     𝑘
+                                        |𝑆̃2|                ∑     ̃2  ⃗ ′
+                                           0 ⃗ ′               ⃗ ′𝑆0 (𝑘  )
+                                             𝑘                 𝑘
+and yields both, the global phase offset 𝜙Δ          =  arg(𝑎′) and – in principle – the pattern
+modulation depth 𝑎𝑚        =  |𝑎′|.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== PDF PAGE 12 =====
+Supplementary References:
+
+1.       Sauer M. Raw SIM images Zeiss Elyra S1.  (personal communication  Huser T.) (2015).
+
+2.       Kner P. Raw datsets TIRF SIM.  (personal communication  Huser T.) (2015).
+
+3.       Kner P, Chhun BB, Griffis ER, Winoto L, Gustafsson MGL. Super-resolution video microscopy
+         of live cells by structured illumination. Nat Methods 6, 339-342 (2009).
+
+4.       Gustafsson MGL, et al. Three-dimensional resolution doubling in wide-field fluorescence
+         microscopy by structured illumination. Biophys J 94, 4957-4970 (2008).
+
+5.       Wicker K. Non-iterative determination of pattern phase in structured illumination microscopy
+         using auto-correlations in Fourier space. Opt Express 21, 24692-24701 (2013).
+
+6.       Wicker K, Mandula O, Best G, Fiolka R, Heintzmann R. Phase optimisation for structured
+         illumination microscopy. Opt Express 21, 2032-2049 (2013).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

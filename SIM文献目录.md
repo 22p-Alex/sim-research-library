@@ -18,7 +18,7 @@
 | S8 | [SSR-SIM（2025）](SSR-SIM/README.md) | [PDF](<SSR-SIM/Bio-friendly and high-precision super-resolution imaging through self-supervised reconstruction structured illumination microscopy.pdf>) | [译文](SSR-SIM/中文译文.md) · [笔记](SSR-SIM/理解笔记.md) | [对应章节](知识库/06-深度学习与可信重建.md#s1-8) | 已阅读 |
 | S9 | [Open-3DSIM（2023）](3D-MP-SIM/3D-SIM/Open-3DSIM/README.md) | [PDF](<3D-MP-SIM/3D-SIM/Open-3DSIM/Open-3DSIM.pdf>) | [译文](3D-MP-SIM/3D-SIM/Open-3DSIM/中文译文.md) · [笔记](3D-MP-SIM/3D-SIM/Open-3DSIM/理解笔记.md) | [对应章节](知识库/04-三维SIM与多平面成像.md#s2) | 已阅读；另有作者修正 |
 | S10 | [3D-MP-SIM（2025）](3D-MP-SIM/3D-MP-SIM-论文/README.md) | [PDF](<3D-MP-SIM/3D-MP-SIM-论文/3D-MP-SIM.pdf>) · [SI](3D-MP-SIM/3D-MP-SIM-论文/3D-MP-SIM-SI.pdf) | [译文](3D-MP-SIM/3D-MP-SIM-论文/中文译文.md) · [笔记](3D-MP-SIM/3D-MP-SIM-论文/理解笔记.md) | [对应章节](知识库/04-三维SIM与多平面成像.md#s3) | 核心论文；主文与 SI 已阅读 |
-| S11 | [fairSIM（2016）](Wiener-SIM/fairSIM-论文/README.md) | [开放获取原文](https://www.nature.com/articles/ncomms10980.pdf)（本地未存 PDF） | [笔记](Wiener-SIM/fairSIM-论文/理解笔记.md) | [对应章节](知识库/03-传统重建与参数估计.md#s3) | 正文已阅读；SI 未获取 |
+| S11 | [fairSIM（2016）](Wiener-SIM/fairSIM-论文/README.md) | [主文 PDF](Wiener-SIM/fairSIM-论文/fairSIM-2016.pdf) · [SI](Wiener-SIM/fairSIM-论文/fairSIM-2016-SI.pdf) | [原文公式与代码逐步精读](Wiener-SIM/fairSIM-论文/fairSIM_原文公式与代码逐步精读.md) | [对应章节](知识库/03-传统重建与参数估计.md#s3) | 2026-10-12 补齐原件并核对 Note 1；仅对照 fairSIM |
 
 S4 为旧版占位编号，不新增引用。原文、元数据与 BibTeX 保存在各文献目录；译文和笔记用于学习，定量结论回到原论文核对。
 
@@ -66,4 +66,4 @@ S4 为旧版占位编号，不新增引用。原文、元数据与 BibTeX 保存
 
 ## 文件维护约定
 
-每篇论文集中维护原文 PDF、SI（如有）、`README.md`、`metadata.yaml`、`citation.bib`、译文和笔记。S11 为开放获取文献，本地只保存条目说明、理解笔记与作者代码，未存 PDF；下载入口与阅读范围记在其 `metadata.yaml`。Markdown 为正文源文件，公式阅读页统一生成；命令和职责见[维护说明](知识库/维护说明.md)。
+每篇论文集中维护原文 PDF、SI（如有）、`README.md`、`metadata.yaml`、`citation.bib`、译文和笔记。S11 已于 2026-10-12 补齐主文与 SI PDF，重新核对 Supplementary Note 1；来源、哈希、阅读范围与代码差异见其新精读文档、核对记录和 `metadata.yaml`。Markdown 为正文源文件，公式阅读页统一生成；命令和职责见[维护说明](知识库/维护说明.md)。

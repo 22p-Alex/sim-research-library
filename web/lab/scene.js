@@ -22,6 +22,7 @@
       phase = 0,
       sceneRAF = 0,
       current = null,
+      referenceStatus = null,
       initialized = false;
     function markPlay(id, playing, idleText) {
       const b = $(id);
@@ -151,8 +152,8 @@
       const channels = [
         { key: 'sample', name: '样品', symbol: 's', hint: '原始结构' },
         { key: 'illumination', name: '照明', symbol: 'I', hint: '照亮样品的条纹' },
-        { key: 'emission', name: '发射', symbol: 'sI', hint: '样品 × 照明' },
-        { key: 'camera', name: '相机', symbol: '(sI)∗h', hint: '经过镜头模糊' }
+        { key: 'emission', name: '发射', symbol: 'E=sI', hint: '完整乘积信号' },
+        { key: 'camera', name: '相机', symbol: 'D=E*h', hint: '完整检测信号' }
       ];
       // Sample all four signals at identical positions; never rescale per row.
       const samples = Array.from({ length: 601 }, (_, i) => s.at(i / 5, 120));
@@ -173,13 +174,44 @@
           svg += `<text x="151" y="${y + 4}" text-anchor="end" class="wave-tick">${value}</text>`;
         }
         const points = samples.map((sample, i) => `${(left + i / 5 * scale).toFixed(2)},${(bottom - sample[channel.key] * 26).toFixed(2)}`);
-        svg += `<polyline points="${points.join(' ')}" class="wave-trace"/></g>`;
+        svg += `<polyline data-trace="actual" points="${points.join(' ')}" class="wave-trace"/>`;
+        if (channel.key === 'emission' || channel.key === 'camera') {
+          const referenceKey = channel.key === 'emission' ? 'referencePre' : 'referencePost';
+          const referencePoints = samples.map((sample, i) => `${(left + i / 5 * scale).toFixed(2)},${(bottom - sample[referenceKey] * 26).toFixed(2)}`);
+          svg += `<polyline data-reference="${channel.key}" points="${referencePoints.join(' ')}" class="wave-reference reference-${channel.key}" aria-hidden="true"/>`;
+        }
+        svg += '</g>';
       });
       for (const x of [0, 30, 60, 90, 120]) {
         svg += `<text x="${left + x * scale}" y="333" text-anchor="middle" class="wave-tick">${x}</text>`;
       }
       svg += '<text x="551" y="353" text-anchor="middle" class="wave-hint">水平位置 x / px</text>';
-      $('t1_waves').innerHTML = svg;
+      const waves = $('t1_waves');
+      waves.innerHTML = svg;
+      waves.setAttribute('data-reference-visible', String($('t1_reference_toggle').checked));
+      for (const [id, transfer] of [['t1_h_dc', 1], ['t1_h_sample', s.hs], ['t1_h_illum', s.hi], ['t1_h_diff', s.hd], ['t1_h_sum', C.otf(s.fs + s.kx, s.ky, s.kc)]]) {
+        const cell = $(id), reading = transfer.toFixed(3);
+        if (cell.textContent !== reading) cell.textContent = reading;
+      }
+      for (const [id, reading] of [['t1_ref_i0', s.ex.mean.toFixed(3)], ['t1_ref_m', s.ex.m.toFixed(2)]]) {
+        const cell = $(id);
+        if (cell.textContent !== reading) cell.textContent = reading;
+      }
+      const note = $('t1_reference_note');
+      let nextReferenceStatus = '';
+      if (!s.ex.mean) {
+        nextReferenceStatus = '无激发：I₀=0，发射 E、相机 D 与两条参考虚线均为零。';
+      } else if (s.ex.m === 0) {
+        nextReferenceStatus = 'm=0 / 宽场：两条参考仅 DC；完整 E 保留样品项，相机是否保留取决于该项 OTF。';
+      } else if (s.diff < 1e-10) {
+        nextReferenceStatus = '二维差频向量为零：差频项成为相位相关直流，对应 OTF 为 H(0)=1。';
+      } else if (Math.abs(s.dx) < 1e-10) {
+        nextReferenceStatus = '此水平截线上的差频项不随 x 变化；二维差频向量仍非零，对应 OTF 按该二维频率向量计算。';
+      }
+      if (referenceStatus !== nextReferenceStatus) {
+        note.textContent = nextReferenceStatus;
+        referenceStatus = nextReferenceStatus;
+      }
     }
     function sceneParams() {
       return {
@@ -301,6 +333,7 @@
       for (const el of $('tab1Content').querySelectorAll('input[type=range]')) el.value = el.defaultValue;
       mode = 'sim';
       phase = 0;
+      $('t1_reference_toggle').checked = true;
       Lab.convOtf.reset();
       set('t1_btn_laser_toggle', '切换为均匀宽场');
       $('t1_btn_laser_toggle').setAttribute('aria-pressed', 'true');
@@ -310,6 +343,9 @@
       if (initialized) return;
       initialized = true;
       $('t1_btn_sim_anim').addEventListener('click', toggleAnimation);
+      $('t1_reference_toggle').addEventListener('change', () => {
+        if (current) drawWaves(current.model);
+      });
       $('t1_btn_laser_toggle').addEventListener('click', () => {
         mode = mode === 'sim' ? 'widefield' : 'sim';
         set('t1_btn_laser_toggle', mode === 'sim' ? '切换为均匀宽场' : '切换为双束干涉');

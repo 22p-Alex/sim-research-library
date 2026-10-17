@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>SIM Motion · 从样品到超分辨重建</title>
+  <link rel="stylesheet" href="web/motion/sim-motion.css?v=nominal-failure-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=otf-before-after-5">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="topbar">
+    <a class="brand" href="sim_pipeline_atlas.html" aria-label="返回 SIM 重建图谱"><span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span><b>SIM</b><span class="brand-divider">/</span><span>MOTION STUDY</span></a>
+    <div class="top-context"><span class="live-dot"></span> 从样品到超分辨重建 <span class="edition">FULL STORY</span></div>
+    <nav aria-label="演示工具"><button id="theory-open" type="button">原理与数值 <span>↗</span></button><button id="fullscreen" type="button" aria-label="进入全屏">⛶ <span>全屏</span></button></nav>
+  </header>
+  <main id="main">
+    <section class="scene-heading" aria-labelledby="scene-title">
+      <div class="heading-index"><span id="chapter">01 / 样品与边界</span><div class="heading-line"></div></div>
+      <div id="scene-copy"><h1 id="scene-title">细节，藏在高频里。</h1><p id="scene-description">从同一张样品出发，跟着一个高频分量，走完编码、解混、归位和融合。</p></div>
+      <span class="scene-counter" aria-hidden="true"><b id="scene-number">01</b><span id="scene-total">/ 36</span></span>
+    </section>
+    <div class="stage" id="stage">
+      <div class="stage-topline"><span id="view-label">REAL SPACE / 相机观测</span><span id="stage-caption">3 PHASES · 1 DIRECTION</span></div>
+      <div id="detection-context" class="capture-context" aria-hidden="true" style="opacity:0">
+        <span class="capture-context-label">单方向 · 一次拍摄</span>
+        <span class="capture-context-phase"><span>固定相位</span><span data-equation="$$\phi_0=0$$"></span></span>
+      </div>
+      <svg id="scene" viewBox="0 0 1440 560" role="img" aria-labelledby="scene-svg-title scene-svg-description">
+        <title id="scene-svg-title">SIM 完整重建过程</title>
+        <desc id="scene-svg-description">从样品和条纹照明出发，依次展示频率编码、采集、临时分离、参数估计、正式解混、归位、多方向覆盖、Wiener 融合、逆 FFT 与结果验证。</desc>
+        <defs>
+          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r=".7" fill="#76878b" opacity=".14"/></pattern>
+          <radialGradient id="stage-glow"><stop stop-color="#16323a" stop-opacity=".38"/><stop offset="1" stop-color="#091115" stop-opacity="0"/></radialGradient>
+          <radialGradient id="otf-fill"><stop stop-color="#efb879" stop-opacity=".07"/><stop offset="1" stop-color="#efb879" stop-opacity="0"/></radialGradient>
+          <clipPath id="camera-clip"><rect x="-112" y="-112" width="224" height="224" rx="5"/></clipPath>
+          <clipPath id="band-clip"><rect x="-131" y="-131" width="262" height="262" rx="4"/></clipPath>
+          <clipPath id="encoding-window-clip" clipPathUnits="userSpaceOnUse"><rect x="-130" y="-130" width="260" height="260"/></clipPath>
+          <filter id="point-glow" x="-200%" y="-200%" width="500%" height="500%"><feGaussianBlur stdDeviation="3"/></filter>
+        </defs>
+        <rect width="1440" height="560" fill="url(#grid)"/>
+        <ellipse cx="840" cy="250" rx="640" ry="300" fill="url(#stage-glow)"/>
+        <g id="motion-content">
+        <g id="intro-stage"></g>
+        <g id="encoding-sum-stage"></g>
+        <g id="detection-stage" aria-label="同一次曝光的空域与频域检测前后对照"></g>
+        <g id="encoding-pair-equations" opacity="0" aria-hidden="true" role="group" aria-label="同一对样品频率的两条入带路径，纵坐标均为零" pointer-events="none">
+          <foreignObject x="365" y="452" width="340" height="70">
+            <div xmlns="http://www.w3.org/1999/xhtml" id="encoding-negative" class="encoding-route encoding-route-negative">
+              <span class="encoding-route-label">+1 级 · 沿 +k 搬移 · 虚线</span>
+              <math xmlns="http://www.w3.org/1998/Math/MathML" id="encoding-negative-equation" class="encoding-route-math" display="block"><mrow><mo>−</mo><mi mathvariant="bold">q</mi><mo>+</mo><mi mathvariant="bold">k</mi><mo>=</mo><mo>−</mo><mi id="encoding-negative-result" mathvariant="bold">f</mi></mrow></math>
+            </div>
+          </foreignObject>
+          <foreignObject x="735" y="452" width="340" height="70">
+            <div xmlns="http://www.w3.org/1999/xhtml" id="encoding-positive" class="encoding-route encoding-route-positive">
+              <span class="encoding-route-label">−1 级 · 沿 −k 搬移 · 实线</span>
+              <math xmlns="http://www.w3.org/1998/Math/MathML" id="encoding-positive-equation" class="encoding-route-math" display="block"><mrow><mi mathvariant="bold">q</mi><mo>−</mo><mi mathvariant="bold">k</mi><mo>=</mo><mi id="encoding-positive-result" mathvariant="bold">f</mi></mrow></math>
+            </div>
+          </foreignObject>
+        </g>
+        <g id="demix-stage">
+        <g id="frames"></g>
+        <g id="acquisition-arrows" aria-label="条纹相移后依次拍摄下一帧"></g>
+        <g id="sources"></g>
+        <g id="demix-source-origin" opacity="0" aria-hidden="true" role="group" aria-label="回看 05 的三个来源，经 OTF 衰减后定义 A，读取同一个 f，再缩小移入矩阵的对应来源行"></g>
+        <g id="demix-source-definitions" opacity="0" aria-hidden="true" role="group" aria-label="三个来源都是检测 OTF 与对应样品频谱的乘积"></g>
+        <g id="demix-matrix-view" opacity="0" aria-hidden="true" role="group" aria-label="从检测公式建立混合矩阵，再逐项展示等间隔三相位的逆矩阵权重"></g>
+        <g id="demix-proof-view" opacity="0" aria-hidden="true" role="group" aria-label="按来源合并符号系数，由逆矩阵恒等式得到零、零、一"></g>
+        <g id="demix-calculation-view" opacity="0" aria-hidden="true" role="group" aria-label="用符号表示三帧加权求和，再扩展到每个频率"></g>
+        <g id="demix-band-summary" opacity="0" aria-hidden="true" role="group" aria-label="正式解混后的频带仍包含检测 OTF"></g>
+        <g id="opening-labels"><text x="720" y="440" text-anchor="middle" class="svg-small">同三个来源 · 改变相位，让混合权重随帧变化</text><path d="M 490 465 H 950" class="guide-line"/><text x="720" y="497" text-anchor="middle" class="svg-muted">每帧提供一个方程 · 三帧在同一个 f 联立求解</text></g>
+        <g id="final-callout" opacity="0"><text x="56" y="191" class="svg-eyebrow" fill="#efb879">THE SAME COMPONENT</text><text x="52" y="273" class="final-coordinates">f <tspan fill="#50646d">→</tspan> q</text><text x="58" y="314" class="svg-small">从检测坐标，回到样品坐标。</text><path d="M 58 341 H 256" class="guide-line"/><text x="58" y="377" class="svg-muted">宽场截止 10 格</text><text x="58" y="407" class="svg-muted">这个分量，已经回到圈外。</text></g>
+        </g>
+        <g id="coverage-stage"></g>
+        <g id="fusion-stage"></g>
+        <g id="comparison-stage"></g>
+        </g>
+        <g id="provisional-stage" opacity="0" aria-hidden="true"></g>
+        <g id="split-handoff-stage" opacity="0" aria-hidden="true"></g>
+        <g id="frequency-handoff-stage" transform="translate(0 10)" opacity="0" aria-hidden="true"></g>
+        <g id="parameter-stage" transform="translate(0 10)" opacity="0" aria-hidden="true"></g>
+        <g id="adopted-stage" opacity="0" aria-hidden="true"></g>
+      </svg>
+      <div id="excitation-phases" class="excitation-phases" role="group" aria-label="三次固定相位曝光，切换查看同一点的荧光" hidden>
+        <span class="phase-control-label">相位 <i>φⱼ</i></span>
+        <div class="phase-segments">
+          <button id="excitation-phase-0" type="button" aria-label="第 1 次曝光，相位 0 弧度" aria-pressed="true"><span class="phase-value" data-equation="$$0$$" aria-hidden="true"></span></button>
+          <button id="excitation-phase-1" type="button" aria-label="第 2 次曝光，相位三分之二 π" aria-pressed="false"><span class="phase-value" data-equation="$$\frac{2\pi}{3}$$" aria-hidden="true"></span></button>
+          <button id="excitation-phase-2" type="button" aria-label="第 3 次曝光，相位三分之四 π" aria-pressed="false"><span class="phase-value" data-equation="$$\frac{4\pi}{3}$$" aria-hidden="true"></span></button>
+        </div>
+      </div>
+      <button id="edge-prev" class="edge edge-left" type="button" aria-label="上一步"><span>←</span><small>上一步</small></button>
+      <button id="edge-next" class="edge edge-right" type="button" aria-label="下一步"><span>→</span><small>下一步</small></button>
+    </div>
+    <section class="equation-rail" aria-label="当前公式与说明">
+      <span class="equation-label" id="equation-domain">空域 → 频域</span>
+      <div class="equation-body">
+        <div id="equation"></div>
+        <div id="encoding-sum-equations" class="encoding-sum-equations" role="group" aria-label="欧拉展开、傅里叶移频与三个编码项加权叠加" hidden>
+          <div id="encoding-derivation" class="encoding-derivation" aria-label="余弦展开、因子分配与逐项傅里叶变换">
+            <svg class="encoding-formula-canvas" viewBox="0 0 1200 144" role="img" aria-labelledby="encoding-algebra-description">
+              <desc id="encoding-algebra-description">记下总相位，写出正负欧拉公式，相加消去虚部并除以二，再代回条纹相位、拆开指数、分配样品，最后逐项做傅里叶变换。</desc>
+              <g id="encoding-algebra-tokens"></g>
+              <foreignObject id="encoding-algebra-theta" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\theta=\frac{2\pi x}{p}+\phi_j$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-identity" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{i\theta}=\cos\theta+i\sin\theta,\qquad e^{-i\theta}=\cos\theta-i\sin\theta$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-cancel" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{i\theta}+e^{-i\theta}=2\cos\theta+\underbrace{i\sin\theta-i\sin\theta}_{0}=2\cos\theta$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-half" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\cos\theta=\frac{e^{i\theta}+e^{-i\theta}}{2}\quad\Longrightarrow\quad m\cos\theta=\frac m2\left(e^{i\theta}+e^{-i\theta}\right)$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-substitute" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{\pm i\theta}=e^{\pm i(2\pi x/p+\phi_j)}$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-factor" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{a+b}=e^ae^b\quad\Longrightarrow\quad e^{\pm i(2\pi x/p+\phi_j)}=e^{\pm i\phi_j}e^{\pm2\pi ix/p}$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-notation" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\mathbf r=(x,y),\quad\mathbf k=(N/p,0),\quad\mathbf k\cdot\mathbf r/N=x/p$$"></div>
+              </foreignObject>
+              <foreignObject id="encoding-algebra-theorem" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+                <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\mathcal F_N\!\left\{s(\mathbf r)e^{\pm2\pi i\mathbf k\cdot\mathbf r/N}\right\}(\mathbf f)=S(\mathbf f\mp\mathbf k)$$"></div>
+              </foreignObject>
+            </svg>
+          </div>
+          <div id="encoding-coordinate-forward" class="encoding-coordinate-panel" aria-hidden="true">
+            <div class="encoding-coordinate-row">
+              <span id="encoding-symbol-destination" class="encoding-symbol" data-equation="$$\underbrace{\mathbf f}_{\text{移频后的位置}}$$"></span><span data-equation="$$=$$"></span>
+              <span id="encoding-symbol-source" class="encoding-symbol" data-equation="$$\underbrace{\mathbf q}_{\text{样品中的来源}}$$"></span><span data-equation="$$+$$"></span>
+              <span id="encoding-symbol-shift" class="encoding-symbol" data-equation="$$\underbrace{\ell\mathbf k}_{\text{带方向的搬移量}}$$"></span>
+            </div>
+            <div id="encoding-fixed-illumination" class="encoding-coordinate-detail" data-equation="$$\mathbf k\ \text{是固定的照明波矢},\qquad\ell\in\{0,+1,-1\}$$"></div>
+          </div>
+          <div id="encoding-coordinate-numeric" class="encoding-coordinate-panel" aria-hidden="true">
+            <div class="encoding-coordinate-row">
+              <span data-equation="$$\mathbf f=$$"></span>
+              <span class="encoding-symbol" data-equation="$$\underbrace{\mathbf q}_{\text{样品来源}}$$"></span><span data-equation="$$+$$"></span>
+              <span class="encoding-symbol" data-equation="$$\underbrace{(-1)\mathbf k}_{\ell\mathbf k}$$"></span>
+              <span id="encoding-numeric-destination" class="encoding-symbol" data-equation="$$=\mathbf q-\mathbf k$$"></span>
+            </div>
+            <p class="encoding-coordinate-caption">−1 级：从样品来源 q 沿 −k 搬移，到达 f。</p>
+          </div>
+          <div id="encoding-coordinate-inverse" class="encoding-coordinate-panel" aria-hidden="true">
+            <div class="encoding-coordinate-row"><span data-equation="$$\mathbf q=$$"></span><span id="encoding-inverse-source" class="encoding-symbol" data-equation="$$\mathbf f-\ell\mathbf k$$"></span></div>
+            <div class="encoding-coordinate-detail" data-equation="$$\ell=-1:\quad S(\mathbf f+\mathbf k)=S(\mathbf q)$$"></div>
+            <p class="encoding-coordinate-caption">反过来：已知当前位置 f，减去搬移量 ℓk，就找到来源 q。</p>
+          </div>
+          <div id="encoding-sum-expanded" class="encoding-sum-expanded" aria-hidden="true">
+            <span data-equation="$$E_j(\mathbf f)=$$"></span>
+            <span id="encoding-sum-term-zero" class="encoding-sum-term term-zero" data-equation="$$S(\mathbf f)$$"></span>
+            <span id="encoding-sum-plus-one" class="encoding-sum-plus" data-equation="$$+$$"></span>
+            <span id="encoding-sum-term-positive" class="encoding-sum-term term-positive"><span id="encoding-sum-weight-positive" class="encoding-sum-weight" data-equation="$$\frac m2e^{i\phi_j}$$"></span><span data-equation="$$S(\mathbf f-\mathbf k)$$"></span></span>
+            <span id="encoding-sum-plus-two" class="encoding-sum-plus" data-equation="$$+$$"></span>
+            <span id="encoding-sum-term-negative" class="encoding-sum-term term-negative"><span id="encoding-sum-weight-negative" class="encoding-sum-weight" data-equation="$$\frac m2e^{-i\phi_j}$$"></span><span data-equation="$$S(\mathbf f+\mathbf k)$$"></span></span>
+          </div>
+          <div id="encoding-sum-compact" class="encoding-sum-compact">
+            <div class="encoding-coordinate-row encoding-compact-row" data-equation="$$E_j(\mathbf f)=S(\mathbf f)+\frac m2e^{i\phi_j}S(\mathbf f-\mathbf k)+\frac m2e^{-i\phi_j}S(\mathbf f+\mathbf k)$$"></div>
+            <div id="encoding-lookup-note" class="encoding-lookup-note" aria-hidden="true" hidden>
+              <div id="encoding-lookup-term" class="encoding-coordinate-detail encoding-symbol" data-equation="$$\mathbf q=\mathbf f-\ell\mathbf k,\qquad\ell=-1:\quad S(\mathbf f+\mathbf k)=S(\mathbf q)$$"></div>
+              <p class="encoding-coordinate-caption">在当前位置 f，第 ℓ 级贡献取自样品频谱的 f−ℓk 位置。</p>
+            </div>
+          </div>
+        </div>
+        <div id="demix-equations" class="demix-equations" role="group" aria-label="来源定义、系数入矩阵、符号权重与逐点解混" hidden>
+          <div id="demix-formula-origin" class="demix-formula-panel" aria-hidden="true">
+            <div class="demix-matrix-equation" data-equation="$$S(\mathbf f-\ell\mathbf k)\times H(\mathbf f)=A_\ell(\mathbf f)$$"></div>
+            <p class="demix-formula-caption">05 的未加权来源 → 06 的物镜检测 → 待解混的 A；照明权重继续留在混合矩阵中。</p>
+          </div>
+          <div id="demix-formula-source" class="demix-formula-panel" aria-hidden="true">
+            <div id="demix-source-equation" class="demix-matrix-equation"></div>
+            <p class="demix-formula-caption">三份来源仍在同一个检测坐标中；在同一个 f 取值，分别记为 A₀(f)、A₊₁(f)、A₋₁(f)。</p>
+          </div>
+          <div id="demix-formula-mix" class="demix-formula-panel" aria-hidden="true">
+            <div class="demix-matrix-equation" data-equation="$$\mathbf D(\mathbf f)=M\mathbf A(\mathbf f)$$"></div>
+            <p class="demix-formula-caption">中间是混合矩阵 M：每一行生成一帧观测；三列依次对应 0 级、 +1 级、 −1 级。</p>
+          </div>
+          <div id="demix-formula-inverse" class="demix-formula-panel" aria-hidden="true">
+            <div id="demix-inverse-equations" class="demix-inverse-equations"></div>
+            <p id="demix-inverse-caption" class="demix-formula-caption">两边左乘同一个逆矩阵，保持矩阵乘法次序。</p>
+          </div>
+          <div id="demix-formula-proof" class="demix-formula-panel" aria-hidden="true">
+            <div class="demix-matrix-equation demix-expanded-proof" data-equation="$$\textstyle A_{-1}(\mathbf f)=\left(\sum_j u_{-1,j}\right)A_0(\mathbf f)+\left(\frac m2\sum_j u_{-1,j}e^{i\phi_j}\right)A_{+1}(\mathbf f)+\left(\frac m2\sum_j u_{-1,j}e^{-i\phi_j}\right)A_{-1}(\mathbf f)$$"></div>
+            <p class="demix-formula-caption">三个括号就是这一行权重乘 M 的结果；由 M⁻¹M = I，依次为 0、0、1。</p>
+          </div>
+          <div id="demix-formula-result" class="demix-formula-panel" aria-hidden="true">
+            <div class="demix-matrix-equation" data-equation="$$A_\ell(\mathbf f)=\sum_{j=0}^{2}u_{\ell,j}D_j(\mathbf f),\qquad \ell\in\{0,+1,-1\}$$"></div>
+          </div>
+        </div>
+        <div id="domain-equations" class="domain-equations" role="group" aria-label="空域与频域公式的对应关系" hidden>
+          <div class="domain-cell"><span id="domain-left-label" class="domain-cell-label"></span><div id="domain-left" class="domain-math"></div><div id="domain-left-detail" class="domain-math domain-detail" hidden></div></div>
+          <div class="domain-cell domain-bridge"><span id="domain-bridge-label" class="domain-cell-label"></span><div id="domain-bridge" class="domain-math"></div><div id="domain-bridge-detail" class="domain-math domain-detail" hidden></div></div>
+          <div class="domain-cell"><span id="domain-right-label" class="domain-cell-label"></span><div id="domain-right" class="domain-math"></div><div id="domain-right-detail" class="domain-math domain-detail" hidden></div></div>
+        </div>
+        <div id="detection-equations" class="detection-equations" role="group" aria-label="PSF 卷积与 OTF 滤波的公式元素随检测动画同步强调" hidden>
+          <div>
+            <span class="domain-cell-label">空域 · 发射图像与 PSF 卷积</span>
+            <div class="detection-equation">
+              <span id="detection-spatial-result" class="detection-term detection-result" data-equation="$$d_0=$$"></span>
+              <span id="detection-spatial-input" class="detection-term detection-input" data-equation="$$e_0$$"></span>
+              <span id="detection-spatial-filter" class="detection-term detection-filter" data-equation="$$*\,h$$"></span>
+            </div>
+          </div>
+          <div>
+            <span class="domain-cell-label">同一检测系统</span>
+            <div class="detection-equation"><span id="detection-pair" class="detection-term detection-filter" data-equation="$$H=\mathcal F\{h\}$$"></span></div>
+          </div>
+          <div>
+            <span class="domain-cell-label">频域 · 完整发射频谱乘 OTF</span>
+            <div class="detection-equation">
+              <span id="detection-frequency-result" class="detection-term detection-result" data-equation="$$D_0=$$"></span>
+              <span id="detection-frequency-filter" class="detection-term detection-filter" data-equation="$$H\,\cdot$$"></span>
+              <span id="detection-frequency-input" class="detection-term detection-input" data-equation="$$E_0$$"></span>
+            </div>
+          </div>
+          <p id="detection-formula-cue" class="detection-formula-cue">e₀ = sI₀：检测前已受条纹调制的荧光发射</p>
+        </div>
+        <div id="acquisition-equations" class="acquisition-equations" role="group" aria-label="当前照明相位与三次拍摄同步的成像公式" hidden>
+          <div class="acquisition-image-equation">
+            <span data-equation="$$d_{\phi}=\bigl\{s\,[1+m\cos(2\pi x/p+$$"></span>
+            <span id="acquisition-phase-term" class="detection-term detection-filter" data-equation="$$\phi$$"></span>
+            <span data-equation="$$)]\bigr\}*h$$"></span>
+          </div>
+          <div class="acquisition-phase-equation">
+            <span id="acquisition-phase-0" class="acquisition-phase-stop" data-equation="$$\phi_0=0$$"></span><span class="acquisition-phase-arrow">→</span>
+            <span id="acquisition-phase-1" class="acquisition-phase-stop" data-equation="$$\phi_1=\frac{2\pi}{3}$$"></span><span class="acquisition-phase-arrow">→</span>
+            <span id="acquisition-phase-2" class="acquisition-phase-stop" data-equation="$$\phi_2=\frac{4\pi}{3}$$"></span>
+            <math xmlns="http://www.w3.org/1998/Math/MathML" class="acquisition-current-phase"><mrow><mi>φ</mi><mo>≈</mo><mn id="acquisition-phase-number">0.000</mn><mi>π</mi></mrow></math>
+          </div>
+        </div>
+        <p id="domain-guide" class="domain-guide" hidden></p>
+        <p id="equation-note"></p>
+        <button id="theory-context" class="theory-entry" type="button" aria-haspopup="dialog" aria-controls="theory" hidden></button>
+        <button id="fourier-open" class="fourier-entry" type="button" aria-haspopup="dialog" aria-controls="fourier-lesson"><span class="fourier-entry-icon" aria-hidden="true">↗</span><span>频域里的点，怎样变成空域条纹？</span><span class="fourier-entry-detail">频率 · 系数 · 加权叠加</span></button>
+      </div>
+      <div class="equation-actions"><button id="chapter-replay" class="formula-replay" type="button" hidden>↺ 重看这一步</button>
+      <button id="encoding-replay" class="formula-replay" type="button" hidden>↺ 重看欧拉推导</button>
+      <button id="demix-mix-replay" type="button" hidden>↺ 重看混合</button><button id="demix-matrix-replay" type="button" hidden>↺ 重看解混</button><button id="equation-info" class="info-button" type="button" aria-label="查看公式依据与数值">i</button></div>
+    </section>
+  </main>
+  <footer class="transport">
+    <div class="transport-top"><span class="gesture-hint" id="gesture-hint"><kbd>←</kbd> 左侧返回 <span class="hint-divider">/</span> 点击右半屏，开始 <kbd>→</kbd></span><span id="playback-status" class="playback-status" role="status" aria-live="polite">停在第 1 步</span><div class="transport-tools"><button id="restart" type="button" title="回到开头">↺ <span>重来</span></button><button id="speed" type="button" aria-label="播放速度，当前 1 倍速">1×</button><button id="pause" type="button" aria-label="播放到下一步">下一步 <span>→</span></button></div></div>
+    <div class="timeline" id="timeline-scroll"><div class="timeline-content" id="timeline-content"><input id="progress" type="range" min="0" max="35" step="0.001" value="0" aria-label="完整动画时间轴" aria-valuetext="第 1 步：样品与频谱"><div class="scene-stops" id="scene-stops" role="group" aria-label="全部 36 个讲解步骤，可横向滚动" title="进度线与步骤一起滚动；圆点对应当前步骤"></div></div></div>
+  </footer>
+</div>
+<dialog id="fourier-lesson" class="fourier-dialog" aria-labelledby="fourier-title" aria-describedby="fourier-copy">
+  <div class="dialog-heading"><span class="eyebrow">FOURIER STORY / 从一对频率到一张图像</span><button id="fourier-close" type="button" aria-label="关闭条纹演示，返回主流程">×</button></div>
+  <ol class="fourier-steps" aria-label="八段固定分镜">
+    <li id="fourier-step-0"><span>01</span>完整图案</li><li id="fourier-step-1"><span>02</span>一对频率</li><li id="fourier-step-2"><span>03</span>虚部相消</li><li id="fourier-step-3"><span>04</span>描出余弦</li><li id="fourier-step-4"><span>05</span>减小幅度</li><li id="fourier-step-5"><span>06</span>加回条纹</li><li id="fourier-step-6"><span>07</span>转动相位</li><li id="fourier-step-7"><span>08</span>共同合成</li>
+  </ol>
+  <h2 id="fourier-title"></h2><p id="fourier-copy" class="fourier-copy"></p>
+  <div id="fourier-stage" class="fourier-stage" tabindex="0" role="group" aria-label="条纹动画舞台，可用左右键逐步播放">
+    <div class="fourier-panels">
+      <figure id="fourier-frequency-panel"><figcaption>频域里的点 <span>坐标 q</span></figcaption><svg id="fourier-frequency" viewBox="0 0 240 240" role="img" aria-label="交叉条纹的五个频率位置，持续追踪正负三格的频率对"></svg><p id="fourier-frequency-readout"></p></figure>
+      <figure id="fourier-complex-panel"><figcaption><span id="fourier-complex-title" class="fourier-panel-title">这对频率的系数</span><span id="fourier-complex-kind">cₓ</span></figcaption><svg id="fourier-complex" viewBox="0 0 240 240" role="img" aria-label="正三格频率的复系数，箭头长度与方向同步变化"></svg><p id="fourier-complex-readout"></p></figure>
+      <figure id="fourier-stripe-panel"><figcaption>竖条纹贡献 <span>vₜ(x)</span></figcaption><div class="fourier-image-wrap"><canvas id="fourier-stripe" width="128" height="128" role="img" aria-label="围绕零变化的竖条纹贡献"></canvas><svg id="fourier-stripe-overlay" viewBox="0 0 240 240" aria-hidden="true"></svg></div><p id="fourier-stripe-readout"></p></figure>
+      <figure id="fourier-result-panel"><figcaption>逐像素相加的图像 <span>sₜ(x, y)</span></figcaption><div class="fourier-image-wrap"><canvas id="fourier-result" width="128" height="128" role="img" aria-label="灰色底、竖条纹与横条纹合成的图像"></canvas></div><p id="fourier-result-readout"></p></figure>
+    </div>
+    <div class="fourier-profile-head"><span id="fourier-profile-title">同一行的竖条纹贡献 · 橙线：当前 / 虚线：初始</span><span>固定标尺 ±0.24 · 灰色为零贡献</span></div>
+    <svg id="fourier-profile" class="fourier-profile" viewBox="0 0 1000 110" role="img" aria-label="幅度变化和平移的余弦剖面，跨视野三个周期"></svg>
+  </div>
+  <section class="fourier-formulas" aria-label="与画面逐帧同步的公式">
+    <div class="fourier-formula-heading"><span>同一帧，对应同一组系数</span><span id="fourier-formula-cue"></span></div>
+    <div class="fourier-detail-equations">
+    <div id="fourier-base-equations">
+    <div id="fourier-coefficient-equation" class="fourier-coefficient-equation" role="group" aria-label="当前复系数">
+      <span data-equation="$$c_x(t)=\frac{S_t(3,0)}{N^2}=$$"></span>
+      <span id="fourier-eq-magnitude" class="fourier-factor fourier-number"></span>
+      <span data-equation="$$\exp\!\bigl(i\,$$"></span><span id="fourier-eq-coefficient-phase" class="fourier-factor fourier-angle"></span><span data-equation="$$\bigr)$$"></span>
+      <span class="fourier-conjugate" data-equation="$$\qquad c_{-x}(t)=c_x(t)^*$$"></span>
+    </div>
+    <div id="fourier-equation" class="fourier-equation" role="group" aria-label="当前图像的展开公式">
+      <span id="fourier-eq-result" class="fourier-factor" data-equation="$$s_t(x,y)=$$"></span>
+      <span id="fourier-eq-dc" class="fourier-factor" data-equation="$$0.50$$"></span>
+      <span id="fourier-eq-plus-x" class="fourier-factor fourier-sum" data-equation="$$+$$"></span>
+      <span id="fourier-eq-vertical" class="fourier-term">
+        <span id="fourier-eq-amplitude" class="fourier-factor fourier-number"></span>
+        <span data-equation="$$\cos\!\bigl($$"></span><span id="fourier-eq-frequency" class="fourier-factor" data-equation="$$\frac{2\pi\cdot3x}{N}$$"></span><span data-equation="$$+$$"></span><span id="fourier-eq-phase" class="fourier-factor fourier-angle"></span><span data-equation="$$\bigr)$$"></span>
+      </span>
+      <span id="fourier-eq-plus-y" class="fourier-factor fourier-sum" data-equation="$$+$$"></span>
+      <span id="fourier-eq-horizontal" class="fourier-factor" data-equation="$$0.24\cos\!\left(\frac{2\pi\cdot3y}{N}\right)$$"></span>
+    </div>
+    <div class="fourier-formula-legend"><span>灰色底：0.50</span><span>橙色项：当前竖条纹</span><span>青色项：固定横条纹</span><span>N = 128</span></div>
+    </div>
+    <div id="fourier-pair-equations" class="fourier-pair-equations" role="group" aria-label="一对复指数的实部相加、虚部抵消" aria-hidden="true">
+      <div class="fourier-pair-position"><span id="fourier-pair-position"></span><span class="fourier-pair-fixed" data-equation="$$c_+=c_-=0.12\ \text{（固定）}$$"></span></div>
+      <div class="fourier-pair-row"><span class="pair-positive" data-equation="$$z_+(x)=0.12e^{i\theta}=$$"></span><span id="fourier-pair-real-plus" class="fourier-factor" data-equation="$$0.12\cos\theta$$"></span><span id="fourier-pair-imag-plus" class="fourier-pair-imag" data-equation="$$+\,i\,0.12\sin\theta$$"></span><span data-equation="$$\approx$$"></span><span id="fourier-pair-positive-value" class="fourier-pair-value pair-positive"></span></div>
+      <div class="fourier-pair-row"><span class="pair-negative" data-equation="$$z_-(x)=0.12e^{-i\theta}=$$"></span><span id="fourier-pair-real-minus" class="fourier-factor" data-equation="$$0.12\cos\theta$$"></span><span id="fourier-pair-imag-minus" class="fourier-pair-imag" data-equation="$$-\,i\,0.12\sin\theta$$"></span><span data-equation="$$\approx$$"></span><span id="fourier-pair-negative-value" class="fourier-pair-value pair-negative"></span></div>
+      <div id="fourier-pair-sum-equation" class="fourier-pair-row fourier-pair-sum"><span data-equation="$$z_++z_-=$$"></span><span id="fourier-pair-real-sum" class="fourier-factor" data-equation="$$0.24\cos\theta$$"></span><span data-equation="$$+\,0i\approx$$"></span><span id="fourier-pair-sum-value" class="fourier-pair-value"></span></div>
+    </div>
+    </div>
+    <p id="fourier-insight" class="fourier-insight"></p>
+  </section>
+  <div class="fourier-transport"><button id="fourier-prev" type="button">← 上一步</button><span id="fourier-status" role="status" aria-live="polite"></span><button id="fourier-pause" type="button">Ⅱ 暂停</button><button id="fourier-restart" type="button">↺ 重来</button><button id="fourier-next" type="button">下一步 →</button></div>
+  <p class="fourier-gesture">点击弹窗左半侧返回，右半侧继续 · 左右键同样可用 · 空格暂停 / 继续</p>
+  <details class="fourier-derivation"><summary>公式依据与显示约定</summary>
+    <p>本弹窗使用专门构造的交叉条纹教学图，便于观察单个分量；主流程仍使用西门子星。这里的 sₜ 表示动画当前帧的图像，t 是演示进度。初始图像为：</p>
+    <div data-equation="$$s_0(x,y)=0.50+0.24\cos\!\left(\frac{2\pi\cdot3x}{N}\right)+0.24\cos\!\left(\frac{2\pi\cdot3y}{N}\right),\qquad N=128$$"></div>
+    <p>按正变换不归一化、逆变换除以 N² 的 DFT 约定，归一化频谱只有五个非零系数：直流为 0.50，另外两对各为 0.12。需要改变系数时，只修改左右一对；扫描位置时，全部系数保持不变。直流与上下一对始终固定。</p>
+    <div data-equation="$$\frac{S_0(0,0)}{N^2}=0.50,\qquad\frac{S_0(\pm3,0)}{N^2}=\frac{S_0(0,\pm3)}{N^2}=0.12$$"></div>
+    <p>单个频率对应复指数。实值图像的正、负频率系数互为共轭；配对后虚部抵消，得到实值余弦。因此条纹幅度是复系数模长的两倍：</p>
+    <div data-equation="$$c_x=\frac{A_t}{2}e^{i\phi_t},\quad c_{-x}=c_x^*,\quad v_t(x)=c_xe^{2\pi i3x/N}+c_x^*e^{-2\pi i3x/N}=A_t\cos\!\left(\frac{2\pi\cdot3x}{N}+\phi_t\right)$$"></div>
+    <p>“虚部相消”与“描出余弦”两段先固定两个系数为 0.12，仅扫描空间坐标 x。此时旋转箭头表示复指数对该位置的贡献 z±(x)，不是在改变频谱系数。先停在 x = N/18（θ = π/3），将负频率贡献接到正频率贡献的末端：虚部相消，实部相加。</p>
+    <div data-equation="$$z_\pm(x)=0.12e^{\pm i\theta}=0.12\cos\theta\pm i\,0.12\sin\theta,\qquad\theta=\frac{2\pi\cdot3x}{N}$$"></div>
+    <div data-equation="$$\theta=\frac\pi3:\qquad z_+=0.06+i\,0.06\sqrt3,\quad z_-=0.06-i\,0.06\sqrt3,\quad z_++z_-=0.12$$"></div>
+    <p>接着从同一位置扫描到 x = N，合成箭头始终在实轴上。正、负贡献的方向角分别增加到 +6π 与 −6π，余弦轨迹累计三个周期。这里 x 是三角插值函数上的连续空间坐标；x = N 是下一周期的边界，与 x = 0 等价，128 个采样像素的索引仍为 0—127。整个扫描过程中，条纹图像与系数保持固定；后面的“转动相位”才改变系数并平移整张条纹。</p>
+    <p>“权重”描述复系数参与叠加的作用。系数模长改变时，整张条纹的正负贡献等比例改变；相位增加 π，条纹沿 −x 平移 N/6 ≈ 21.33 像素。幅度为零时，系数相位没有定义，公式保留参考相位参数 0，便于下一段加回。这里的相位不是主流程中的照明相位。</p>
+    <p>三段数值变化依次为：Aₜ 从 0.24 减到 0，再加回 0.24；随后保持 Aₜ = 0.24，将 φₜ 从 0 转到 π，最后转回 0。公式数字显示到小数点后三位，计算保留完整精度。全部变化由同一播放进度驱动，回退沿同一条曲线。</p>
+    <p>频谱点的实心亮度随模长改变；幅度为零的选中位置保留空圈。系数箭头固定标尺。条纹图固定 ±0.24，亮为正、暗为负、中灰为零；合成图固定 0—1，整个演示的像素始终位于 0.02—0.98 内，无需裁切或重新归一化。</p>
+    <p>依据：<a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">NumPy FFT：变换定义、归一化与实值输入的共轭对称 ↗</a>。教学图实际执行 FFT；每个停点与中间帧以频谱成对修改后的逆 FFT 核对。</p>
+  </details>
+</dialog>
+<dialog id="theory" aria-labelledby="theory-title">
+  <div class="dialog-heading"><span class="eyebrow">BEHIND THE MOTION</span><button id="theory-close" type="button" aria-label="关闭原理说明">×</button></div>
+  <h2 id="theory-title">每个动作，都有对应的计算。</h2>
+  <p>全流程使用同一份三方向、每方向三相位、无噪声的模拟数据。先固定方向 1 解释解混，再汇合其余方向。从九帧观测估计照明波矢、相位和调制度，再用这些结果正式解混；OTF 由成像模型提供。图像与 FFT 来自现有重建核心。</p>
+  <h3 id="theory-parameters" tabindex="-1">参数从哪里来？为什么是 60.3°？</h3>
+  <p><strong>本动画从同一批九帧实际估计参数，并将结果用于重建。</strong>模拟采集时指定照明以生成图像；估计器只读取相机像素和已知的相对相移、OTF 配置。方向 2 的 60.3° 由估计波矢换算而来，不表示估计误差为 0.3°。</p>
+  <div class="theory-equation" data-equation="$$\theta_d=\operatorname{atan2}(k_{y,d},k_{x,d}),\qquad p_d=\frac{128}{\sqrt{k_{x,d}^2+k_{y,d}^2}},\qquad \operatorname{atan2}(7,4)\frac{180^\circ}{\pi}\approx60.255^\circ$$"></div>
+  <table><thead><tr><th>方向</th><th>估计 k / DFT 格</th><th>换算角度</th><th>周期 / 像素</th></tr></thead><tbody id="parameter-values"></tbody></table>
+  <p>理想的 60°、同模长 8 的波矢应为 (4, 4√3)，其 y 分量约 6.928。这里改用整数格 (4, 7)，使周期边界上的频带可精确搬移，避免分数格插值；代价是角度与波矢模长略有不同。表中角度按本页坐标系计算，表示条纹的法线方向；条纹线条本身与波矢垂直。</p>
+  <p>当前主线的计算顺序是：<strong>九帧采集 → 临时分离与频带相关 → 估计波矢、相位、调制度 → 用这些参数正式解混 → 归位 → OTF 融合。</strong>波矢决定往哪里搬，相位决定怎样消去其他来源，调制度决定补偿多少幅度；OTF 则需由系统标定或模型提供。</p>
+  <h3>为什么不直接用实验前预设的 m、φ 和 k？</h3>
+  <p>预设值描述希望产生的条纹，重建模型需要的是拍摄时样品处实际形成的条纹。两者是否一致，取决于光路与标定是否准确、采集时是否稳定；不能仅凭“已经设定”就认定它们相等：</p>
+  <div class="theory-equation" data-equation="$$I_j(\mathbf r)=1+m\cos\!\left(\frac{2\pi}{N}\mathbf k\cdot\mathbf r+\phi_j\right)$$"></div>
+  <p><strong>调制度 m：</strong>两束光到达样品时的强度比例、偏振匹配程度决定干涉反差。即使预设高反差，实际光束强度不平衡或偏振不匹配，条纹反差也会降低。</p>
+  <p><strong>相位 φ：</strong>相移命令规定每次改变多少相位，但样品处的相位起点还包含实际光程差带来的偏移。即使三帧之间准确移动了 2π/3，共同起点仍可能未知。本页假设该偏移在三帧内保持不变。</p>
+  <p><strong>波矢 k：</strong>条纹的实际方向和间距由样品处两束光的传播方向决定。光束夹角或对准的偏差会改变波矢；换算成图像中的频率格，还需要准确的样品面像素尺度。</p>
+  <details><summary>这些差异如何从两束光的干涉公式推出？</summary>
+    <p>取同频、完全相干的两束平面波，强度为 J₁、J₂，单位偏振向量为 e₁、e₂。由电场叠加后取模平方，平均强度归一化后得到下式；偏振内积的相角并入 φⱼ：</p>
+    <div class="theory-equation" data-equation="$$I_j(\mathbf r)=1+\frac{2\sqrt{J_1J_2}\,|\mathbf e_1^*\!\cdot\mathbf e_2|}{J_1+J_2}\cos\!\left[a(\boldsymbol\kappa_1-\boldsymbol\kappa_2)_\parallel\!\cdot\mathbf r+\phi_j\right]$$"></div>
+    <div class="theory-equation" data-equation="$$m=\frac{2\sqrt{J_1J_2}\,|\mathbf e_1^*\!\cdot\mathbf e_2|}{J_1+J_2},\qquad \mathbf k=\frac{Na}{2\pi}(\boldsymbol\kappa_1-\boldsymbol\kappa_2)_\parallel,\qquad \delta\phi=\frac{2\pi}{\lambda_0}\,\delta L_{\rm opt}$$"></div>
+    <p>κ₁、κ₂ 是两束光的物理波矢，下标 ∥ 表示样品面内分量；a 是样品面每像素长度，r 以像素为单位，本页 k 以 DFT 格为单位。λ₀ 为真空波长，δLopt 为按同一符号约定取的两束光光程差变化。强度比从 1∶1 变成 4∶1 时，在偏振完全匹配的条件下，m 从 1 降为 0.8。这是两束光干涉的示例，不表示当前模拟加入了这些光路误差。</p>
+    <p>干涉推导依据：Born &amp; Wolf，<cite>Principles of Optics</cite>，第 7 版，第 7 章的场叠加与干涉理论；上式按本页像素坐标与 DFT 单位改写。</p>
+  </details>
+  <p>因此，未经验证就直接代入预设值，可能让旁带带上错误的幅度和相位，或搬到错误的频率位置。相机图像包含实际照明作用后的信息，本例从同一批观测估计各方向参数：</p>
+  <div class="theory-equation" data-equation="$$\widehat{\mathbf k},\qquad\widehat m,\qquad\widehat\phi_\Delta,\qquad\widehat\phi_j=\phi'_j+\widehat\phi_\Delta,\quad\phi'_j=\frac{2\pi j}{3}$$"></div>
+  <p>如果预设值已通过样品面标定验证，且采集期间保持稳定，就可以直接使用，不必每次重新估计。当前无噪声模拟也有准确的生成参数，可以直接重建；这里让估计器只读图像、已知相对相移与 OTF，是为了演示从观测恢复参数的流程。</p>
+  <p>依据：<a href="https://doi.org/10.1038/ncomms10980" target="_blank" rel="noopener">Müller et al. (2016)，Supplementary Note 1，Parameter estimation ↗</a> 明确指出，重建需要正确的照明参数，通常从输入图像提取；其脚注 5 也说明稳定系统的参数可重复使用。接下来，先找两份频谱共有的样品信息。</p>
+  <h3>参数估计为何能从频带重叠中得到？</h3>
+  <p>第 12 幕先固定一个样品频率 q，随后把它记作 P。0 级在检测地址 f=q 记录它；要在 +1 级找到同一份 S(q)，令旁带的样品频率自变量 f−k=q，得到对应检测地址 f=q+k：</p>
+  <div class="theory-equation" data-equation="$$\underbrace{\mathbf f_0=\mathbf q}_{\text{0 级地址}},\qquad\underbrace{\mathbf f_{+1}-\mathbf k=\mathbf q\ \Longrightarrow\ \mathbf f_{+1}=\mathbf q+\mathbf k}_{\text{+1 级地址}},\qquad(\mathbf q+\mathbf k)-\mathbf k=\mathbf q$$"></div>
+  <p>动画先用虚线光标沿 +k 找地址，频谱保持不动；再把两个检测原点叠放到一起，明确区分画面排布与实际频移；随后固定 0 级，将 +1 级、它的 OTF 和对应标记一起移动 −k。两处标记重合后，再从这个点扩展到整个公共区。用于说明对应关系的 k 仍是模型中的真实差距，参数搜索在后面进行。</p>
+  <p>这里平移的是频率坐标，频点携带的复数值不变。“含同一份 S(q)”也不表示读数相同：两边仍有不同的 OTF 衰减和照明幅相。相位差在后面的 Re–Im 平面中，用固定参考箭头、旋转其副本来表示；不要把频谱图的平移理解成共同相位校正。</p>
+  <p>求逆得到的是含参数的权重表达式，无法同时给出其中未知的调制度与共同相位数值。已知的帧间相对相移仍不足以确定真实幅相，因此需要从观测估计。这里利用 0 级与 +1 级公共区的同一样品信息估计参数；−1 级仍用于后面的正式重建。</p>
+  <p>以一个方向为例，假设三帧相对相移准确，未知的是共同相位偏移 φΔ、波矢 k 和调制度 m。正式分离 A=UD 的权重依赖真实调制度与相位：</p>
+  <div class="theory-equation" data-equation="$$u_{0,j}=\frac13,\qquad u_{\pm1,j}=\frac{2}{3m}e^{\mp i\phi_j},\qquad\phi_j=\phi'_j+\phi_\Delta$$"></div>
+  <p>只用已知相对相移构造权重时，暂取 m=1、φⱼ=φ′ⱼ，得到另一个矩阵 Ũ；它作用于同一组观测的结果记为 Ã。这是临时算子的定义，不代表真实调制度为 1、共同相位为 0，也不是给原来的 A 改名：</p>
+  <div class="theory-equation" data-equation="$$\widetilde U:=\left.U\right|_{m=1,\,\phi_j=\phi'_j},\qquad\widetilde{\mathbf A}(\mathbf f):=\widetilde U\mathbf D(\mathbf f)$$"></div>
+  <p>将 Ũ 的每一行展开，0 级已是正式来源，而旁带仍保留未知幅相：</p>
+  <div class="theory-equation" data-equation="$$\phi_j=\phi'_j+\phi_\Delta,\quad\phi'_j=\frac{2\pi j}{3},\qquad\widetilde A_0(\mathbf f)=\frac13\sum_jD_j(\mathbf f)=H(\mathbf f)S(\mathbf f)$$"></div>
+  <div class="theory-equation" data-equation="$$\widetilde A_{+1}(\mathbf f)=\frac23\sum_je^{-i\phi'_j}D_j(\mathbf f)=m e^{i\phi_\Delta}H(\mathbf f)S(\mathbf f-\mathbf k)$$"></div>
+  <div class="theory-equation" data-equation="$$\widetilde A_{\pm1}(\mathbf f)=m e^{\pm i\phi_\Delta}A_{\pm1}(\mathbf f)$$"></div>
+  <p>0 级在 q 与 +1 级在 q+k 都记录了 S(q)。在两边 OTF 都可靠的公共区 Ω，分别除自己的 OTF 后，候选正确时有：</p>
+  <div class="theory-equation" data-equation="$$\frac{\widetilde A_{+1}(\mathbf q+\mathbf k)}{H(\mathbf q+\mathbf k)}=m e^{i\phi_\Delta}\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)}$$"></div>
+  <p>主线先用归一化复数相关寻找波矢，再于峰附近细化；位置对齐后，复数最小二乘比例同时给出调制度与共同相位：</p>
+  <div class="theory-equation" data-equation="$$\widehat m e^{i\widehat\phi_\Delta}=\frac{\sum_{\mathbf q\in\Omega}\left[\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)}\right]^*\frac{\widetilde A_{+1}(\mathbf q+\widehat{\mathbf k})}{H(\mathbf q+\widehat{\mathbf k})}}{\sum_{\mathbf q\in\Omega}\left|\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)}\right|^2}$$"></div>
+  <p>临时分离已补偿余弦展开的 1/2，因此模长直接给 m。非等间隔相移需要另估各帧相位；弱公共区、噪声和 OTF 误差会影响估计。</p>
+  <p>新主线分为两个阶段：先找频率位置，再求复数值的共同旋转与缩放。交集只决定可比较的区域；在同一候选下，能否用一个复系数解释全部对应点才决定匹配质量。设 U、V 分别是 0 级和旁带的 OTF 校正值，归一化相关与最小二乘残差有以下关系：</p>
+  <div class="theory-equation" data-equation="$$\rho=\frac{|\sum U^*V|}{\sqrt{\sum|U|^2\sum|V|^2}},\qquad\min_\alpha\frac{\sum|V-\alpha U|^2}{\sum|V|^2}=1-\rho^2$$"></div>
+  <details class="parameter-correlation-detail"><summary>第 16–17 步：为什么用这个相关分数？</summary>
+    <p>正确候选下仍有未知的共同幅相差，所以先允许一个复系数 α，让它尽量同时解释全部公共点。以下求和均在当前候选的同一批可靠公共点 Ω 上进行，两边能量须非零：</p>
+    <div class="theory-equation" data-equation="$$J(\alpha;\mathbf k')=\sum_{\Omega}|V_{\mathbf k'}-\alpha U|^2,\quad C=\sum_{\Omega}U^*V_{\mathbf k'},\quad E_U=\sum_{\Omega}|U|^2,\quad E_V=\sum_{\Omega}|V_{\mathbf k'}|^2$$"></div>
+    <p>展开平方并配方，直接得到最佳系数及其剩余误差：</p>
+    <div class="theory-equation" data-equation="$$J=E_V-2\operatorname{Re}(\alpha^*C)+|\alpha|^2E_U=E_U\left|\alpha-\frac{C}{E_U}\right|^2+E_V-\frac{|C|^2}{E_U}$$"></div>
+    <div class="theory-equation" data-equation="$$\widehat\alpha=\frac{C}{E_U},\qquad\frac{\min_\alpha J}{E_V}=1-\frac{|C|^2}{E_UE_V}=1-\rho^2$$"></div>
+    <p>分子先把复数乘积相加：共同相位差让乘积朝同一方向，相加增强；分散的相位差则相互抵消。取模消去未知共同相位，分母的双边能量归一化消去整体幅度影响。柯西–施瓦茨不等式保证 0≤ρ≤1；完全满足同一个 V=αU 时为 1。最大化 ρ 因而等价于最小化相对拟合误差。本页仍要求至少 20 个公共点与非零能量；高分本身不保证实验精度。</p>
+    <p>这是由本页最小二乘目标推导出的教学分数。fairSIM 的原始峰值使用参考频带能量归一化，并有不同的粗搜预处理和公共区规则，不能把这里的 ρ 当作原版峰高。</p>
+  </details>
+  <details class="parameter-correlation-detail"><summary>第 17–18 步：k′ 的初值和范围，fairSIM 怎样规定？</summary>
+    <p>粗搜和细化使用不同范围。本页默认在 3≤‖k′‖≤10 的整数候选中填评分图，跳过无足够公共点的候选；逐行跳动只是填表顺序。整数峰给出下一步初值，随后只在峰附近搜索。图内深色格表示不参与搜索的候选。</p>
+    <p>fairSIM 的<a href="https://github.com/fairSIM/fairSIM-documentation/blob/master/quickstart/fairSIM-quickstart.tex" target="_blank" rel="noopener">官方 quickstart</a>明确描述：先在整张互相关图中定位整数峰，再局部细化。中心排除半径由 fitExclude 配置，文档描述默认排除 0.6 倍 OTF 截止以内。固定本地 develop 提交 711afd12（版本 1.5.1）的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 也允许使用已存参数作粗初值。</p>
+    <p>该源码调用 fitPeak 时传入 search=2.5，并每轮除以 5。两轴各取 10 点，选择最高峰作为下一轮中心；因此三轮半宽为 2.5、0.5、0.1 格，而不是反复在全图大范围移动：</p>
+    <div class="theory-equation" data-equation="$$k'_{r,a}=c_{r,a}+\frac{j-4.5}{4.5}s_r,\quad j=0,\ldots,9,\quad a\in\{x,y\},\qquad s_r\in\{2.5,0.5,0.1\}$$"></div>
+    <p>相邻候选间隔为 2sᵣ/9；quickstart 将首轮概述为约 ±2 格，此处按源码写精确的 ±2.5。单位是 DFT 频率格，不是样品空间的像素移动。本页教学实现保持三轮 5×5，半宽 0.5、0.1、0.02 格，间隔 0.25、0.05、0.01 格。范围大小属于搜索设置，不能当作估计误差或实际分辨率。</p>
+    <p>计算依据：<a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java 的 locatePeak、fitPeak</a>。双边能量归一化和逐候选阈值集合仍是本页教学实现的定义。</p>
+  </details>
+  <details class="parameter-correlation-detail"><summary>第 18–19 步：为什么相位是旋转，调制度是伸缩？</summary>
+    <p>位置正确对齐并除去 OTF 后，两边包含同一个样品值。无噪声模型直接给出共同复系数：</p>
+    <div class="theory-equation" data-equation="$$U_j=S(\mathbf q_j),\quad V_j=m e^{i\phi_\Delta}S(\mathbf q_j)\quad\Longrightarrow\quad V_j=m e^{i\phi_\Delta}U_j$$"></div>
+    <p>用欧拉公式展开复数乘法，可见它正好对应实部–虚部平面的旋转矩阵，再乘实数 m：</p>
+    <div class="theory-equation" data-equation="$$e^{i\phi_\Delta}=\cos\phi_\Delta+i\sin\phi_\Delta,\qquad\begin{bmatrix}\operatorname{Re}V_j\\\operatorname{Im}V_j\end{bmatrix}=m\begin{bmatrix}\cos\phi_\Delta&-\sin\phi_\Delta\\\sin\phi_\Delta&\cos\phi_\Delta\end{bmatrix}\begin{bmatrix}\operatorname{Re}U_j\\\operatorname{Im}U_j\end{bmatrix}$$"></div>
+    <p>指数因子的模为 1，只把角度加上 φΔ；非负实数 m 只把长度乘 m。各个点自身的相位 θⱼ 可以不同，但角度差与长度比相同。有噪声时这个关系近似成立，用全部可靠点拟合；动画主线的拟合相位接近 0，所以先展示带明确标注的试探角度，再回到实测拟合值。</p>
+    <p>第 18 步的空间相位斜坡随像素位置变化，用于小数频移；第 19 步的共同相位处处相同，改变复数值。在照明中，φΔ 控制条纹位置、m 控制对比度；在复平面中，它们对应旋转与伸缩，频点 q 和条纹方向保持固定。</p>
+  </details>
+  <p>横纵分量组成同一个二维候选。小数频移通过傅里叶平移定理计算，对应 OTF 也在小数坐标取值。这里 N 为每轴采样数，频率单位为 DFT 格：</p>
+  <div class="theory-equation" data-equation="$$a=\mathcal F_N^{-1}\{\widetilde A_{+1}\},\qquad\mathcal F_N\left\{a[x,y]e^{-\frac{2\pi i}{N}(k'_x x+k'_y y)}\right\}(\mathbf q)=\widetilde A_{+1}(\mathbf q+\mathbf k')$$"></div>
+  <details class="parameter-correlation-detail"><summary>第 13 步一维移动：1、4、2 的手算对照</summary>
+    <p>动画另设一维教学数据，OTF 已校正，范围外补零；这些数不替代 P、Q、R 的实际读数，也不进入主线估计。0 级为 [0,1,4,2,0,0]，旁带为 [0,0,0,1,4,2]。分别将旁带向左移 0—4 格，逐列相乘再求和：</p>
+    <table><thead><tr><th>左移格数</th><th>0</th><th>1</th><th>2</th><th>3</th><th>4</th></tr></thead><tbody><tr><th>乘积和</th><td>2</td><td>12</td><td>21</td><td>12</td><td>2</td></tr></tbody></table>
+    <p>峰的位置 2 给出这个教学例的位移，峰高 21 是原始乘积和。下一步直接回到原来的二维频谱、公共区和 P、Q、R：位置有横纵两个分量，频点值由实际观测计算，还需处理 OTF 衰减和复数相位。教学位移与分数不带入原图。</p>
+  </details>
+  <p>此处运行的是教学估计器：直接遍历整数候选、公共区 OTF 校正与能量归一化，再以 5×5 网格逐轮细化；并非 fairSIM 原版 FFT 粗相关、掩膜与 fitPeak 的逐行复刻。理论依据：<a href="https://doi.org/10.1038/ncomms10980" target="_blank" rel="noopener">Müller et al. (2016)，Supplementary Note 1 ↗</a>。源码调用顺序见 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 的临时分离、参数拟合和正式重建；项目内有<a href="Wiener-SIM/fairSIM-论文/fairSIM_参数估计逐步推导与代码实操.md">推导与源码对照</a>及<a href="scripts/fairsim-parameter-estimation/README.md">原版估计器实操</a>。</p>
+  <h3>从样品 Sample 到样品频谱 Spectrum</h3>
+  <p>s(r) = s(x, y) 表示像素位置 r = (x, y) 处的样品强度。二维离散傅里叶变换（Discrete Fourier Transform，DFT）把这些像素展开到不同频率的基函数上；S(q) = S(qₓ, qᵧ) 是频率 q 对应的复数系数，包含幅度和相位。FFT（Fast Fourier Transform）是计算 DFT 的快速算法。</p>
+  <div class="theory-equation" data-equation="$$S(q_x,q_y)=\sum_{y=0}^{N-1}\sum_{x=0}^{N-1}s(x,y)\,\exp\!\left[-\frac{2\pi i}{N}(q_x x+q_y y)\right]$$"></div>
+  <p>本页 N = 128，x、y 为 0—127 的像素索引；qₓ、qᵧ 是带符号的整数频率格。频谱以零频为中心显示，每移动一格，对应沿该坐标方向跨整个视野多振荡一个周期。正变换使用负指数且不归一化，与本页计算核心一致。</p>
+  <p>单个 q 对应复指数基函数。实值样品的 q 与 −q 两个系数共轭配对，合成一张实值余弦条纹：条纹垂直于 q，沿 x、y 的有符号周期数分别为 qₓ、qᵧ。该条纹的峰值幅度是 2|S(q)|/N²，相位 arg S(q) 决定平移位置。第 01 步的“频域里的点，怎样变成空域条纹？”可独立演示这一对应关系、复系数和逐像素加权叠加。</p>
+  <div class="theory-equation" data-equation="$$\mathbf q=(14,0)\quad\Longrightarrow\quad\boldsymbol\nu=\frac{\mathbf q}{N}=\left(\frac{14}{128},0\right)\ \text{cycles/pixel},\qquad T_x=\frac{128}{14}\approx9.14\ \text{pixels}$$"></div>
+  <p>因此，选中的这个分量沿 x 方向跨整个视野有 14 个周期，沿 y 方向不变。这里解释的是该频率分量，完整样品由许多分量共同构成。右侧频谱图用 log(1 + 幅度) 显示亮度，内部计算保留完整复数。</p>
+  <p>变换定义与归一化约定可核查：<a href="https://numpy.org/doc/stable/reference/routines.fft.html" target="_blank" rel="noopener">NumPy 傅里叶变换文档 ↗</a>；本页以直接双重求和核对实际 FFT 的复数结果。</p>
+  <h3>条纹光怎样调制荧光？</h3>
+  <p>本页演示线性荧光 SIM：激发光照到荧光标记的样品，荧光分子吸收激发光后发出荧光。在未饱和、忽略漂白的条件下，同一位置的平均荧光发射强度与当地激发光强近似成正比。将荧光标记密度 ρ 与激发、发光效率 α 合在样品响应 s 中，可写成：</p>
+  <div class="theory-equation" data-equation="$$e_j(\mathbf r)=\underbrace{\alpha(\mathbf r)\rho(\mathbf r)}_{s(\mathbf r)}\,I_j(\mathbf r)=s(\mathbf r)I_j(\mathbf r)$$"></div>
+  <p>“逐点”指三个量取在同一个位置 r。这里采用每方向三次曝光的相移采集：每次曝光期间条纹相位固定，在帧间切换为 0、2π/3、4π/3，再采集下一帧。相位切换条直接选择这三次曝光对应的静态照明与荧光发射分布。</p>
+  <p>这里 s 可理解为平均激发光强下的样品荧光响应；Iⱼ 是以平均值归一化的相对激发光强，eⱼ 是进入检测成像之前的荧光发射分布。之后才与检测 PSF 卷积，形成相机图像。第 03 步固定标记 P = (100, 80)，读数来自同一份三相位数据。</p>
+  <div class="theory-equation" data-equation="$$I_j(\mathbf r)=1+m\cos\!\left(2\pi\mathbf k\cdot\mathbf r/N+\phi_j\right)$$"></div>
+  <p>方向 1 的条纹沿 x 变化，周期 p = N / 8 = 16 像素。取固定 y = 80 的一行，将 s(x, 80) 简写成 s(x)，主画面公式就是：</p>
+  <div class="theory-equation" data-equation="$$e_j(x)=s(x)\left[1+m\cos\!\left(\frac{2\pi x}{p}+\phi_j\right)\right],\qquad\phi_j\in\left\{0,\frac{2\pi}{3},\frac{4\pi}{3}\right\}$$"></div>
+  <p>例如同一位置 s = 0.5：亮纹处 I = 1.8 时，e = 0.9；暗纹处 I = 0.2 时，e = 0.1。这里的暗纹仍有激发光。照明与发射图共用 0—1.8 标尺，样品图使用 0—1 标尺。物理依据见下方 Chen 等人综述的线性 SIM 成像模型。</p>
+  <h3 id="theory-encoding" tabindex="-1">从余弦照明到三个移频项</h3>
+  <p>03 → 04 先做空域中的欧拉展开，再用傅里叶变换的线性性与移频定理。先记 θ = 2πx/p + φⱼ，仅缩短余弦括号内的记号。对实数 θ，正、负两式的虚部相反：</p>
+  <div class="theory-equation" data-equation="$$\begin{aligned}e^{i\theta}&=\cos\theta+i\sin\theta,\\e^{-i\theta}&=\cos(-\theta)+i\sin(-\theta)=\cos\theta-i\sin\theta.\end{aligned}$$"></div>
+  <p>将两式相加：虚部相消，实部留下两份余弦。两边再除以 2，才得到可以代回照明模型的恒等式：</p>
+  <div class="theory-equation" data-equation="$$\begin{aligned}e^{i\theta}+e^{-i\theta}&=2\cos\theta+\underbrace{i\sin\theta-i\sin\theta}_{0}=2\cos\theta,\\\cos\theta&=\frac{e^{i\theta}+e^{-i\theta}}2.\end{aligned}$$"></div>
+  <p>因此，原来的 m cos θ 变成两个指数之和再乘 m/2。这里的 1/2 来自欧拉恒等式，尚未涉及傅里叶归一化。先把 θ 代回去，保留正、负号作用的完整括号：</p>
+  <div class="theory-equation" data-equation="$$e_j(x)=s(x)\left[1+\frac m2\left(e^{i(2\pi x/p+\phi_j)}+e^{-i(2\pi x/p+\phi_j)}\right)\right]$$"></div>
+  <p>再用指数乘法公式，分开随空间变化的项与每次曝光固定的相位项：</p>
+  <div class="theory-equation" data-equation="$$e^{a+b}=e^ae^b,\qquad e^{\pm i(2\pi x/p+\phi_j)}=e^{\pm i\phi_j}e^{\pm2\pi ix/p}$$"></div>
+  <p>最后用分配律将 s(x) 乘到三项；恢复二维记号后得到：</p>
+  <div class="theory-equation" data-equation="$$e_j(\mathbf r)=s(\mathbf r)+\frac m2e^{i\phi_j}s(\mathbf r)e^{2\pi i\mathbf k\cdot\mathbf r/N}+\frac m2e^{-i\phi_j}s(\mathbf r)e^{-2\pi i\mathbf k\cdot\mathbf r/N}$$"></div>
+  <p>主画面最初只写方向 1 的一行；恢复到二维时，r = (x, y)、k = (N/p, 0)，所以 k·r/N = x/p，没有改变照明模型。按上面的负号正向 DFT 定义，对任意一项直接合并指数：</p>
+  <div class="theory-equation" data-equation="$$\begin{aligned}\mathcal F_N\!\left\{s(\mathbf r)e^{\pm2\pi i\mathbf k\cdot\mathbf r/N}\right\}(\mathbf f)&=\sum_{\mathbf r}s(\mathbf r)e^{\pm2\pi i\mathbf k\cdot\mathbf r/N}e^{-2\pi i\mathbf f\cdot\mathbf r/N}\\&=\sum_{\mathbf r}s(\mathbf r)e^{-2\pi i(\mathbf f\mp\mathbf k)\cdot\mathbf r/N}\\&=S(\mathbf f\mp\mathbf k).\end{aligned}$$"></div>
+  <p>求和遍历 N×N 个像素。m/2 和相位因子与 r 无关，可以提出变换；再将三项相加：</p>
+  <div class="theory-equation" data-equation="$$E_j(\mathbf f)=S(\mathbf f)+\frac m2e^{i\phi_j}S(\mathbf f-\mathbf k)+\frac m2e^{-i\phi_j}S(\mathbf f+\mathbf k)$$"></div>
+  <p>正指数对应 S(f−k)：令 f−k = q，就得到 f = q+k，即整张副本向 +k 移动；负指数同理向 −k 移动。这里的“± 空间指数”决定移频方向，e^{±iφⱼ} 改变各项复数权重。1/2 来自余弦展开，所以保留 m/2；显示图使用的模拟数值不代替待估参数。</p>
+  <p>欧拉恒等式可核查 <a href="https://dlmf.nist.gov/4.14#E3" target="_blank" rel="noopener">NIST DLMF，式 4.14.3 ↗</a>，余弦的指数形式见其式 4.14.2；指数乘法公式可由 <a href="https://dlmf.nist.gov/4.2#E19" target="_blank" rel="noopener">DLMF，式 4.2.19 的指数幂级数 ↗</a> 与二项式定理推出。再由上列 DFT 定义与线性性推出三项成像式，与 <a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Chen et al. (2023)，SIM 成像模型，式 (1)—(9) ↗</a> 一致。本页周期边界、正 FFT 不归一化；直接逐项变换不需要额外的归一化因子。04 的图先演示未加权副本，05 再乘权重并相加，06 才引入检测 OTF。</p>
+  <h3>先对齐空域与频域：PSF h 与 OTF H</h3>
+  <p>在线性、空间平移不变的强度成像模型下，PSF（点扩散函数）h 描述单个物点成像后的分布；OTF（光学传递函数）就是 H，是 h 的傅里叶变换。</p>
+  <div class="theory-equation" data-equation="$$d_{\mathrm{WF}}=s*h\quad\xrightarrow{\mathcal F}\quad D_{\mathrm{WF}}=SH,\qquad H=\mathcal F\{h\}$$"></div>
+  <p>小写 s、d、h 表示空域中的样品、图像和 PSF；大写 S、D、H 表示各自的傅里叶变换。卷积定理将“空域卷积”变成“频域相乘”。宽场没有照明引入的频率搬移，因此这里可直接用样品频率 q 表示 OTF 的位置。进入结构光采集后，以 f 标记检测频率；r 表示空间位置。</p>
+  <div class="theory-equation" data-equation="$$e_j=sI_j\quad\xrightarrow{\mathcal F_N}\quad E_j=\frac1{N^2}\big(S*\mathcal F_N\{I_j\}\big)$$"></div>
+  <div class="theory-equation" data-equation="$$d_j=e_j*h\quad\xrightarrow{\mathcal F_N}\quad D_j=E_jH$$"></div>
+  <p>上式按本页 N × N 离散 FFT 约定书写：正变换不归一化，逆变换除以 N²，* 表示对应域中的循环卷积。照明频谱的三个非零系数含有 N²，因此展开成三个平移项时，前面的 1/N² 正好抵消。</p>
+  <p>照明编码是空域相乘、频域卷积；物镜检测是空域卷积、频域相乘。后续解混、归位和融合沿频域展开，最后对完整复数频谱做逆 FFT 回到空域。依据：卷积定理及下方 Chen 等人综述的成像模型；本页使用周期边界的离散实现。</p>
+  <h3 id="theory-demixing" tabindex="-1">解混，就是求解三元线性方程组。</h3>
+  <p>05 先显示三个未加权的移频频谱，再乘照明权重并相加。06 的检测对总和乘同一个 H；由线性关系，也可以把 H 分别乘到三个来源上。09 回看这些来源，并将检测后的三份复数频带记作 A：</p>
+  <div class="theory-equation" data-equation="$$A_\ell(\mathbf f)=H(\mathbf f)S(\mathbf f-\ell\mathbf k),\qquad\ell\in\{0,+1,-1\}$$"></div>
+  <p>旁带的照明权重 (m/2)e^{±iφⱼ} 留在混合矩阵中，不包含在 A 内。图像采用模拟采集的调制度生成；主线公式保留 m，因为重建需从观测估计它。05 回看与 09 的来源图都使用同一份未加权频谱及同一 OTF，未拿已经乘过旁带权重的图像直接冒充 A。</p>
+  <p>固定检测频率 f，一帧只有一个复数方程，却有三个未知来源。保持样品、波矢、调制度和检测系统不变，改变相位再拍两帧，才能获得不同权重的方程。在非零调制度和本页的等间隔三相位条件下，混合矩阵可逆。08 只用 f 表示所选检测位置；同一个逆矩阵随后作用于全部频率。</p>
+  <p>固定同一个检测频率 f，三个来源在三帧中保持相同，只有它们前面的照明系数随相位变化。将三帧方程排成矩阵：</p>
+  <div class="theory-equation" data-equation="$$\begin{bmatrix}D_0\\D_1\\D_2\end{bmatrix}=\underbrace{\begin{bmatrix}1&\frac m2e^{i\phi_0}&\frac m2e^{-i\phi_0}\\1&\frac m2e^{i\phi_1}&\frac m2e^{-i\phi_1}\\1&\frac m2e^{i\phi_2}&\frac m2e^{-i\phi_2}\end{bmatrix}}_{M}\begin{bmatrix}A_0\\A_{+1}\\A_{-1}\end{bmatrix}$$"></div>
+  <p>结构推导仍使用 A；估计结束后，m、φⱼ、k 表示重建采用的估计值。M⁻¹ 的三行依次提取 0 级、 +1 级、 −1 级，列对应三帧观测。页面实际计算使用各方向估计出的相位与调制度；解混结果是否等于真实来源，还取决于噪声及估计误差。</p>
+  <div class="theory-equation" data-equation="$$\begin{bmatrix}A_0\\A_{+1}\\A_{-1}\end{bmatrix}=M^{-1}\begin{bmatrix}D_0\\D_1\\D_2\end{bmatrix},\qquad M^{-1}M=I$$"></div>
+  <p>本页三次相位等间隔，允许共同的初相位 φΔ。此时可以直接写出逆矩阵：令 V 的三列为三个相位因子，利用三次单位根的正交性：</p>
+  <div class="theory-equation" data-equation="$$\phi_j=\phi_\Delta+\frac{2\pi j}{3},\quad m\ne0,\qquad V_{j\ell}=e^{i\ell\phi_j},\qquad\sum_{j=0}^2e^{i(\ell-r)\phi_j}=3\delta_{\ell r},\quad\ell,r\in\{0,+1,-1\}$$"></div>
+  <div class="theory-equation" data-equation="$$M=V\Lambda,\quad\Lambda=\operatorname{diag}(1,m/2,m/2),\quad V^\dagger V=3I\quad\Longrightarrow\quad U=M^{-1}=\frac13\Lambda^{-1}V^\dagger$$"></div>
+  <div class="theory-equation" data-equation="$$u_{0,j}=\frac13,\qquad u_{+1,j}=\frac{2}{3m}e^{-i\phi_j},\qquad u_{-1,j}=\frac{2}{3m}e^{+i\phi_j}$$"></div>
+  <p>† 表示共轭转置。1/3 来自三相位正交归一化，2/m 补偿旁带的照明系数 m/2，指数符号反转用于抵消该级次的编码相位。第 10 步逐项展示这一代数结果；估计参数后再求数值。相位不等间隔时仍可对可逆的 M 直接求逆，但上述简式一般不成立。</p>
+  <p>矩阵乘法的每一行就是三帧的加权求和；同一个逆矩阵用于所有检测频率，不需要对每个像素重新求逆。解混得到三个来源，各自仍带检测 OTF，下一步再用波矢归位。</p>
+  <div class="theory-equation" data-equation="$$A_\ell(\mathbf f)=\sum_{j=0}^{2}u_{\ell,j}D_j(\mathbf f),\qquad A_\ell(\mathbf f)=H(\mathbf f)S(\mathbf f-\ell\mathbf k)$$"></div>
+  <p>源码依据：fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java">BandSeparation.java</a> 构造复数混合矩阵，三相位时调用 M.inverse()，再用返回的权重乘各帧频谱并累加。观测帧多于分量时使用伪逆。参数估计负责获得照明参数，求逆本身完成频带解混。</p>
+  <h3>实际读数 · 选定的检测频率 f</h3><p class="subtle">复数均除以 128²，便于阅读。内部计算保留完整精度。</p>
+  <table><thead><tr><th>观测</th><th>复数值</th><th>−1 级解混权重</th></tr></thead><tbody id="observed-values"></tbody></table>
+  <h3>解混结果与归位位置</h3><table><thead><tr><th>级次</th><th>归位后的 q</th><th>复数值</th></tr></thead><tbody id="component-values"></tbody></table>
+  <p id="closure-note" class="validation-note"></p>
+  <div class="theory-equation" data-equation="$$C_\ell(\mathbf q)=H(\mathbf q+\ell\mathbf k)S(\mathbf q)$$"></div>
+  <p>归位后的分量仍带着检测 OTF 的衰减。这里的整数格搬移保持复数值不变；频谱显示的亮度是对数幅度，不能直接当作重建数据。</p>
+  <h3 id="theory-weights" tabindex="-1">同一频率，为何各自仍受 OTF 衰减？</h3>
+  <p>同一个样品频率 q 可以沿不同频带到达不同检测位置 f = q + ℓk。物镜在每个检测位置乘上相应的 H(f)。解混只分出各个来源，归位只把坐标改回 q；这两步都没有执行 OTF 反演：</p>
+  <div class="theory-equation" data-equation="$$C_{d,\ell}(\mathbf q)=A_{d,\ell}(\mathbf q+\ell\mathbf k_d)=\underbrace{H(\mathbf q+\ell\mathbf k_d)}_{H_{d,\ell}(\mathbf q)}S(\mathbf q)$$"></div>
+  <p>例如本页青色样品频率 q：方向 1 的 0 级在检测 q 读到约 0.2848S， −1 级在检测 q−k 读到约 0.7471S。就像两只灵敏度不同的传感器在测同一个量，数值都经过各自的响应系数。归位相当于确认它们测的是同一个量，并没有自动校正灵敏度。橙色 q = (14, 0) 则只有一条频带能传递，并非多带重叠的例子。</p>
+  <h3>这里有两种不同用途的权重</h3>
+  <p>前面的解混权重 u 乘在三帧 Dⱼ 上，用相位正交性取出一个级次；现在的融合权重 g 乘在已经归位的 C 上，在同一 q 合并多个方向、级次。按本页的处理顺序：</p>
+  <div class="theory-equation" data-equation="$$\underbrace{D_j\xrightarrow{\ u_{\ell,j}\ }A_\ell}_{\text{三帧解混}}\quad\longrightarrow\quad C_b\xrightarrow{\ \times H_b^*\ }\ H_b^*C_b\xrightarrow{\ \sum_b\ }U\xrightarrow{\ \div(R+w^2)\ }\widehat S_{\mathrm W}$$"></div>
+  <div class="theory-equation" data-equation="$$g_b(\mathbf q)=\frac{H_b^*(\mathbf q)}{R(\mathbf q)+w^2},\qquad\widehat S_{\mathrm W}(\mathbf q)=\sum_bg_b(\mathbf q)C_b(\mathbf q),\qquad \widehat S=P_{\mathrm{apo}}\widehat S_{\mathrm W}$$"></div>
+  <p>g 是对原始归位观测的有效融合乘数，随频率而变，不要求各个 g 相加为 1。H* 是共轭；本页 OTF 为实数且非负，所以 H* = H。下面列出青色样品频率 q 的九条实际频带与权重，使用当前重建的分母 R，尚未乘切趾窗：</p>
+  <table><thead><tr><th>方向 / 级次</th><th>检测 f</th><th>H</th><th>g = H / (R + w²)</th></tr></thead><tbody id="overlap-values"></tbody></table>
+  <p id="overlap-audit" class="validation-note"></p>
+  <h3>为什么乘共轭 OTF，模平方又从哪里来？</h3>
+  <p>先固定同一个样品频率 q，把方向与级次 (d, ℓ) 合记为频带编号 b。各条归位频带都观测同一个 S，但有各自的传递系数 H。在无噪声模型中：</p>
+  <div class="theory-equation" data-equation="$$C_b=H_bS,\qquad H_b^{*}C_b=H_b^{*}H_bS=|H_b|^2S$$"></div>
+  <p>因此模平方是“原有一次 H 衰减，再乘一次共轭 H*”后留下的传递系数，S 本身没有平方。复数与其共轭相乘，得到非负实数；传递越强的频带，匹配加权后的贡献越大：</p>
+  <div class="theory-equation" data-equation="$$H=x+iy,\qquad H^{*}H=(x-iy)(x+iy)=x^2+y^2=|H|^2$$"></div>
+  <p>为什么选 H* 来加权？直接逐带除以很小的 H，会把该带的噪声显著放大。可以让多个频带共同拟合同一个复数 S。以下用等权、二次正则化的最小二乘推导；z 是待估计的样品频谱值，w² 用来限制过大的解：</p>
+  <div class="theory-equation" data-equation="$$\widehat S=\operatorname*{arg\,min}_{z\in\mathbb C}\left\{\sum_b|C_b-H_bz|^2+w^2|z|^2\right\}$$"></div>
+  <p>展开模平方，令对 z* 的偏导为零，就得到以下方程。共轭权重 H* 与分母中的模平方同时从这一步出现：</p>
+  <div class="theory-equation" data-equation="$$\left(\sum_b|H_b|^2+w^2\right)\widehat S=\sum_bH_b^{*}C_b$$"></div>
+  <p>对基础式取 w = 0，还可将它写成“先把每带反演为 S 的估计，再按可信程度平均”。仅在 H 非零的频带上：</p>
+  <div class="theory-equation" data-equation="$$\widehat S=\sum_b\underbrace{\frac{|H_b|^2}{\sum_c|H_c|^2}}_{\alpha_b}\frac{C_b}{H_b},\qquad\sum_b\alpha_b=1$$"></div>
+  <p>假设两个频带 H₁ = 0.8、H₂ = 0.4，基础式对各自反演结果的份额为 80% 和 20%。若原观测噪声独立、方差相同，逐带除以 H 后的噪声方差变为 σ²/|H|²，所以强传递频带应占更大份额。这是条件化的解释：解混可能改变各带的噪声方差和相关性，不能无条件宣称本页权重统计最优。</p>
+  <div class="theory-equation" data-equation="$$C_b=H_bS+n_b,\quad \operatorname{Var}(n_b)=\sigma_b^2,\qquad \widehat S=\frac{\sum_b H_b^*C_b/\sigma_b^2}{\sum_b|H_b|^2/\sigma_b^2+\lambda}$$"></div>
+  <p>最后一式适用于互不相关、已知方差的噪声，来自加权最小二乘加 λ|S|² 正则项；若噪声相关，还需使用完整协方差。它用来说明权重的依据，本页动画沿用下面固定 fairSIM 版本的计算约定。</p>
+  <h3>相加后为什么需要一个累计分母？</h3>
+  <p>在无噪声模型中，九条频带相加后的 U 仍然乘着一个总传递系数。先把各频带只计一次的基础累计记为 R₀：</p>
+  <div class="theory-equation" data-equation="$$U\coloneqq\sum_bH_b^{*}C_b=\underbrace{\left(\sum_b|H_b|^2\right)}_{R_0}S,\qquad R_0\coloneqq\sum_b|H_b|^2$$"></div>
+  <p>用两个频带的简化例子：如果它们的 H 分别为 0.5 与 0.25，加权相加后得到 0.25S + 0.0625S = 0.3125S。要回到 S，就应除以留下的 0.3125，而不是把这个和直接当作样品频谱。</p>
+  <div class="theory-equation" data-equation="$$w=0,\ R_0>0:\quad\frac{U}{R_0}=S;\qquad w>0:\quad\widehat S=\frac{U}{R_0+w^2}$$"></div>
+  <p>R₀ 很小时，直接取倒数仍可能放大噪声，加入 w² 可以限制增益。若所有频带在某个频率处都无法传递，R₀ = 0，该频率的信息也无法凭归一化产生。对不同噪声方差的观测，可进一步使用相应的加权最小二乘；这里先展示等权基础式。</p>
+  <h3>Wiener 融合与固定版本约定</h3>
+  <p>页面按固定 fairSIM 版本计算：分子各频带计一次，而分母每个方向对 0 级计两次。将这个实际分母的 OTF 累计记作 R，它与上面基础推导的 R₀ 有明确差别：</p>
+  <div class="theory-equation" data-equation="$$R=R_0+\sum_d|H_{d,0}|^2=\sum_d\left(2|H_{d,0}|^2+|H_{d,+1}|^2+|H_{d,-1}|^2\right)$$"></div>
+  <div class="theory-equation" data-equation="$$\widehat S=\frac{\sum_{d,\ell}H_{d,\ell}^{*}C_{d,\ell}}{R+w^2}P_{\mathrm{apo}}$$"></div>
+  <p>所以本版本的分母与分子的传递系数并非处处相同，即使 w = 0，也不能断言所有已传递频率都恢复单位幅度。页面保留这一计数行为，详见<a href="sim_pipeline_atlas.html#source-fairsim">固定 fairSIM 版本的源码对照</a>。本例采用 w = 0.05、切趾截止 1.9、β = 0.8；图像显示亮度的对数变换不参与复数重建计算。</p>
+  <h3>同一频率 q = (14, 0) 的完整核对</h3>
+  <table><thead><tr><th>阶段</th><th>复数值 / 数值</th></tr></thead><tbody id="fusion-audit"></tbody></table>
+  <p id="final-audit" class="validation-note"></p>
+  <p>输出频谱零填充到 256 × 256，固定乘 4 恢复采集强度标度。图像截断到 0—1 仅用于显示，剖面和误差保留未截断数据；样品真值只在最后用于评价。</p>
+  <h3 id="theory-rmse" tabindex="-1">RMSE 从哪里来，用来评估什么？</h3>
+  <p><strong>RMSE 是 Root Mean Square Error，均方根误差。</strong>它是重建结束后计算的图像误差指标；不是要事先选择的重建参数，不参与解混、归位或 Wiener 滤波。把待评价图像与真值在同一位置相减，逐项平方、求平均、再开平方：</p>
+  <div class="theory-equation" data-equation="$$e(x,y)=\widehat s(2x,2y)-s(x,y),\qquad \mathrm{MSE}=\frac1{128^2}\sum_{x=0}^{127}\sum_{y=0}^{127}e(x,y)^2,\qquad\mathrm{RMSE}=\sqrt{\mathrm{MSE}}$$"></div>
+  <p>样品真值有 128 × 128 个像素，输出有 256 × 256 个像素，视野相同。因此输出的 (2x, 2y) 与真值的 (x, y) 对齐；128² 是参与比较的 16384 个像素数。宽场本来就是 128²，直接在 (x, y) 比较。RMSE 用全图计算，与下方仅显示 y = 80 一行的强度剖面不同。</p>
+  <p>平方防止正负误差相互抵消，也使大误差受到更强惩罚；开平方使结果与像素强度具有相同单位。比如只有两个像素，误差为 +0.1、−0.1，平均误差是 0，但 RMSE = 0.1。对同一真值、同一强度标尺和配准方式，RMSE 越小代表逐像素强度越接近，0 表示完全一致。</p>
+  <p id="rmse-audit" class="validation-note"></p>
+  <p>为什么本例 SIM 的 RMSE 反而较大？固定版本在分母额外累计 0 级，但分子没有同样增加；再加正则化和切趾，整体强度与频率幅度都会受到抑制。这会进入逐像素误差。本例低频和高频同时有变化，不能只凭“找到非零高频”断言全图强度更准确。</p>
+  <div class="theory-equation" data-equation="$$C_b=H_bS\quad\Longrightarrow\quad\widehat S=P_{\mathrm{apo}}\frac{R_0}{R+w^2}S,\qquad R_0=\sum_b|H_b|^2$$"></div>
+  <p id="rmse-transfer-note"></p>
+  <p>RMSE 综合反映亮度、对比度、噪声、错位等造成的像素误差；它没有单独给出“最小可分辨间距”。本演示将剖面、同一高频的恢复量与 RMSE 分开报告。无真值的真实实验不能直接计算这种对真值的 RMSE；无噪声宽场也不是等光子预算下的性能对照。显示图使用 0—1 标尺，但计算使用未截断数据，0.2643 不等于“分辨率误差 26.43%”。</p>
+  <p>定义依据：<a href="https://scikit-image.org/docs/stable/api/skimage.metrics.html#skimage.metrics.mean_squared_error" target="_blank" rel="noopener">scikit-image：图像均方误差 MSE ↗</a>，本页取其平方根得到 RMSE。SIM 幅度抑制的说明来自上面的实际传递公式与<a href="sim_pipeline_atlas.html#source-fairsim">固定源码约定</a>。</p>
+  <h3>依据与继续阅读</h3>
+  <p><a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">Chen et al. (2023)，SIM 重建算法综述，式 (1)—(9) ↗</a></p>
+  <p><a href="https://doi.org/10.1007/s41048-019-0081-7" target="_blank" rel="noopener">Fan et al. (2019)，波矢、初相位误差与重建伪影，Artifact analysis ↗</a>。第 11 幕的 0.3 格与 π 相位是受控教学输入，图像由本页数值管线计算。</p>
+  <p><a href="sim_pipeline_atlas.html#source-fairsim">现有图谱中的 fairSIM 固定版本、数值约定与源码位置 ↗</a></p>
+  <p class="subtle">操作：左右半屏或方向键前后切换；空格暂停 / 继续；拖动时间轴定位；Home / End 到开头 / 结尾。原理窗口打开时，页面翻步暂停。</p>
+</dialog>
+<div id="fatal-error" class="fatal-error" role="alert" hidden></div>
+<noscript><div class="fatal-error">这个动画需要启用 JavaScript。也可以返回 <a href="sim_pipeline_atlas.html">重建图谱</a> 阅读公式。</div></noscript>
+<script src="vendor/katex/katex.min.js"></script>
+<script src="web/shared/sim-core.js"></script>
+<script src="web/shared/sim-experiment.js"></script>
+<script src="web/shared/sim-band-formulas.js?v=1"></script>
+<script src="web/atlas/sim-atlas-core.js"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=integrated-1"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=order-symbols-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=otf-before-after-5"></script>
+<script src="web/parameter-demo/sim-parameter-line-view.js?v=return-2d-1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=otf-before-after-5"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=euler-fraction-pacing-3"></script>
+<script src="web/motion/sim-motion-parameter-view.js?v=nominal-failure-1"></script>
+<script src="web/motion/sim-motion-model.js?v=euler-fraction-pacing-3"></script>
+<script src="web/motion/sim-motion-stages.js?v=order-symbols-1"></script>
+<script src="web/motion/sim-motion-fourier.js?v=fourier-pair-3"></script>
+<script src="web/motion/sim-motion.js?v=euler-fraction-pacing-3"></script>
+</body>
+</html>

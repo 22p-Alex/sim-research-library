@@ -11,6 +11,7 @@
 | 运行当前 3D-MP-SIM 重建代码 | [MP-main 运行说明](3D-MP-SIM/MP-main/README.md) |
 | 调参数、注入误差、做单变量 A/B 对照 | [SIM 交互模拟台](sim_interactive_demo.html) |
 | 俯瞰每个中间产物、查某个检测点混了哪些频率 | [2D-SIM 全流程图谱](sim_pipeline_atlas.html) |
+| 从九帧观测看波矢、相位和调制度怎样求出，再接入正式解混 | [参数估计独立 Demo](sim_parameter_demo.html) · [方法与核对](web/parameter-demo/README.md) |
 | 分清同一个探测点的 0、±1 级，理解搬移后谁提供超分辨 | [频带搬移与 fairSIM 融合](SIM频带重叠与fairSIM融合.md) |
 | 看真实硬件怎么摆：从 488 nm 激光到样品条纹的 17 个工位 | [2D-SIM 真实光路走查](sim_real_optical_path.html) |
 

@@ -1,0 +1,29 @@
+/* Desktop SVG typography. Timing comes entirely from the reversible playhead. */
+.pe-two-panel{fill:#0a171d;fill-opacity:.38;stroke:#29434c;stroke-width:1}
+.pe-two-step{font-size:19px;font-weight:600;letter-spacing:1px}
+.pe-two-cue{font-size:23px;font-weight:500;fill:#dce8e6}
+.pe-two-text{font-size:17px;fill:#bdd0d4;font-weight:400}
+.pe-two-small{font-size:13px;fill:#8eabb6;font-variant-numeric:tabular-nums}
+.pe-two-value{font-size:21px;fill:#efb879;font-variant-numeric:tabular-nums}
+.pe-two-bar-label{font-size:14px;fill:#bdd0d4}
+.pe-two-bar-operation{font-size:15px;font-variant-numeric:tabular-nums}
+.pe-two-bar-value{font:14px ui-monospace,"SFMono-Regular",Consolas,monospace;fill:#dce7e8;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+.pe-two-formula{font-size:16px;gap:10px;max-width:100%;flex-wrap:wrap}
+.pe-two-formula>.katex{font-size:1.1em}
+.pe-two-derivation{display:grid;gap:8px;font-size:20px;justify-items:center}
+.pe-two-derivation-row{display:flex;align-items:center;justify-content:center;gap:3px;min-height:34px}
+.pe-two-derivation .pe-study-formula-part{position:relative;padding:1px 2px}
+.pe-two-derivation [data-formula-part^="k-"]{color:#b7a5eb}
+.pe-two-derivation [data-formula-part^="k-cancel"]::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;background:#b7a5eb;transform:rotate(-20deg) scaleX(var(--k-cancel,0));transform-origin:left}
+.pe-two-derivation [data-formula-part=k-cancel-minus],.pe-two-derivation [data-formula-part=q-residual]{color:#efb879}
+.pe-two-derivation [data-formula-part=k-cancel-minus]::after{background:#efb879}
+
+.pe-q-records{gap:24px;font-size:16px}
+.pe-q-side-slot{display:grid;align-items:center}
+.pe-q-side-slot>.pe-study-formula-part{grid-area:1/1;color:#b7a5eb}
+.pe-two-geometry{font-size:17px;gap:7px}
+.pe-two-geometry-source{font-size:14px;color:#a9bfc4}
+.pe-two-derivation [data-formula-part=q-reference]{color:#7ad5cd}
+.pe-two-derivation [data-formula-part=sample-q],.pe-two-derivation [data-formula-part=same-sample]{color:#7ad5cd}
+.parameter-correlation-detail{margin:20px 0;padding:14px 18px;border:1px solid #36515c;border-radius:6px}
+.parameter-correlation-detail>summary{cursor:pointer;color:#efb879}

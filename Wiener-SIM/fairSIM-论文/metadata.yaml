@@ -12,10 +12,15 @@ pages: "10980"
 year: 2016
 doi: "10.1038/ncomms10980"
 published_online: "2016-03-21"
-# 开放获取（CC BY 4.0）。本目录未保存 PDF 副本；下载入口见 README.md
-local_pdf: ""
+# 开放获取（CC BY 4.0）。2026-10-12 补齐出版方 PDF，并核对 Supplementary Note 1。
+local_pdf: "fairSIM-2016.pdf"
+local_si_pdf: "fairSIM-2016-SI.pdf"
+local_xml: "fairSIM-2016.xml"
 pdf_url: "https://www.nature.com/articles/ncomms10980.pdf"
-read_scope: "正文（Introduction/Results/Methods/References）已读；Supplementary Note 1 与 SI 图未获取"
+si_pdf_url: "https://media.springernature.com/original/springer-static/esm/art%3A10.1038%2Fncomms10980/MediaObjects/41467_2016_BFncomms10980_MOESM1684_ESM.pdf"
+xml_url: "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC4802170/fullTextXML"
+verified_on: "2026-10-12"
+read_scope: "主文算法相关段落、Supplementary Note 1（SI第9—11页）和相关图注已重新核对；未进行图像视觉检查"
 keywords:
   - "2D-SIM"
   - "Wiener-SIM"
@@ -31,7 +36,7 @@ related_topics:
   - "HiFi-SIM"
   - "Open-3DSIM"
   - "3D-MP-SIM"
-status: "正文已阅读；理解笔记已整理；SI 待补"
+status: "主文与SI原件已本地保存；完成仅对照fairSIM的公式逐步精读文档"
 code: "https://github.com/fairSIM/fairSIM"
 code_local: "Wiener-SIM/fairSIM-src/fairSIM"
 code_branch: "develop"

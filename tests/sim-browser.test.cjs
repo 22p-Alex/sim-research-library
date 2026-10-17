@@ -18,6 +18,7 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
   try {
     const page=await browser.newPage({viewport:{width:1200,height:1000}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
+    page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text());});
     page.on('requestfailed',req=>errors.push(req.url()+': '+req.failure()?.errorText));
     // All required assets must be local. The source-reference hyperlinks are not followed.
     await page.route(/^https?:/,route=>route.abort());
@@ -33,6 +34,18 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
     async function reset(tab){await page.locator(tab===1?'#t1_reset':'#t2_reset').click();}
     ok('offline inline, block and dynamic math load',await page.locator('.katex').count()>50);
     ok('all marked math nodes render',await page.evaluate(()=>Array.from(document.querySelectorAll('[data-tex]')).every(el=>el.querySelector('.katex'))));
+    ok('five-term model table and OTF transfer equations render in the default view',await page.evaluate(()=>
+      document.querySelector('.wave-term-table tbody').rows.length===5
+      &&document.querySelectorAll('.wave-term-table [data-tex] .katex').length>=20
+      &&document.querySelector('.wave-reference-details').open===false));
+    ok('current OTF table values agree with the scene model',await page.evaluate(()=>{
+      const s=window.SIMLab.app.scene.current.model,read=id=>Number(document.getElementById(id).textContent);
+      return [[1,'t1_h_dc'],[s.hs,'t1_h_sample'],[s.hi,'t1_h_illum'],[s.hd,'t1_h_diff'],[window.SIMCore.otf(s.fs+s.kx,s.ky,s.kc),'t1_h_sum']]
+        .every(([expected,id])=>Math.abs(read(id)-expected)<.00051);
+    }));
+    ok('model row reports effective illumination mean and modulation',await page.evaluate(()=>
+      Number(document.querySelector('#t1_ref_i0').textContent)===window.SIMLab.app.scene.current.model.ex.mean
+      &&Number(document.querySelector('#t1_ref_m').textContent)===window.SIMLab.app.scene.current.model.ex.m));
     ok('clean page has valid chapter anchors and coherent initial tab',await page.evaluate(()=>
       !document.querySelector('[data-page-node-id],[data-dm-ref],style[id^="__dm_"]')
       &&Array.from(document.querySelectorAll('a[href^="#"]')).every(a=>document.getElementById(a.hash.slice(1)))
@@ -78,6 +91,24 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
       }));
       ok('desktop '+width+' px aligns the new formation workspace and fits the vector diagram',await formationAligned());
       await page.locator('.formation-workspace').screenshot({path:path.join(screenshotDir,'formation-'+width+'.png'),animations:"disabled"});
+      ok('desktop '+width+' px keeps the signal lab inside the viewport',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.querySelector('#signal-lab').getBoundingClientRect().width<=innerWidth));
+      await page.locator('#signal-lab').screenshot({path:path.join(screenshotDir,'signals-default-'+width+'.png'),animations:"disabled"});
+      if(width===1024){
+        await page.locator('.wave-reference-details summary').focus();
+        await page.keyboard.press('Space');
+        ok('theory source disclosure opens from the keyboard with a visible focus ring',await page.evaluate(()=>{
+          const summary=document.querySelector('.wave-reference-details summary');
+          return document.querySelector('.wave-reference-details').open&&getComputedStyle(summary).outlineStyle!=='none';
+        }));
+      }else await page.locator('.wave-reference-details summary').click();
+      ok('desktop '+width+' px expands the cited theory source without horizontal overflow',await page.evaluate(()=>{
+        const details=document.querySelector('.wave-reference-details'),panel=document.querySelector('.wave-reference-panel');
+        return details.open&&details.textContent.includes('Chen et al. (2023)')
+          &&details.scrollWidth<=details.clientWidth+1&&panel.scrollWidth<=panel.clientWidth+1
+          &&document.documentElement.scrollWidth<=innerWidth+1;
+      }));
+      await page.locator('#signal-lab').screenshot({path:path.join(screenshotDir,'signals-expanded-'+width+'.png'),animations:"disabled"});
+      await page.locator('.wave-reference-details summary').click();
 
     }
     await page.setViewportSize({width:1200,height:1000});
@@ -87,7 +118,40 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
     await page.locator('.conv-exercise summary').click();
     await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
     await page.screenshot({path:path.join(screenshotDir,'tab1.png'),fullPage:true,animations:"disabled"});
-    ok('four-channel overview gives CH4 one uncluttered signal',await page.locator('#t1_waves polyline').count()===4);
+    ok('four measured traces remain distinct from the two optional references',await page.locator('#t1_waves [data-trace="actual"]').count()===4&&await page.locator('#t1_waves [data-reference]').count()===2);
+    ok('reference switch starts enabled and identifies full traces versus selected components',await page.locator('#t1_reference_toggle').isChecked()&&await page.locator('#t1_waves .wave-reference:visible').count()===2&&await page.locator('.wave-reference-legend').textContent().then(t=>t.includes('实线 E=sI')&&t.includes('虚线 B')&&t.includes('实线 D=E*h')));
+    const initialRef=await page.locator('#t1_waves [data-reference="emission"]').getAttribute('points');
+    await page.locator('#t1_reference_toggle').focus();
+    await page.keyboard.press('Space');
+    ok('reference switch is keyboard-operable and hides both overlays',!await page.locator('#t1_reference_toggle').isChecked()&&await page.locator('#t1_waves .wave-reference:visible').count()===0);
+    await page.keyboard.press('Space');
+    await controls({t1_si:11,t1_sa:31,t1_phi:.75},1);
+    ok('reference follows illumination frequency, angle and phase controls',await page.locator('#t1_waves [data-reference="emission"]').getAttribute('points')!==initialRef);
+    const initialCameraRef=await page.locator('#t1_waves [data-reference="camera"]').getAttribute('points');
+    await controls({t1_ss:8,t1_cutoff_range:24},1);
+    ok('sample period and detection cutoff update their reference traces',await page.locator('#t1_waves [data-reference="camera"]').getAttribute('points')!==initialCameraRef);
+    await controls({t1_si:20},1);
+    ok('all listed OTF values refresh with changed parameters',await page.evaluate(()=>{
+      const s=window.SIMLab.app.scene.current.model,read=id=>Number(document.getElementById(id).textContent);
+      return [[s.hs,'t1_h_sample'],[s.hi,'t1_h_illum'],[s.hd,'t1_h_diff'],[window.SIMCore.otf(s.fs+s.kx,s.ky,s.kc),'t1_h_sum']]
+        .every(([expected,id])=>Math.abs(read(id)-expected)<.00051);
+    }));
+    await controls({t1_m:0},1);
+    ok('zero modulation leaves only the DC reference and explains no beat',await page.evaluate(()=>{
+      const wave=document.querySelector('#t1_waves [data-reference="emission"]'),points=wave.getAttribute('points').split(' ');
+      const ys=points.map(p=>Number(p.split(',')[1]));
+      return Math.max(...ys)-Math.min(...ys)<1e-8&&document.querySelector('#t1_reference_note').textContent.includes('两条参考仅 DC')
+        &&Number(document.querySelector('#t1_ref_m').textContent)===0;
+    }));
+    await controls({t1_m:.9},1);
+    await controls({t1_ss:24,t1_si:12,t1_sa:60,t1_cutoff_range:12},1);
+    ok('dx=0 makes the cut-line beat constant while retaining its nonzero 2D OTF',await page.evaluate(()=>{
+      const points=document.querySelector('#t1_waves [data-reference="emission"]').getAttribute('points').split(' ').map(p=>Number(p.split(',')[1]));
+      const model=window.SIMLab.app.scene.current.model;
+      return Math.abs(model.dx)<1e-10&&Math.abs(model.dy)>1e-4&&Math.max(...points)-Math.min(...points)<1e-8
+        &&Math.abs(Number(document.querySelector('#t1_h_diff').textContent)-.134)<.002
+        &&document.querySelector('#t1_reference_note').textContent.includes('此水平截线');
+    }));
     await reset(1);
     async function pupilSnapshot(){return page.evaluate(()=>{
       const get=(name,attr)=>Number(document.querySelector('#t1_cv_illum_lens [data-optic="'+name+'"]').getAttribute(attr));
@@ -122,11 +186,29 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
     const b=await page.evaluate(()=>window.SIMLab.app.scene.current.model.at(17,120).camera);
     ok('zero beat retains phase-dependent brightness',Math.abs(a-.725)<1e-10&&Math.abs(b-.275)<1e-10);
     ok('zero beat OTF display is unity',await page.locator('#t1_cH').textContent()==='1.000');
+    ok('zero 2D difference is identified as a phase-dependent DC component',await page.evaluate(()=>{
+      const note=document.querySelector('#t1_reference_note').textContent;
+      return window.SIMLab.app.scene.current.model.diff<1e-10
+        &&note.includes('二维差频向量为零')&&note.includes('相位相关直流')
+        &&note.includes('H(0)=1')&&Number(document.querySelector('#t1_h_diff').textContent)===1;
+    }));
     await controls({t1_si:6},1);
     ok('blocked illumination has no frequency gain claim',await page.locator('#t1_cG').textContent()==='—');
     ok('blocked camera pixels really vanish',await page.evaluate(()=>window.SIMLab.app.scene.current.arrays.camera.every(x=>x===0)));
+    ok('blocked excitation zeros both references and states no excitation',await page.evaluate(()=>{
+      const flat=key=>{const values=document.querySelector('#t1_waves [data-reference="'+key+'"]').getAttribute('points').split(' ').map(p=>Number(p.split(',')[1]));return Math.max(...values)-Math.min(...values)<1e-8;};
+      return flat('emission')&&flat('camera')&&document.querySelector('#t1_reference_note').textContent.includes('无激发');
+    }));
+    await controls({t1_ss:18},1);
     await page.locator('#t1_btn_laser_toggle').click();
     ok('uniform illumination is a separate available light source',await page.evaluate(()=>window.SIMLab.app.scene.current.model.ex.mean===1));
+    ok('widefield keeps a DC-only reference while the full camera retains sample frequencies',await page.evaluate(()=>{
+      const points=document.querySelector('#t1_waves [data-reference="emission"]').getAttribute('points').split(' ').map(p=>Number(p.split(',')[1]));
+      const cameraPoints=document.querySelector('#t1_waves [data-signal="camera"] [data-trace="actual"]').getAttribute('points').split(' ').map(p=>Number(p.split(',')[1]));
+      return Math.max(...points)-Math.min(...points)<1e-8&&document.querySelector('#t1_reference_note').textContent.includes('两条参考仅 DC')
+        &&Number(document.querySelector('#t1_ref_i0').textContent)===1&&Number(document.querySelector('#t1_ref_m').textContent)===0
+        &&Math.max(...cameraPoints)-Math.min(...cameraPoints)>1;
+    }));
     ok('uniform mode draws a uniform source without a two-beam pattern',await page.locator('#t1_cv_illum_lens').getAttribute('data-state')==='uniform'&&await page.locator('#t1_cv_illum_lens [data-ray="uniform"]').count()===4);
     await page.locator('#t1_cv_illum_lens').screenshot({path:path.join(screenshotDir,'illumination-uniform.png'),animations:"disabled"});
 
@@ -237,7 +319,7 @@ const screenshotDir=fs.mkdtempSync(path.join(os.tmpdir(),'sim-demo-qa-'));
     ok('resampling changes the noisy measurements',await page.evaluate(old=>JSON.stringify(old)!==JSON.stringify(window.SIMLab.app.acquisition.latest.data.groups.map(g=>g.frames.map(f=>Array.from(f.pixels)))),oldFrames));
     await reset(2);
     await controls({wAp:8.5,wAcounts:1,wAnoise:5},2);
-    ok('unreliable estimates visibly omitted from sideband reconstruction',await page.evaluate(()=>window.SIMLab.app.acquisition.latest.result.omitted.length>0&&document.querySelector('#wAestimates').textContent.includes('仅零级')));
+    ok('unreliable estimates visibly omitted from sideband reconstruction',await page.evaluate(()=>window.SIMLab.app.acquisition.latest.result.omitted.length>0&&document.querySelector('#wAestimates').textContent.includes('仅 0 级')));
     await page.screenshot({path:path.join(screenshotDir,'low-counts.png'),fullPage:true,animations:"disabled"});
     await reset(2);
     ok('reset restores fixed optical assumptions, shot noise and estimate mode',await page.evaluate(()=>{

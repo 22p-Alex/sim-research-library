@@ -173,8 +173,25 @@
    * DC correction, clipping, or normalization against sample truth is performed. */
   function pipeline(raw, cal, options = {}, mKnown) {
     const n = raw.n, size = n * 2, len = size * size, data = E.prepare(raw, cal, options);
-    const estimates = E.estimate(data, cal, estimatorOptions(options));
+    // Calibrated modulation goes directly to fairSIM; estimate only when requested.
+    const estimates = mKnown === undefined ? E.estimate(data, cal, estimatorOptions(options)) : [];
     const out = { n, spectrumSize: size, raw, data, estimates, groups: [], bands: [], ok: false, reason: null, pixels: null, reference: FAIRSIM };
+    // A scalar preserves the original API. A direction-indexed object lets a
+    // dataset use its own estimated modulation for each direction. Validate the
+    // entire mapping before reconstruction so absent values cannot produce a
+    // seemingly successful image filled with NaNs or a partial direction set.
+    const suppliedModulations = new Map();
+    if (mKnown !== undefined) {
+      const mapped = mKnown !== null && typeof mKnown === 'object';
+      for (const group of data.groups) {
+        if (mapped && !Object.prototype.hasOwnProperty.call(mKnown, group.index)) {
+          out.reason = 'modulation-missing'; out.direction = group.index; return out;
+        }
+        const value = mapped ? mKnown[group.index] : mKnown;
+        if (!Number.isFinite(value)) { out.reason = 'modulation-invalid'; out.direction = group.index; return out; }
+        suppliedModulations.set(group.index, value);
+      }
+    }
     const nr = new Float64Array(len), ni = new Float64Array(len), den = new Float64Array(len), response = new Float64Array(len);
     const cutoff = cal.kc * n * (1 + (options.otfError || 0));
     for (const g of data.groups) {
@@ -182,7 +199,7 @@
       const phases = g.frames.map(f => f.phase + (options.phaseError || 0));
       const system = C.phaseSystem(phases);
       const e = estimates.find(x => x.index === g.index);
-      const requestedM = (mKnown === undefined ? (e?.ok ? e.m : 0) : mKnown) * (1 + (options.modulationError || 0));
+      const requestedM = (mKnown === undefined ? (e?.ok ? e.m : 0) : suppliedModulations.get(g.index)) * (1 + (options.modulationError || 0));
       // SimParam.Dir.getModulations: replace out-of-range modulation with 0.65.
       const m = requestedM < .4 || requestedM > 1.1 ? .65 : requestedM;
       const weights = mixWeights(system, m);

@@ -162,6 +162,49 @@
         <div class="wave-scale"><span>水平截线 y = 120 px</span><span>统一强度刻度 0–2</span></div>
         <svg id="t1_waves" viewBox="0 0 960 356" role="img" aria-label="四路信号共用水平位置 0 到 120 像素、强度 0 到 2 的刻度"></svg>
       </div>
+      <div class="wave-reference-panel">
+        <div class="wave-reference-controls">
+          <label class="wave-reference-toggle"><input id="t1_reference_toggle" type="checkbox" checked><span>显示解析分量参考虚线</span></label>
+          <div class="wave-reference-legend" aria-label="参考线图例">
+            <span><i class="reference-key reference-emission reference-key-solid" aria-hidden="true"></i><b>实线 E=sI</b> 完整发射</span>
+            <span><i class="reference-key reference-pre" aria-hidden="true"></i><b>虚线 B<sub>pre</sub></b> DC＋差频</span>
+            <span><i class="reference-key reference-camera reference-key-solid" aria-hidden="true"></i><b>实线 D=E*h</b> 完整相机</span>
+            <span><i class="reference-key reference-post" aria-hidden="true"></i><b>虚线 B<sub>post</sub></b> DC＋OTF×差频</span>
+          </div>
+        </div>
+        <div class="wave-reference-description">
+          <p class="wave-reference-copy">每列五项相加就是对应的实线，只加高亮两项就是虚线。发射项乘对应 OTF 得到相机项；虚线是分量参考，不是上下包络。</p>
+          <p class="wave-reference-status" id="t1_reference_note" aria-live="polite"></p>
+        </div>
+        <div class="wave-reference-model">
+          <span class="wave-reference-model-label">本页模型</span>
+          <span data-tex="s=\frac{1}{2}(1+\cos\alpha)"></span>
+          <span data-tex="I=I_0(1+m\cos\beta)"></span>
+          <span data-tex="\alpha=2\pi f_sx,\quad\beta=2\pi(k_xx+k_yy)+\phi"></span>
+          <span class="wave-reference-model-note">有效照明 I<sub>0</sub>=<output id="t1_ref_i0">1.000</output>，m=<output id="t1_ref_m">0.90</output>；截线 y=120 px</span>
+        </div>
+        <div class="wave-reference-totals" aria-label="发射与相机的分量求和关系">
+          <span><b>完整发射</b> <span data-tex="E=\sum_j E_j"></span></span>
+          <span><b>完整相机</b> <span data-tex="D=\sum_j H_jE_j,\quad H_j=H(f_{x,j},f_{y,j})"></span></span>
+          <span><b>参考虚线</b> <span data-tex="B_{\mathrm{pre}}=E_{\mathrm{DC}}+E_{\Delta},\quad B_{\mathrm{post}}=D_{\mathrm{DC}}+D_{\Delta}"></span></span>
+        </div>
+        <div class="wave-term-table-wrap">
+          <table class="wave-term-table" aria-label="发射乘积的五个频率项及其 OTF 传递">
+            <thead><tr><th scope="col">频率项</th><th scope="col">发射 E<sub>j</sub></th><th scope="col">OTF H<sub>j</sub></th><th scope="col">相机 D<sub>j</sub>=H<sub>j</sub>E<sub>j</sub></th><th scope="col">组成虚线</th></tr></thead>
+            <tbody>
+              <tr class="term-dc"><th scope="row">直流<br><span data-tex="(0,0)"></span></th><td><span data-tex="\displaystyle I_0/2"></span></td><td class="otf-reading"><span data-tex="H(0)"></span><output id="t1_h_dc">1.000</output></td><td><span data-tex="\displaystyle H_jI_0/2"></span></td><td><span class="term-reference term-reference-pre">B<sub>pre</sub></span><span class="term-reference term-reference-post">B<sub>post</sub></span></td></tr>
+              <tr><th scope="row">样品频率<br><span data-tex="(f_s,0)"></span></th><td><span data-tex="\displaystyle \frac{I_0}{2}\cos\alpha"></span></td><td class="otf-reading"><span data-tex="H(f_s,0)"></span><output id="t1_h_sample">—</output></td><td><span data-tex="\displaystyle H_j\frac{I_0}{2}\cos\alpha"></span></td><td><span class="term-reference term-reference-none">不入参考</span></td></tr>
+              <tr><th scope="row">照明频率<br><span data-tex="(k_x,k_y)"></span></th><td><span data-tex="\displaystyle \frac{I_0m}{2}\cos\beta"></span></td><td class="otf-reading"><span data-tex="H(k_x,k_y)"></span><output id="t1_h_illum">—</output></td><td><span data-tex="\displaystyle H_j\frac{I_0m}{2}\cos\beta"></span></td><td><span class="term-reference term-reference-none">不入参考</span></td></tr>
+              <tr class="term-difference"><th scope="row">差频<br><span data-tex="(f_s-k_x,-k_y)"></span></th><td><span data-tex="\displaystyle \frac{I_0m}{4}\cos(\alpha-\beta)"></span></td><td class="otf-reading"><span data-tex="H(f_s-k_x,-k_y)"></span><output id="t1_h_diff">—</output></td><td><span data-tex="\displaystyle H_j\frac{I_0m}{4}\cos(\alpha-\beta)"></span></td><td><span class="term-reference term-reference-pre">B<sub>pre</sub></span><span class="term-reference term-reference-post">B<sub>post</sub></span></td></tr>
+              <tr><th scope="row">和频<br><span data-tex="(f_s+k_x,k_y)"></span></th><td><span data-tex="\displaystyle \frac{I_0m}{4}\cos(\alpha+\beta)"></span></td><td class="otf-reading"><span data-tex="H(f_s+k_x,k_y)"></span><output id="t1_h_sum">—</output></td><td><span data-tex="\displaystyle H_j\frac{I_0m}{4}\cos(\alpha+\beta)"></span></td><td><span class="term-reference term-reference-none">不入参考</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <details class="wave-reference-details">
+          <summary>模型范围与理论来源</summary>
+          <p>本页是单频样品与正弦照明相乘的教学例子，采用简化径向（三角）OTF；五项由上方 s 与 I 直接展开，并非任意样品都只有五项。差频与和频来自积化和差 <span data-tex="\cos\alpha\cos\beta=\tfrac12[\cos(\alpha-\beta)+\cos(\alpha+\beta)]"></span>；两项的 <span data-tex="1/4"></span> 系数是样品振荡项的 <span data-tex="1/2"></span> 与恒等式中的 <span data-tex="1/2"></span> 相乘所得。这里的 I<sub>0</sub> 是本页平均照明强度，归一化与论文式 (1) 不同。滑块参数对应频率为 <span data-tex="f_s=1/P_s,\quad k_x=\cos\theta/P_i,\quad k_y=\sin\theta/P_i"></span>，其中 θ 是照明与样品频率夹角。相关线性成像背景见 Chen et al. (2023)，<a href="https://doi.org/10.1038/s41377-023-01204-4" target="_blank" rel="noopener">综述论文</a>；本表是本页公式的直接推导。</p>
+        </details>
+      </div>
       <div class="metrics-row">
         <div class="metric-box"><div class="metric-label">几何差频周期</div><div class="metric-value" id="t1_cP">—</div><div class="metric-hint">有照明且 <span data-tex="m&gt;0"></span> 时产生差频项</div></div>
         <div class="metric-box"><div class="metric-label">差频 OTF 值</div><div class="metric-value" id="t1_cH">—</div><div class="metric-hint"><span data-tex="H(0)=1"></span>；表示对比度传递</div></div>
@@ -331,7 +374,7 @@
 <script src="web/lab/ui.js?v=1"></script>
 <script src="web/lab/conv-otf.js?v=2"></script>
 <script src="web/lab/scene.js?v=2"></script>
-<script src="web/lab/acquisition.js?v=1"></script>
+<script src="web/lab/acquisition.js?v=order-symbols-1"></script>
 <script src="web/lab/presets.js?v=1"></script>
 <script src="web/lab/comparison.js?v=1"></script>
 <script src="web/lab/app.js?v=2"></script>
