@@ -134,6 +134,7 @@
     const mapTitle = label(frequency, 420, 105, '样品频率坐标 q · 每格是一个复数', 'pe-two-small');
     const moveArrow = path(frequency, colors[2], { 'data-frequency-displacement': '', 'clip-path': 'url(#' + uid + '-spectrum-clip)' });
     const moveLabel = label(frequency, 390, 429, '', 'pe-two-small', colors[2]);
+    set(moveLabel, 'data-wavevector-status', '');
     const mask = el('g', { 'data-overlap-mask': '' }, frequency);
     const maskCells = e.context.points.map(p => el('rect', { x: cx + p.x * unit - unit / 2, y: cy + p.y * unit - unit / 2, width: unit - 1, height: unit - 1, fill: colors[2], opacity: 0, 'data-q': [p.x, p.y].join(',') }, mask));
     const rejected = el('g', { 'data-rejected-region': '' }, frequency);
@@ -336,7 +337,7 @@
       set(frequency, 'data-presentation-offset-x', centerOffset);
       pills.forEach((pill, i) => { set(pill, 'fill', i === (early ? 0 : 1) ? colors[2] : '#69828a'); set(pill, 'data-active', i === (early ? 0 : 1)); });
       text(cue, L.scene(id).title); text(footer, '');
-      set(footer, 'y', id === 'shift' ? 542 : 518);
+      set(footer, 'y', id === 'shift' ? 542 : id === 'otf' ? 542 - 24 * M.ramp(p, 0, .12) : 518);
       let candidate = data.best, committed = [];
       if (id === 'match' || id === 'coarse') { const m = L.matchingState(lesson, id, p); candidate = data.compare(m.candidate.kx, m.candidate.ky); committed = m.committed; }
       let refinement;
@@ -431,7 +432,8 @@
       set(moveArrow, 'd', arrow(cx, cy - 115, cx + sideDx, cy - 115 + sideDy));
       opacity(moveArrow, id === 'shift' ? M.ramp(relocate, 0, .15) : 1);
       set(moveArrow, 'data-dx', -candidate.kx); set(moveArrow, 'data-dy', -candidate.ky);
-      const positionLocked=s.step>=L.index('geometry')||refinement?.returnView.overview>0;
+      const positionLocked=s.phase==='coefficient'||refinement?.returnView.overview>0;
+      set(moveLabel, 'data-locked', !!positionLocked);
       text(moveLabel, id === 'shift' && p < .68 ? '相同 f 仍对应不同来源；两幅图尚未归位'
         :positionLocked?'旁带与 OTF 已按 −k̂ 归位 · 位置锁定'
         : searching ? '0 级固定 · 旁带与 OTF 同移 −k′ = (' + num(-candidate.kx, 2) + ', ' + num(-candidate.ky, 2) + ')' : '0 级固定 · 旁带与 OTF 同移 −k′ · 示意 k′=k');

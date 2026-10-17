@@ -99,3 +99,35 @@ test('the adopted matrix receives measured phases before its inverse is revealed
   }
   assert.deepEqual(h.errors, []);
 });
+
+for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${page} keeps candidate shifts distinct from the locked fit on replay`, () => {
+  let view;
+  const h = boot({ page, renderer: page === 'sim_motion_demo.html' ? 'web/motion/sim-motion.js' : 'web/parameter-demo/sim-parameter-app.js',
+    beforeRenderer(ctx) {
+      const create = ctx.SIMParameterLesson.createView;
+      ctx.SIMParameterLesson.createView = (...args) => (view = create(...args));
+    } });
+  const status = h.nodes.find(n => n.attrs['data-wavevector-status'] !== undefined);
+  const footer = h.nodes.find(n => n.attrs['data-two-stage-footer'] !== undefined);
+  const samples = [
+    ['shift', .9, false], ['otf', .6, false], ['match', .4, false], ['match', .8, false],
+    ['coarse', .01, false], ['refine', .9, false], ['refine', 1, true],
+    ['least-squares-fit', 0, true], ['least-squares-fit', 1, true],
+  ];
+  for (const [id, p, locked] of [...samples, ...samples.toReversed()]) {
+    view.drawScene(id, p);
+    assert.equal(status.attrs['data-locked'], String(locked));
+    if (locked) assert.match(status.textContent, /−k̂.*位置锁定/);
+    else {
+      assert.doesNotMatch(status.textContent, /位置锁定|k̂/);
+      assert.match(status.textContent, /k′/);
+    }
+  }
+  // Continue the same caption's position into OTF preparation, including reverse.
+  view.drawScene('shift', 1); const from = +footer.attrs.y;
+  view.drawScene('otf', 0); near(footer.attrs.y, from);
+  view.drawScene('otf', .06); assert.ok(+footer.attrs.y < from && +footer.attrs.y > 518);
+  view.drawScene('otf', .12); near(footer.attrs.y, 518);
+  view.drawScene('otf', 0); near(footer.attrs.y, from);
+  assert.deepEqual(h.errors, []);
+});
