@@ -93,3 +93,10 @@
 .pe-scan-sum{font-size:16px}
 .pe-scan-score{font-size:30px;font-weight:500}
 [data-direct-scan] text{font-family:var(--numeric-font);font-variant-numeric:tabular-nums lining-nums}
+
+/* Retained inverse-transform definitions and the copied derivation beneath. */
+[data-get-peak-definition] .pe-peak-math{font-size:26px}
+[data-get-peak-inverse-token] .pe-peak-math{font-size:30px}
+[data-get-peak-address-rule] .pe-peak-math{font-size:22px}
+[data-get-peak-delta-definition] .pe-peak-math{font-size:28px}
+[data-get-peak-unit-rotation] .pe-peak-math{font-size:20px}

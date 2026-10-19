@@ -5,13 +5,22 @@
   const Clock = node ? require('../../../shared/animation/beat-clock.js') : root.SIMBeatClock;
   const definitions = [
   {
+    "key": "fitObjective",
+    "action": "先建立多带共同拟合目标",
+    "duration": 7000,
+    "title": "寻找同一个样品值，让各路预测都符合观测。",
+    "copy": "暂存原高频点，改看重叠点 q=(6,0)。两条频带记录同一个 S，却经过不同的 H。用同一个待估值 z 分别乘各路 H，再把预测与观测的差一起衡量。",
+    "equation": "$$\\widehat S=\\operatorname*{arg\\,min}_{z\\in\\mathbb C}\\underbrace{\\left[\\sum_b|C_b-H_bz|^2+w^2|z|^2\\right]}_{J(z)}$$",
+    "note": "b 表示方向与级次组成的频带编号；z 是当前 q 处待估的样品复数值。前面为比较幅相各除自身 H；这里让多条观测共同约束一个样品值。w²|z|² 限制过大的解。"
+  },
+  {
     "key": "normalEquation",
     "action": "共轭权重的来源",
     "duration": 8000,
-    "title": "同一个重叠频率，为何在两条频带中强弱不同？",
-    "copy": "先暂存原来的高频点，改看重叠点 q=(6,0)。方向 1 的零级与 −1 级记录同一个 S，但 H 约为 0.2848 与 0.7471，传递强弱相差约 2.6 倍。",
-    "equation": "$$(\\sum_b|H_b|^2+w^2)\\widehat S=\\sum_b H_b^*C_b$$",
-    "note": "原高频 q=(14,0) 用来验证信息找回；重叠点解释多带融合。等权二次正则化拟合产生 H* 与 |H|²；完整推导见原理与数值，未声称无条件统计最优。"
+    "title": "让总误差最小，便得到共轭权重与模平方。",
+    "copy": "展开刚才的残差平方和，对 z 的共轭求偏导并令其为零。各路观测前出现 H*，待估样品值前留下 |H|²；分子与分母由同一个目标一起产生。",
+    "equation": "$$\\frac{\\partial J}{\\partial z^*}=0\\quad\\Longrightarrow\\quad(\\sum_b|H_b|^2+w^2)\\widehat S=\\sum_b H_b^*C_b$$",
+    "note": "J 就是上一拍的目标函数。现在只推导基础等权拟合式，尚未执行共轭乘法；下一拍先计算一条分子贡献，再累计全部频带。固定版本的额外零级分母稍后单独说明。"
   },
   {
     "key": "conjugateWeight",

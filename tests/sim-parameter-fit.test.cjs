@@ -121,11 +121,11 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
   assert.deepEqual(h.errors, []);
 });
 
-test('the entry teaches addresses, own OTF and the common relation before preparing the fields', () => {
+test('the entry teaches addresses and own OTF, defines the working spectra, then introduces their common relation', () => {
   const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
   const host=h.byId.get('equation');
   const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
-  const samples=[[0,'locked'],[3/21,'addresses'],[8/21,'ownOtf'],[10.7/21,'commonAlpha'],[11.6/21,'workingBands']];
+  const samples=[[0,'locked'],[3/21,'addresses'],[8/21,'ownOtf'],[10.7/21,'workingBands'],[11.6/21,'commonAlpha']];
   const snapshots=new Map();
   for(const [p,substep] of [...samples,...samples.toReversed()]) {
     const progress=Peak.timeline.progressFor('finalPrepare',p),state=L.stateForScene('least-squares-fit',progress);

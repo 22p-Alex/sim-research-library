@@ -86,7 +86,7 @@
         const z = M.pixel(frame.views[i], probe),qName=frame.focus?'q重叠 = 6':'q高频 = 14';
         pane.caption.textContent = i === 2 && inverseProgress > .5 ? '256 × 256 · 固定 0—1 标尺' : frame.views[i].kind === 'scalar' ? `${qName}：${compact(z.re)}` : `${qName}：|·| = ${compact(Math.hypot(z.re, z.im) / 128 ** 2)}`;
       });
-      const operators = frame.mode==='normalEquation'||(frame.phase==='wiener'&&frame.mode!=='normalize') ? 0 : 1-inverseProgress;
+      const operators = frame.showOperators===false||(frame.phase==='wiener'&&frame.mode!=='normalize') ? 0 : 1-inverseProgress;
       opacity(inverse, inverseProgress); opacity(fusionOperator1, operators); opacity(fusionOperator2, operators);
       fusionOperator1.textContent = frame.operator || (frame.phase === 'sum' ? '→' : '×');
       fusionOperator2.textContent = frame.phase === 'sum' ? '→' : '=';

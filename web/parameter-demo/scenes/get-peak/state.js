@@ -40,6 +40,14 @@
     return {index,r,theta,turnAngle,factor,angle,input,
       output:{re:input.re*Math.cos(angle)-input.im*Math.sin(angle),im:input.re*Math.sin(angle)+input.im*Math.cos(angle)}};
   }
+  // A unit-vector illustration, with an angle from the locked k and an integer
+  // coordinate. No fitted alpha or invented observation enters this geometry.
+  function extraAngleGeometry(k,n,r,progress) {
+    const delta=2*Math.PI*(k[0]*r[0]+k[1]*r[1])/n;
+    const turn=Math.atan2(Math.sin(delta),Math.cos(delta)),angle=turn*progress,psi=.32;
+    return {r,delta,turn,angle,psi,source:{re:Math.cos(psi),im:Math.sin(psi)},
+      target:{re:Math.cos(psi+angle),im:Math.sin(psi+angle)}};
+  }
   function dataFor(lesson) {
     if (cache.has(lesson)) return cache.get(lesson);
     const peak = lesson.estimate.finalPeak;
@@ -73,7 +81,13 @@
       const theta=-2*Math.PI*(peak.kx*(i%peak.n)+peak.ky*Math.floor(i/peak.n))/peak.n;
       phaseField.re[i]=Math.cos(theta);phaseField.im[i]=Math.sin(theta);
     }
-    const data = { peak, sampleIndex, samples, comparisonMaximum, frequencyPoint, frequencyPoints:points.slice(0,8),displayScales,displaySample,phaseField };
+    let anglePosition=[0,0],angleScore=Infinity;
+    for(let y=0;y<Math.min(peak.n,16);y++)for(let x=0;x<Math.min(peak.n,16);x++) {
+      const delta=2*Math.PI*(peak.kx*x+peak.ky*y)/peak.n;
+      const score=Math.abs(delta-Math.PI/2)+.0001*(x*x+y*y);
+      if(score<angleScore){anglePosition=[x,y];angleScore=score;}
+    }
+    const data = { peak, sampleIndex, samples, comparisonMaximum, frequencyPoint, frequencyPoints:points.slice(0,8),displayScales,displaySample,phaseField,anglePosition };
     cache.set(lesson, data); return data;
   }
   function presentation(progress, timeline = Story.timeline) {
@@ -98,7 +112,7 @@
   }
   function narrative(progress) { return presentation(progress); }
   function state(lesson, progress, timeline = Story.timeline) {
-    const p = presentation(progress, timeline), { peak, samples,sampleIndex,displayScales,displaySample } = dataFor(lesson), c = p.cues;
+    const p = presentation(progress, timeline), { peak, samples,sampleIndex,displayScales,displaySample,anglePosition } = dataFor(lesson), c = p.cues;
     const count = !c.sumFirst ? 0 : Math.min(peak.count, 1 + Math.floor((c.sumSweep + 1e-12) * (peak.count - 1)));
     const solved = c.divide === 1, read = c.readReady === 1;
     const selection=p.mode==='finalCompare'&&p.local>=.76 ? p.local<.82?1:p.local<.88?2:0 : 0;
@@ -120,12 +134,12 @@
       alpha: solved ? { ...peak.alpha } : null, m: read ? peak.m : null, phase: read ? peak.phase : null,
       phaseRead: c.phaseRead, lengthRead: c.lengthRead, cards: c.cards, k: [peak.kx, peak.ky],
       lockedAlpha:1-c.lockRetire, frequencyPointAlpha:c.addressPoint*(1-c.frequencyPointExit),
-      geometry:alphaGeometry(c),
+      geometry:alphaGeometry(c),extraAngle:extraAngleGeometry([peak.kx,peak.ky],peak.n,anglePosition,c.positiveTurn),
       illustrationAlpha:Clock.ramp(c.alphaDemo,.55,1)*(1-Clock.ramp(c.alphaRetire,0,.45)),
       comparisonAlpha:c.compare*(1-Clock.ramp(c.alphaDemo,0,.45)+Clock.ramp(c.alphaRetire,.55,1)),displayKey,pointwise,
       resultAlpha: c.resultEnter, divisionAlpha: 1 - c.readEnter, readAlpha: c.readEnter,
       contributionTravel: c.sumScan ? (count % peak.n) / peak.n : c.contribution };
   }
-  Object.assign(Story, { dataFor, presentation, narrative, state,displayColor,alphaGeometry,alphaFormulaState,shiftPoint });
+  Object.assign(Story, { dataFor, presentation, narrative, state,displayColor,alphaGeometry,alphaFormulaState,shiftPoint,extraAngleGeometry });
   if (node) module.exports = Story;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

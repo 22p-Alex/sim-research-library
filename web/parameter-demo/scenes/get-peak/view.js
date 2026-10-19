@@ -166,15 +166,7 @@
       const transform = label(f.g, 0, 0, '逆 FFT', 'pe-peak-transform', colors[b]);
       return { ...f, spatial, transform };
     });
-    const derivation=el('g',{'data-get-peak-derivation':''},inverse),proof=layout.derivation;
-    label(derivation,proof.x,proof.captionY,'把 f = q + k̂ 代入逆变换核','pe-two-text');
-    const kernel=mathLabel(derivation,proof.x,proof.y,proof.width,String.raw`e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}`,colors[1],{'data-get-peak-kernel':'combined'});
-    const kernelFactors=[
-      mathLabel(derivation,proof.x,proof.y,proof.factorWidth,String.raw`e^{2\pi i\mathbf q\cdot\mathbf r/N}`,colors[0],{'data-get-peak-kernel':'reference'}),
-      mathLabel(derivation,proof.x,proof.y,proof.factorWidth,String.raw`e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`,colors[2],{'data-get-peak-kernel':'extra'})
-    ];
-    const extraCaption=label(derivation,proof.factors[1],proof.explainY,'额外转角 δ(r) · 来自已知地址差','pe-two-small',colors[2]);
-    const referenceCaption=label(derivation,proof.factors[0],proof.explainY,'含 q 的项合成参考场 u(r)','pe-two-small',colors[0]);
+    const inverseView=Story.createInverseView({parent:inverse,cards:inverseCards,mathLabel,el,label,path,plane,vector,set,text,opacity,colors});
     const shiftFields = [
       field(shift, layout.shift.x[0], layout.shift.y, layout.shift.size, 'u', '参考复数场', images.spatial[0], colors[0], 'shift-reference'),
       field(shift, layout.shift.x[1], layout.shift.y, layout.shift.size, 'v', '旁带复数场', images.spatial[1], colors[1], 'shift-input'),
@@ -344,21 +336,7 @@
       set(colorTile,'x',key.tileX+(pixelX-tileSize/2-key.tileX)*c.colorPaint);
       set(colorTile,'y',key.tileY+(pixelY-tileSize/2-key.tileY)*c.colorPaint);
       otherPoints.flat().forEach(n=>opacity(n,c.commonPoints));
-      inverseCards.forEach(card => {
-        opacity(card.g,1-c.derivationEnter);
-        opacity(card.image, 1 - M.ramp(s.inverse, 0, .35));
-        opacity(card.spatial, M.ramp(s.inverse, .55, 1));
-        opacity(card.transform, s.inverse > 0 && s.inverse < 1 ? 1 : 0);
-      });
-      opacity(derivation,c.derivationEnter);
-      opacity(kernel,1-M.ramp(c.kernelSplit,0,.35));
-      kernelFactors.forEach((node,i)=>{
-        const split=c.kernelSplit;
-        set(node,'transform',`translate(${(proof.factors[i]-proof.x)*split} ${(i?1:-1)*45*Math.sin(Math.PI*split)})`);
-        opacity(node,M.ramp(split,.55,.85));
-      });
-      opacity(extraCaption,c.deltaReveal);
-      opacity(referenceCaption,c.deltaReveal);
+      inverseView.draw(s);
       const op=s.pointwise,shiftCount=op.count;
       prefix(shiftPrefix,shiftCount,layout.shift.size);
       const scanBeat=Story.timeline.beats.find(b=>b.key==='finalShiftScan');

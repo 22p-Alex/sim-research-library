@@ -94,6 +94,30 @@ test('integer shifts match a direct frequency inner product over the actual fina
   }
 });
 
+test('integer and fractional finite Fourier evaluations give the same final ratio in both domains', () => {
+  const ctx = fixture(16, 6), n = ctx.config.n;
+  for (const [kx, ky] of [[4, 0], [4.2, -2.3], [-3.37, 3.19]]) {
+    const p = E.fairSimGetPeak(ctx, kx, ky), a = p.prepared[0], v = p.spatial[1];
+    assert.equal(p.valid, true);
+    let re = 0, im = 0, energy = 0;
+    // Evaluate the finite forward Fourier sum at q+k directly. In particular,
+    // fractional q+k is never rounded into an array index or sent to A.shift.
+    for (let qy = 0; qy < n; qy++) for (let qx = 0; qx < n; qx++) {
+      const q = qy * n + qx; let br = 0, bi = 0;
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const r = y * n + x, angle = -2 * Math.PI * ((qx + kx) * x + (qy + ky) * y) / n;
+        br += v.re[r] * Math.cos(angle) - v.im[r] * Math.sin(angle);
+        bi += v.re[r] * Math.sin(angle) + v.im[r] * Math.cos(angle);
+      }
+      re += a.re[q] * br + a.im[q] * bi; im += a.re[q] * bi - a.im[q] * br;
+      energy += a.re[q] ** 2 + a.im[q] ** 2;
+    }
+    near(re, n * n * p.cross.re); near(im, n * n * p.cross.im);
+    near(energy, n * n * p.referenceEnergy);
+    near(re / energy, p.alpha.re); near(im / energy, p.alpha.im);
+  }
+});
+
 test('the final source coefficient supplies all adopted phases and modulations without changing raw data', () => {
   const c = E.capture({ vectors: [[6, -5], [-4, 7]], offsets: [-.72, .55], m: .67 });
   c.raw.groups.forEach((g, d) => g.frames.forEach((f, j) => f.pixels.forEach((_, i) => { f.pixels[i] += .002 * Math.sin(i * .37 + j * .81 + d); })));

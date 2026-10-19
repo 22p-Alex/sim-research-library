@@ -9,7 +9,7 @@ const near=(a,b,tol=1e-9)=>assert.ok(Number.isFinite(+a)&&Math.abs(+a-b)<tol,`${
 const visible=n=>{let a=1;for(;n;n=n.parent){if(n.hidden||n.attrs.display==='none')return 0;a*=Number(n.attrs.opacity??n.style.opacity??1);}return a;};
 
 test('the alpha entry uses paired observed frequencies and retains the fully locked result for 1.5 seconds',()=>{
-  assert.equal(Peak.timeline.beats.slice(0,5).reduce((s,b)=>s+b.duration,0),60000);
+  assert.equal(Peak.timeline.beats.slice(0,5).reduce((s,b)=>s+b.duration,0),84000);
   for(const phase of [0,.35,-.72]) {
     const cap=E.capture({m:.67,offsets:[phase,.55,-.4]}),lesson=Story.createLesson({raw:cap.raw,config:cap.config});
     const data=Peak.dataFor(lesson),p=data.peak,q=data.frequencyPoint.q,i=A.idx(...q,p.n),j=A.idx(q[0]+p.kx,q[1]+p.ky,p.n);
@@ -32,6 +32,21 @@ test('the alpha entry uses paired observed frequencies and retains the fully loc
       near(s.candidate.kx,lesson.estimate.kx);near(s.candidate.ky,lesson.estimate.ky);
     }
   }
+});
+
+test('working spectra are defined before their ratio, and the purpose of changing domain precedes the inverse transform',()=>{
+  const at=(key,local)=>Peak.presentation(Peak.timeline.progressFor(key,local));
+  const definitions=at('finalPrepare',10/21),relation=at('finalPrepare',11.6/21);
+  assert.equal(definitions.substep,'workingBands');assert.match(definitions.formula.equation,/B_0.*coloneqq.*B_1.*coloneqq/);
+  assert.equal(relation.substep,'commonAlpha');assert.match(relation.formula.equation,/approx.*alpha/);
+  for(const local of [0,1/36,2.999/36,1/36,0]){
+    const s=at('finalInverse',local);
+    assert.equal(s.substep,'purpose');near(s.cues.inverse,0);near(s.cues.derivationEnter,0);near(s.cues.shift,0);
+    assert.doesNotMatch(s.formula.equation,/mathcal F|delta|e\^\{-/);
+    near(s.cues.divide,0);
+  }
+  assert.equal(at('finalInverse',3/36).substep,'transform');
+  near(at('finalInverse',3.4/36).cues.inverse,0);near(at('finalInverse',6.6/36).cues.inverse,1);
 });
 
 for(const main of [true,false])test(`${main?'motion':'standalone'} preserves source identity, sample and scale through alpha entry and conjugation`,()=>{
@@ -57,17 +72,36 @@ for(const main of [true,false])test(`${main?'motion':'standalone'} preserves sou
     assert.equal(marker.attrs['data-address'],[q[0]+b*p.kx,q[1]+b*p.ky].join(','));
   }
   beat('finalInverse',1);near(visible(get('data-get-peak-frequency-point',0)),0);
-  // The positive extra factor is derived before any reverse rotation is taught.
-  for(const local of [.15,.4,.6,.9,.6,.4,.15]) {
-    beat('finalInverse',local);
-    const shown=Peak.presentation(Peak.timeline.progressFor('finalInverse',local));
+  // The complete definitions remain mounted and fixed as only the copied
+  // sideband factors change. Check playback and reverse seeking in both hosts.
+  const definitions=[0,1].map(b=>get('data-get-peak-definition',b));
+  const proofToken=name=>get('data-get-peak-inverse-token',name);
+  beat('finalInverse',9.5/36);
+  const definitionPoses=definitions.map(n=>n.attrs.transform);
+  const definitionChildren=definitions.map(n=>n.children[0]);
+  const proofStates=new Map(),proofCheckpoints=[9.5,10.8,12,13.5,15,17.5,19,21.5,23,25.5,27,29,31.5,34.5,35.9];
+  for(const seconds of [...proofCheckpoints,...proofCheckpoints.toReversed()]) {
+    beat('finalInverse',seconds/36);
+    const shown=Peak.presentation(Peak.timeline.progressFor('finalInverse',seconds/36));
     assert.doesNotMatch(shown.formula.equation,/e\^\{-/);
     near(visible(get('data-get-peak-alpha-illustration')),0);
-    if(local<.32)assert.doesNotMatch(shown.formula.equation,/delta/);
-    if(local>.78){
-      near(visible(get('data-get-peak-kernel','combined')),0);
-      near(visible(get('data-get-peak-kernel','extra')),1);
-      near(visible(get('data-get-peak-kernel','reference')),1);
+    definitions.forEach((n,b)=>{near(visible(n),1);assert.equal(n.attrs.transform,definitionPoses[b]);assert.equal(n.children[0],definitionChildren[b]);});
+    for(const [old,next] of [['sumF','sumQ'],['bandF','bandShifted'],['bandShifted','bandZero'],['kernelF','kernelCombined'],['kernelCombined','kernelReference'],['kernelExtra','kernelDelta'],['norm','u']])
+      assert.ok(visible(proofToken(old))===0||visible(proofToken(next))===0,old+' / '+next);
+    const snapshot=h.nodes.filter(n=>n.attrs['data-get-peak-inverse-token']!==undefined||n.attrs['data-get-peak-extra-vector']!==undefined).map(n=>({...n.attrs}));
+    if(proofStates.has(seconds))assert.deepEqual(snapshot,proofStates.get(seconds));else proofStates.set(seconds,snapshot);
+    if(seconds===13.5){near(visible(proofToken('bandShifted')),1);near(visible(proofToken('kernelCombined')),1);near(visible(proofToken('alpha')),0);}
+    if(seconds===17.5){near(visible(proofToken('alpha')),1);near(visible(proofToken('bandZero')),1);near(visible(proofToken('kernelCombined')),1);}
+    if(seconds===21.5){near(visible(proofToken('kernelReference')),1);near(visible(proofToken('kernelExtra')),1);}
+    if(seconds===25.5){
+      const x=n=>+proofToken(n).attrs.transform.match(/translate\(([-\d.]+)/)[1];
+      assert.ok(x('alpha')<x('kernelExtra')&&x('kernelExtra')<x('norm')&&x('norm')<x('sumQ'));
+    }
+    if(seconds>=29){near(visible(proofToken('u')),1);near(visible(proofToken('kernelDelta')),1);near(visible(proofToken('norm')),0);}
+    if(seconds<29)near(visible(get('data-get-peak-extra-rotation')),0);
+    if(seconds>=34.5){
+      const v=get('data-get-peak-extra-vector');near(Math.hypot(+v.attrs['data-re'],+v.attrs['data-im']),1);
+      near(+v.attrs['data-applied-angle'],Math.atan2(Math.sin(+v.attrs['data-delta']),Math.cos(+v.attrs['data-delta'])));
     }
   }
   beat('finalShift',.8);
@@ -267,6 +301,24 @@ test('a displaced Fourier component creates the positive extra angle and is canc
     const ar=alpha.re*u.re[r]-alpha.im*u.im[r],ai=alpha.re*u.im[r]+alpha.im*u.re[r];
     near(v.re[r],ar*c-ai*s);near(v.im[r],ar*s+ai*c);
     near(v.re[r]*c+v.im[r]*s,ar);near(v.im[r]*c-v.re[r]*s,ai);
+  }
+});
+
+test('the extra-angle illustration applies the locked-k factor without changing magnitude or revealing alpha',()=>{
+  const Clock=require('../web/shared/animation/beat-clock.js'),lesson=Story.createLesson();
+  const timeline=Clock.define(Peak.timeline.beats.map(b=>({...b,duration:b.key==='finalInverse'?b.duration*1.7:b.duration})));
+  for(const k of [[8,0],[3,-2],[-2.3,1.7],[0,0]])for(const r of [[0,0],[4,0],[7,11],[127,125]]) {
+    const g=Peak.extraAngleGeometry(k,128,r,1),delta=2*Math.PI*(k[0]*r[0]+k[1]*r[1])/128;
+    near(g.delta,delta);near(Math.hypot(g.source.re,g.source.im),1);near(Math.hypot(g.target.re,g.target.im),1);
+    near(g.target.re,g.source.re*Math.cos(delta)-g.source.im*Math.sin(delta));
+    near(g.target.im,g.source.re*Math.sin(delta)+g.source.im*Math.cos(delta));
+  }
+  for(const local of [.01,.12,.28,.4,.52,.64,.76,.84,.91,.999]) {
+    const a=Peak.state(lesson,Peak.timeline.progressFor('finalInverse',local));
+    const b=Peak.state(lesson,timeline.progressFor('finalInverse',local),timeline);
+    near(a.extraAngle.angle,b.extraAngle.angle);near(Math.hypot(a.extraAngle.target.re,a.extraAngle.target.im),1);
+    near(a.shift,0);assert.equal(a.alpha,null);assert.equal(a.solved,false);
+    if(a.extraAngle.angle!==0){near(a.cues.recognizeU,1);near(a.cues.factorOutside,1);near(a.cues.deltaReveal,1);}
   }
 });
 

@@ -47,6 +47,27 @@ test('getPeak explains the ratio before division and the ideal product relation 
   near(peak.cross.re,peak.alpha.re*peak.referenceEnergy);
 });
 
+test('the fitting objective and normal equation retain both observations before any conjugate multiplication',()=>{
+  const unit=scene('otf-weight'),first=lesson.pipeline.bands[0],other=lesson.pipeline.bands[2];
+  const order=key=>unit.beats.findIndex(b=>b.key===key);
+  assert.ok(order('fitObjective')>=0&&order('fitObjective')<order('normalEquation'));
+  assert.ok(order('normalEquation')<order('conjugateWeight'));
+  for(const key of ['fitObjective','normalEquation'])for(const local of [.01,.47,.99]){
+    const f=frame('otf-weight',key,local);
+    assert.equal(f.showOperators,false);near(f.cues.weight,0);
+    assert.equal(f.views[0].from,first.shifted);assert.equal(f.views[1].from,other.shifted);
+    for(const i of [0,A.idx(6,0,256),A.idx(-6,7,256)]){
+      near(M.pixel(f.views[2],i).re,first.shifted.re[i]);
+      near(M.pixel(f.views[2],i).im,first.shifted.im[i]);
+    }
+  }
+  const product=frame('otf-weight','conjugateWeight',1),i=A.idx(6,0,256);
+  assert.equal(product.showOperators,true);near(product.cues.weight,1);
+  near(M.pixel(product.views[2],i).re,first.matched.re[i]);
+  near(M.pixel(product.views[2],i).im,first.matched.im[i]);
+  assert.ok(Math.hypot(first.matched.re[i]-first.shifted.re[i],first.matched.im[i]-first.shifted.im[i])>1e-6);
+});
+
 test('the first multiply and add finish separately, and the final sum keeps all nine contributions',()=>{
   const first=lesson.records[0],mul=frame('sum-contributions','firstWeight',1),half=frame('sum-contributions','firstAdd',.47);
   const sum=frame('sum-contributions','basicResponse',.5);
@@ -119,6 +140,12 @@ test('production headings, cached formulas and fusion frames follow the selected
     assert.equal(h.byId.get('equation-note').textContent,expected.note);
     assert.equal(equation.attrs['data-motion-formula-mode'],id+':'+key);
     if(id!=='relocate-bands')assert.equal(h.byId.get('fusion-stage').attrs['data-fusion-mode'],key);
+    if(id==='otf-weight'){
+      const operators=h.nodes.filter(n=>n.parent===h.byId.get('fusion-stage')&&n.attrs.class==='operation-sign');
+      assert.equal(operators.length,2);
+      const expectedOpacity=['fitObjective','normalEquation'].includes(key)?0:1;
+      for(const operator of operators)near(operator.style.opacity,expectedOpacity);
+    }
     const snapshot=[h.byId.get('scene-title').textContent,h.byId.get('equation-note').textContent,equation.children[0].innerHTML];
     const cacheKey=id+':'+key;
     if(snapshots.has(cacheKey))assert.deepEqual(snapshot,snapshots.get(cacheKey));else snapshots.set(cacheKey,snapshot);
