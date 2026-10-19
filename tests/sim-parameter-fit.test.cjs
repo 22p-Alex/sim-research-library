@@ -43,103 +43,6 @@ test('the final getPeak playhead uses full spatial prefixes and reveals no fitte
   assert.deepEqual(capture.raw.groups[0].frames.map(frame => Array.from(frame.pixels)), originals);
 });
 
-for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${page} pairs each source operation with its fields, formula and narration on one reversible playhead`, () => {
-  let view, lesson;
-  const h = boot({ page, renderer: page === 'sim_motion_demo.html' ? 'web/motion/sim-motion.js' : 'web/parameter-demo/sim-parameter-app.js',
-    beforeRenderer(ctx) { const create = ctx.SIMParameterLesson.createView; ctx.SIMParameterLesson.createView = (container, data, options) => { lesson = data; return (view = create(container, data, options)); }; } });
-  const { nodes, context, byId } = h, main = page === 'sim_motion_demo.html';
-  assert.deepEqual(h.errors, []);
-  const flow = main ? context.SIMMotionParameterChapter.plan(context.SIMMotion) : context.SIMParameterDemo.preview;
-  const seek = p => {
-    if (main) { byId.get('progress').value = navPosition(flow,'least-squares-fit',p); byId.get('progress').dispatch('input'); }
-    else context.SIMParameterDemo.player.seek(navPosition(flow,'least-squares-fit',p,false));
-  };
-  const get = (key, value) => nodes.find(n => value === undefined ? n.attrs[key] !== undefined : n.attrs[key] === String(value));
-  const peak = lesson.estimate.finalPeak, stage = get('data-get-peak');
-  const tracked = nodes.filter(n => Object.keys(n.attrs).some(key => key.startsWith('data-get-peak') || ['data-study-ratio', 'data-fit-parameter', 'data-frequency-map', 'data-complex-plane'].includes(key)));
-  const snapshot = () => tracked.map(n => ({ attrs: { ...n.attrs }, text: n.textContent }));
-  const samples = [.001, .04, .07, .10, .119, .12, .16, .21, .26, .28, .31, .36, .405, .42, .46, .50, .54, .575, .58, .60, .625, .68, .73, .79, .80, .83, .859, .86, .895, .90, .925, .955, .985, 1];
-  const snapshots = new Map();
-  seek(.001); // Materialize the host’s lazily cached initial textures.
-  const canvases = h.work.canvas;
-  for (const p of [...samples, ...samples.toReversed()]) {
-    seek(p);
-    const state = L.leastSquaresState(lesson, p);
-    assert.equal(stage.attrs['data-mode'], state.mode);
-    assert.equal(+stage.attrs['data-count'], state.count); assert.equal(+stage.attrs['data-total'], peak.count);
-    near(stage.attrs['data-sum-re'], peak.sums[state.count].re); near(stage.attrs['data-sum-im'], peak.sums[state.count].im);
-    near(stage.attrs['data-energy'], peak.sums[state.count].energy);
-    assert.equal(byId.get(main ? 'scene-title' : 'pe-title').textContent, state.title);
-    assert.equal(byId.get(main ? 'equation-note' : 'pe-note').textContent, state.note);
-    const equation = byId.get(main ? 'equation' : 'pe-equation');
-    assert.equal(equation.attrs['data-formula-mode'], L.formulaMode(L.stateForScene('least-squares-fit',p)));
-    assert.equal(equation.children[0].attrs['data-get-peak-formula-beat'], state.formula.mode);
-    assert.ok(byId.get(main ? 'scene-svg-description' : 'pe-svg-description').textContent.includes(state.note.slice(0, 8)));
-    if (main) assert.equal(byId.get('stage-caption').textContent, state.action);
-    const vector = zOf(get('data-get-peak-alpha-vector'));
-    near(vector.re, state.solved ? peak.alpha.re : 0); near(vector.im, state.solved ? peak.alpha.im : 0);
-    for (const key of ['m', 'phase']) assert.equal(get('data-fit-parameter', key).attrs['data-value'], state.cards > 0 ? String(key === 'm' ? peak.m : peak.phase) : '');
-    if (state.overview===0) {
-      near(visibleAlpha(get('data-frequency-map')), 0);
-      for (const name of ['P', 'Q', 'R']) near(visibleAlpha(get('data-complex-plane', name)), 0);
-    }
-    if(state.mode==='finalProduct'&&state.multiply>0) {
-      const i = state.sample, conj = zOf(get('data-get-peak-conjugate-vector'));
-      near(conj.re, peak.spatial[0].re[i]); near(conj.im, -peak.spatial[0].im[i]);
-      const product = get('data-get-peak-beat', 'finalProduct');
-      near(product.attrs['data-z-re'], peak.product.re[i]); near(product.attrs['data-z-im'], peak.product.im[i]); near(product.attrs['data-e'], peak.energy[i]);
-    }
-    if(state.local>.3 && ['finalShift','finalShiftScan','finalCompare'].includes(state.mode)){
-      const field=name=>visibleAlpha(get('data-get-peak-field',name));
-      near(visibleAlpha(get('data-get-peak-point-detail')),state.mode==='finalShift'?1:0);
-      near(field('shift-reference'),state.mode==='finalCompare'?1:0);
-      near(field('shift-input'),state.mode==='finalCompare'?0:1);
-      near(field('shift-output'),state.mode==='finalShift'?0:1);
-    }
-    const scanCount = +get('data-get-peak-shift-prefix').attrs['data-count'];
-    if(!state.shiftScan) assert.equal(scanCount, 0, 'the field scan waits for the one-position explanation');
-    if (scanCount > 0) {
-      const i = context.SIMParameterLesson.getPeakDataFor(lesson).sampleIndex;
-      const rotated = zOf(get('data-get-peak-ramp-vector'));
-      near(rotated.re, peak.shifted.re[i]); near(rotated.im, peak.shifted.im[i]);
-    }
-    near(get('data-get-peak-image', 'shift-output').attrs.opacity, 0, 1e-12);
-    const sumPrefix = get('data-get-peak-sum-prefix');
-    assert.equal(+sumPrefix.attrs['data-count'], state.count);
-    const width = 176, pieces = [...sumPrefix.attrs.d.matchAll(/h ([\d.e+-]+) v ([\d.e+-]+)/g)];
-    near(pieces.reduce((area, m) => area + +m[1] * +m[2], 0) / (width / peak.n) ** 2, state.count);
-    if (snapshots.has(p)) assert.deepEqual(snapshot(), snapshots.get(p)); else snapshots.set(p, snapshot());
-  }
-  assert.equal(h.work.canvas, canvases, 'replay reuses the actual field rasters');
-  assert.equal(get('data-fit-cloud'), undefined); assert.equal(get('data-fit-residual'), undefined);
-  assert.equal(get('data-illumination-preview'), undefined);
-  assert.ok(get('data-get-peak-field', 'sum-energy-source'), 'reference energy has its own source channel');
-  const captions = nodes.filter(n => n.textContent.includes('自身 OTF 可靠且成对筛选'));
-  assert.deepEqual(captions.map(n => +(n.textContent.match(/保留 (\d+)/)[1])), Array.from(peak.supportCounts));
-  for (const beat of L.getPeakBeats) assert.ok(!L.formulas[beat[0]].includes('arg\\,min'));
-  assert.doesNotMatch(L.formulas.finalPrepare, /\\frac|\/H/);
-  assert.deepEqual(h.errors, []);
-});
-
-test('the entry teaches addresses and own OTF, defines the working spectra, then introduces their common relation', () => {
-  const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
-  const host=h.byId.get('equation');
-  const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
-  const samples=[[0,'locked'],[3/21,'addresses'],[8/21,'ownOtf'],[10.7/21,'workingBands'],[11.6/21,'commonAlpha']];
-  const snapshots=new Map();
-  for(const [p,substep] of [...samples,...samples.toReversed()]) {
-    const progress=Peak.timeline.progressFor('finalPrepare',p),state=L.stateForScene('least-squares-fit',progress);
-    h.byId.get('progress').value=navPosition(flow,state.id,state.progress);h.byId.get('progress').dispatch('input');
-    const shown=Peak.presentation(progress);
-    assert.equal(shown.substep,substep);assert.equal(host.children[0].attrs['data-get-peak-formula-beat'],shown.formula.mode);
-    near(visibleAlpha(get('data-locked-wavevector')),1);
-    if(p<11.2/21)near(visibleAlpha(get('data-frequency-pair')),1);
-    const snapshot=[shown.formula.equation,host.attrs['data-formula-mode'],get('data-locked-wavevector').attrs.transform];
-    if(snapshots.has(p))assert.deepEqual(snapshot,snapshots.get(p));else snapshots.set(p,snapshot);
-  }
-  assert.deepEqual(h.errors,[]);
-});
-
 test('parameter cards restore one actual +1 weight before returning it to U and expanding its row', () => {
   const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
   assert.deepEqual(h.errors,[]);
@@ -199,15 +102,15 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
     view.drawScene(scene.id,.5);
     for(const node of h.nodes.filter(n=>n.attrs['data-scene-note']!==undefined)){assert.equal(node.attrs.display,'none');near(visibleAlpha(node),0);}
   }
-  const live=h.nodes.find(n=>n.attrs['data-get-peak-ramp-vector']!==undefined);
+  const live=h.nodes.find(n=>n.attrs['data-actor-owner']==='coefficient-ratio'&&n.attrs['data-math-actor']==='V');
   if(page==='sim_motion_demo.html'){
     const flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
-    h.byId.get('progress').value=navPosition(flow,'get-peak-point',.5);h.byId.get('progress').dispatch('input');
+    h.byId.get('progress').value=navPosition(flow,'coefficient-point',.5);h.byId.get('progress').dispatch('input');
   }else{
     const demo=h.context.SIMParameterDemo;
-    demo.player.seek(navPosition(demo.preview,'get-peak-point',.5,false));
+    demo.player.seek(navPosition(demo.preview,'coefficient-point',.5,false));
   }
-  assert.ok(visibleAlpha(live)>0,'the actual rotating vector remains visible');
+  assert.ok(visibleAlpha(live)>0,'the retained observation term remains visible before the conjugate demonstration');
   // Continue the same caption's position into OTF preparation, including reverse.
   view.drawScene('shift', 1); const from = +footer.attrs.y;
   view.drawScene('otf', 0); near(footer.attrs.y, from);

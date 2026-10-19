@@ -7,7 +7,7 @@
   <title>SIM Motion · 从样品到超分辨重建</title>
   <link rel="stylesheet" href="web/motion/sim-motion.css?v=ui-review-20261019-v3">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=inverse-address-expand-20261019-v4">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=coefficient-mainline-20261019-v2">
   <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=ui-review-20261019">
 </head>
 <body>
@@ -22,7 +22,7 @@
     <section class="scene-heading" aria-labelledby="scene-title">
       <div class="heading-index"><span id="chapter">01 / 样品与边界</span><div class="heading-line"></div></div>
       <div id="scene-copy"><h1 id="scene-title">细节，藏在高频里。</h1><p id="scene-description">从同一张样品出发，跟着一个高频分量，走完编码、解混、归位和融合。</p></div>
-      <span class="scene-counter" aria-hidden="true"><b id="scene-number">01</b><span id="scene-total">/ 43</span></span>
+      <span class="scene-counter" aria-hidden="true"><b id="scene-number">01</b><span id="scene-total">/ 38</span></span>
     </section>
     <div class="stage" id="stage">
       <div class="stage-topline" hidden><span id="view-label">REAL SPACE / 相机观测</span><span id="stage-caption">3 PHASES · 1 DIRECTION</span></div>
@@ -376,10 +376,35 @@
   <p>U、V 在这里表示完成自身 OTF 校正的标量频谱值；前面的 Ũ 表示临时分离矩阵。固定 q 处的 U 不变，改变候选时重新取旁带与其 OTF，并重新筛选公共区。记 H₀=H(q)、H₁=H(q+k)，在正确候选、无噪声模型下：</p>
   <div class="theory-equation" data-equation="$$\begin{aligned}U(\mathbf q)&=\frac{H_0^*(H_0S)}{|H_0|^2}=S(\mathbf q),\\V_{\mathbf k}(\mathbf q)&=\frac{H_1^*(m e^{i\phi_\Delta}H_1S)}{|H_1|^2}=m e^{i\phi_\Delta}S(\mathbf q)=m e^{i\phi_\Delta}U(\mathbf q).\end{aligned}$$"></div>
   <p>这个等价关系对一般非零复 OTF 也成立。本页采集使用实数非负 OTF，但公式保留共轭符号。只在两边 |H| 都达到阈值的公共区内相除；含噪声观测 HS+N 校正后仍有 N/H，不能理解成去除了噪声。</p>
-  <p>先用教学归一化复数相关寻找波矢并在峰附近细化。第 19—27 步按本地 fairSIM 的最终 getPeak 路径准备工作副本，在空域计算共同幅相：</p>
-  <div class="theory-equation" data-equation="$$\widehat\alpha=\frac{\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r)}{\sum_{\mathbf r}|u(\mathbf r)|^2},\qquad\widehat m=|\widehat\alpha|,\quad\widehat\phi_\Delta=\arg\widehat\alpha$$"></div>
-  <p>第 24 步对空域参考场 u 取共轭，是为累计两路计算场的相关；第 15 步对 H 取共轭，是为展开自身 OTF 校正。后面的 Wiener 重建还会用 H* 加权后合并多个频带，并使用总模平方与正则项作分母；不能把那一阶段的分母替换成本步的逐频带 |H|²。</p>
-  <p>临时分离已补偿余弦展开的 1/2，因此模长直接给 m。非等间隔相移需要另估各帧相位；弱公共区、噪声和 OTF 误差会影响估计。</p>
+  <!-- coefficient-theory:start -->
+<p><strong>位置对齐后，两路同源信息只差一个复比例。</strong>在可靠公共区各除以自己的 OTF，将对应频率值记作 U、V：</p>
+<div class="theory-equation" data-equation="$$U(\mathbf q)=\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)},\qquad V(\mathbf q)=\frac{\widetilde A_{+1}(\mathbf q+\widehat{\mathbf k})}{H(\mathbf q+\widehat{\mathbf k})}\approx\alpha U(\mathbf q),\quad\alpha=m e^{i\phi_\Delta}$$"></div>
+<p><strong>一个非零点就能求比例。</strong>在正确匹配的无噪声模型中，先把 U(q₁) 移到分母，再将分子、分母同乘 U*(q₁)：</p>
+<div class="theory-equation" data-equation="$$V(\mathbf q_1)=m e^{i\phi_\Delta}U(\mathbf q_1)\quad\Longrightarrow\quad\frac{V(\mathbf q_1)}{U(\mathbf q_1)}=\frac{U^*(\mathbf q_1)V(\mathbf q_1)}{|U(\mathbf q_1)|^2}=m e^{i\phi_\Delta}\qquad(U(\mathbf q_1)\ne0)$$"></div>
+<p><strong>共轭为什么消掉样品自身的相位？</strong>写 U(q₁)=r₁ exp(iθ₁)。共轭把 θ₁ 变为 −θ₁，乘回 U 后两者相消，留下非负实数 r₁²；共同相位 φΔ 仍保留：</p>
+<div class="theory-equation" data-equation="$$U^*(\mathbf q_1)V(\mathbf q_1)=r_1e^{-i\theta_1}\,m e^{i\phi_\Delta}r_1e^{i\theta_1}=m e^{i\phi_\Delta}r_1^2=m e^{i\phi_\Delta}|U(\mathbf q_1)|^2$$"></div>
+<p><strong>实际用全部可靠点共同估计。</strong>单点相除对弱信号和噪声敏感。在工作公共区 Ω 中分别累计共轭乘积与参考能量，最后只除一次。理想乘积同向；含噪数据求一个共同的最小二乘系数：</p>
+<div class="theory-equation" data-equation="$$C=\sum_{\mathbf q\in\Omega}U^*(\mathbf q)V(\mathbf q),\quad E_U=\sum_{\mathbf q\in\Omega}|U(\mathbf q)|^2,\qquad\widehat\alpha=\frac{C}{E_U}=\widehat m e^{i\widehat\phi_\Delta}\quad(E_U>0)$$"></div>
+<p><strong>复比例的模长给调制度，相角给共同相位。</strong>由于 E_U 是正实数，除以它不改变相角。本例三步等间隔相移已知，将共同偏移加回各帧：</p>
+<div class="theory-equation" data-equation="$$\widehat m=\frac{|C|}{E_U},\qquad\widehat\phi_\Delta=\arg C,\qquad\widehat\phi_j=\frac{2\pi j}{3}+\widehat\phi_\Delta,\quad j=0,1,2$$"></div>
+<p>相角读取要求 C≠0。以上假设相对相移已知且准确；等号的单点演示对应正确匹配的理想模型。临时旁带的 2/3 权重已补偿余弦的 1/2，最终模长直接给 m。这里的参考值 U(q) 是复数标量，后续 U=M⁻¹ 则表示解混矩阵。估计使用工作副本；正式解混重新使用完整观测，仍保留检测 OTF。</p>
+<details class="parameter-correlation-detail" data-coefficient-theory="least-squares"><summary>为什么这个比值也是最小二乘解？</summary>
+  <p>固定参考数据 U，在 Ω 内寻找共同系数 a，使 V−aU 的总平方残差最小。展开平方并配方：</p>
+  <div class="theory-equation" data-equation="$$J(a)=\sum_{\mathbf q\in\Omega}|V-aU|^2=E_U\left|a-\frac{C}{E_U}\right|^2+\sum_{\mathbf q\in\Omega}|V|^2-\frac{|C|^2}{E_U}$$"></div>
+  <p>后两项与 a 无关。E_U&gt;0 时，第一项在 a=C/E_U 处为零，因此该比值是唯一的最小二乘解。各点按参考能量分配影响，不是单点比值的算术平均；共同求和能降低不相干噪声的影响，不能消除 OTF、位移或相对相移误差。</p>
+</details>
+<details class="parameter-correlation-detail" data-coefficient-theory="implementation"><summary>fairSIM 为什么还做逆 FFT 和相位校正？</summary>
+  <p>这是同一个整体比例的空域实现。源码先从临时频带复制工作数组，以 commonRegion 筛选并除以各自 H，得到原生地址中的 B₀、B₁；然后逆 FFT。它们的空间表示不是最终样品图像：</p>
+  <div class="theory-equation" data-equation="$$u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\}$$"></div>
+  <p>先按整数 DFT 波矢及理想匹配说明。把 f=q+k̂ 代入 v 的逆变换，频谱值与指数里的地址必须一起替换：</p>
+  <div class="theory-equation" data-equation="$$\begin{aligned}v(\mathbf r)&=\frac1{N^2}\sum_{\mathbf q}B_1(\mathbf q+\widehat{\mathbf k})e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}\\&\approx\alpha e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}\frac1{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i\mathbf q\cdot\mathbf r/N}=\alpha e^{i\delta(\mathbf r)}u(\mathbf r).\end{aligned}$$"></div>
+  <div class="theory-equation" data-equation="$$\delta(\mathbf r)=\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r,\qquad v_{\widehat{\mathbf k}}=ve^{-i\delta}\approx\alpha u$$"></div>
+  <p>δ 是频率地址差带来的已知、随位置变化的转角；φΔ 是 α 中待估的共同相位。先反向消掉 δ，再累计 u*vₖ 并除以 Σ|u|²。小数波矢按有限傅里叶求值定义移频，不把小数地址当成数组下标。</p>
+  <div class="theory-equation" data-equation="$$U=B_0,\qquad V=\mathcal F_N\{v_{\widehat{\mathbf k}}\},\qquad\frac{\sum_{\mathbf q}U^*V}{\sum_{\mathbf q}|U|^2}=\frac{N^2\sum_{\mathbf r}u^*v_{\widehat{\mathbf k}}}{N^2\sum_{\mathbf r}|u|^2}=\widehat\alpha$$"></div>
+  <p>Parseval 关系使两个相同的 N² 因子抵消。因此逆 FFT 是计算同一估计量的一条实现路径。主线用频域值解释比例，实际估计器仍使用原空域实现；频域动画只对相同最终数组换表示，不复用搜索阶段的累计量。</p>
+  <p>依据：<a href="Wiener-SIM/fairSIM-论文/fairSIM-2016-SI.pdf">fairSIM Supplementary Note 1，第 10—11 页</a>；固定提交 711afd12 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java：getPeak/commonRegion</a> 与 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java">BandSeparation.java</a>。共轭方向按源码的 B₀*B₁ 约定；DFT 与 Parseval 归一化由<a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">正逆 DFT 定义</a>直接推出。</p>
+</details>
+<!-- coefficient-theory:end -->
   <p>第 16 步只演示直接计算：每选一个候选 k′，扫过其可靠公共区，把对应复数值共轭相乘再求和；取模并按两边能量归一化，得到该格的匹配分数。先逐格看清，再加速填满图。主线不再展开最小二乘目标、最优系数和残差推导。</p>
   <div class="theory-equation" data-equation="$$C(\mathbf k')=\sum_{\mathbf q\in\Omega(\mathbf k')}U^*(\mathbf q)V_{\mathbf k'}(\mathbf q),\qquad\rho(\mathbf k')=\frac{|C(\mathbf k')|}{\sqrt{\sum_{\Omega}|U|^2\sum_{\Omega}|V_{\mathbf k'}|^2}}$$"></div>
   <p>每轴 N 格时，完整直接扫描有 N² 个候选，每个候选最多处理 N² 个频点，因此是 O(N⁴)。更一般地，K 个候选、每次 P 个有效点约需 O(KP) 次乘加；本页只搜索限定范围，不把动画时长当作运行耗时。</p>
@@ -416,27 +441,6 @@
     <div class="theory-equation" data-equation="$$k'_{r,a}=c_{r,a}+\frac{j-2}{2}s_r,\quad j=0,\ldots,4,\quad a\in\{x,y\},\qquad s_r\in\{0.50,0.10,0.02\},\quad h_r=\frac{s_r}{2}\in\{0.25,0.05,0.01\}$$"></div>
     <p>每轮最高分成为下一轮中心，范围缩小 5 倍。0.01 格是最后一轮搜索步长，不是测量误差保证。推导采用 <a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">NumPy 的正逆 DFT 定义</a>；实现对应 <a href="web/atlas/sim-atlas-core.js">sim-atlas-core.js 的 shift</a> 和 <a href="web/shared/sim-parameter-estimation.js">教学估计器 compare、estimate</a>。原版 fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">fitPeak</a> 同样逐候选移频后计算相关，但使用三轮 10×10 与不同半宽、预处理和评分。</p>
   </details>
-  <details class="parameter-correlation-detail"><summary>第 19—27 步：fairSIM 的最终 getPeak 实际计算什么？</summary>
-    <p>位置锁定后，从未校正的临时频带重新复制两路工作数据。按最终位移筛选可靠 OTF 并执行源码的径向排除；只在保留位置除以各自 H，其他位置直接置零，得到各自原生检测坐标中的 B₀、B₁。准备的是新副本，没有对前面已校正的 U、V 再除一次 H。最终掩膜与前面位置搜索的教学公共区不同，频域保留点数也不同。</p>
-    <div class="theory-equation" data-equation="$$B_b(\mathbf f)=\begin{cases}\widetilde A_b(\mathbf f)/H(\mathbf f),&amp;M_b(\mathbf f;\widehat{\mathbf k})=1,\\0,&amp;\text{其他},\end{cases}\quad b\in\{0,+1\}$$"></div>
-    <p>接着两路逆 FFT；旁带空域场乘已锁定位移对应的单位模相位斜坡。这里 r=(x,y) 是空域像素索引。本页 y 向下、正变换用负指数，转换后斜坡为负号；源码的峰参数为 (−k̂ₓ,+k̂ᵧ)。</p>
-    <div class="theory-equation" data-equation="$$u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\},\qquad v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}$$"></div>
-    <p>在同一个 r 处，分别形成共轭乘积 z 和参考能量 e。两路遍历全部 N² 个空域位置，包括零贡献项。完整累计结束后再相除，并由同一个复系数读取模长和相角。</p>
-    <div class="theory-equation" data-equation="$$z(\mathbf r)=u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r),\quad e(\mathbf r)=|u(\mathbf r)|^2,\quad C=\sum_{\mathbf r}z(\mathbf r),\quad E_0=\sum_{\mathbf r}e(\mathbf r),\quad\widehat\alpha=\frac C{E_0}$$"></div>
-    <div class="theory-equation" data-equation="$$\widehat m=|\widehat\alpha|,\qquad\widehat\phi_\Delta=\arg\widehat\alpha,\qquad\widehat\phi_j=\phi'_j+\widehat\phi_\Delta$$"></div>
-    <p>三相相对步进必须已知且准确；临时旁带权重的 2/3 已补偿余弦的 1/2，所以模长直接给出调制度，不再乘 2。图像显示实际数组的对数模长与复数相角，用于计算的 u、v 不是最终样品强度图。主线相位为 0 时显示实际 0，不编造试探旋转。</p>
-    <p>本轮只迁移最终幅相路径，前面的固定预处理评分、整数峰和三轮 5×5 仍是教学位置搜索，不能据此称整个 fairSIM 估计器已移植。依据本地 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java</a> 第 199—217、242—297 行（复制、commonRegion、逆 FFT、fourierShift、timesConj、sumElements/norm2），以及 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 第 290—308 行（最终阈值 0.05、dist=0.15、phase/hypot）。计算使用本页 OTF 与双精度 FFT，保留源码对小数位移的整数索引径向排除规则。完整分镜与坐标约定见<a href="web/parameter-demo/scenes/get-peak/README.md">getPeak 场景说明</a>。</p>
-  </details>
-  <details class="parameter-correlation-detail"><summary>第 20 步：为什么换到空域，仍能求同一个共同复比例？</summary>
-    <p>位置搜索已经结束。现在固定同一组最终工作频谱 B₀、B₁；空域逐点乘已知相位斜坡，可以执行锁定波矢对应的频移。将对齐后的工作旁带定义为下面的 B₁,ₖ；它与前面位置搜索的工作数组不是同一个对象。</p>
-    <div class="theory-equation" data-equation="$$u=\mathcal F_N^{-1}\{B_0\},\quad v=\mathcal F_N^{-1}\{B_1\},\quad v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N},\quad B_{1,\widehat{\mathbf k}}=\mathcal F_N\{v_{\widehat{\mathbf k}}\}$$"></div>
-    <p>把正 DFT 的定义代入频域内积，展开双重求和。指数正交性使不同空域位置的交叉项为零，相同位置留下 N²。因此频域乘积和与参考能量都等于对应空域量的 N² 倍：</p>
-    <div class="theory-equation" data-equation="$$\begin{aligned}\sum_{\mathbf q}B_0^*(\mathbf q)B_{1,\widehat{\mathbf k}}(\mathbf q)&=N^2\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r),\\\sum_{\mathbf q}|B_0(\mathbf q)|^2&=N^2\sum_{\mathbf r}|u(\mathbf r)|^2.\end{aligned}$$"></div>
-    <p>在参考能量非零时，相除消去同一个 N²，得到完全相同的系数。这说明换域保留了要计算的比值；无须把空域场解释为新的样品强度图。</p>
-    <div class="theory-equation" data-equation="$$\widehat\alpha=\frac{\sum_{\mathbf q}B_0^*(\mathbf q)B_{1,\widehat{\mathbf k}}(\mathbf q)}{\sum_{\mathbf q}|B_0(\mathbf q)|^2}=\frac{\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r)}{\sum_{\mathbf r}|u(\mathbf r)|^2}$$"></div>
-    <p>整数波矢可用频率地址重编号解释正号额外因子；小数波矢沿用第 18 步的有限傅里叶求值，不能把小数地址当作现成数组下标。上面的内积等价对任意已准备数组与这一定义的频移都成立；共同比例是否准确代表真实照明参数，仍取决于 OTF、掩膜、位移误差与噪声。最终掩膜换了，不能直接复用搜索掩膜下的旧累计量。</p>
-    <p>依据：<a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">NumPy 正逆 DFT 与二维归一化定义</a>；这里直接由指数正交性推导内积关系。实现与独立数值核对见 <a href="tests/sim-fairsim-get-peak.test.cjs">getPeak 的频域/空域对照测试</a>。</p>
-  </details>
   <p>横纵分量组成同一个二维候选。小数频移通过傅里叶平移定理计算，对应 OTF 也在小数坐标取值。这里 N 为每轴采样数，频率单位为 DFT 格：</p>
   <div class="theory-equation" data-equation="$$a=\mathcal F_N^{-1}\{\widetilde A_{+1}\},\qquad\mathcal F_N\left\{a[x,y]e^{-\frac{2\pi i}{N}(k'_x x+k'_y y)}\right\}(\mathbf q)=\widetilde A_{+1}(\mathbf q+\mathbf k')$$"></div>
   <details class="parameter-correlation-detail"><summary>第 13 步一维移动：1、4、2 的手算对照</summary>
@@ -445,11 +449,6 @@
     <p>峰的位置 2 给出这个教学例的位移，峰高 21 是原始乘积和。下一步直接回到原来的二维频谱、公共区和 P、Q、R：位置有横纵两个分量，频点值由实际观测计算，还需处理 OTF 衰减和复数相位。教学位移与分数不带入原图。</p>
   </details>
   <p>此处运行的是教学估计器：固定预处理后由 FFT 批量计算整数候选的相关与归一化分数，再以 5×5 网格逐轮细化。第 16 步的逐点扫描用于讲清同一计算的直接定义，并用独立数值对照验证。固定 fairSIM 源码的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">commonRegion</a> 对保留数据直接除以各自的 OTF；本页将这一除法展开为先乘 H*、再除以 |H|² 的等价演示，并非源码中顺次调用两个函数。本页的预处理、掩膜、分数与 fitPeak 网格不完全相同，不是原版的逐行复刻。成像模型依据：<a href="https://doi.org/10.1038/ncomms10980" target="_blank" rel="noopener">Müller et al. (2016)，Supplementary Note 1 ↗</a>。源码调用顺序见 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java">SimAlgorithm.java</a> 的临时分离、参数拟合和正式重建；项目内有<a href="Wiener-SIM/fairSIM-论文/fairSIM_参数估计逐步推导与代码实操.md">推导与源码对照</a>及<a href="scripts/fairsim-parameter-estimation/README.md">原版估计器实操</a>。</p>
-  <details class="parameter-correlation-detail"><summary>理论补充：同一个比值为何也是复数最小二乘解？</summary>
-    <p>固定已准备的空域计算场，令 E₁=Σ|vₖ|²。展开残差平方和再配平方：</p>
-    <div class="theory-equation" data-equation="$$J(\alpha)=\sum_{\mathbf r}|v_{\widehat{\mathbf k}}-\alpha u|^2=E_0\left|\alpha-\frac C{E_0}\right|^2+E_1-\frac{|C|^2}{E_0}$$"></div>
-    <p>E₀&gt;0 时，唯一最小值在 α̂=C/E₀ 取得。这是对同一比值的代数解释；主线按源码直接计算乘积和、参考能量和与除法，不把动画画成试探角度或反复优化残差的轨迹。噪声、OTF 和位置误差仍会影响结果。</p>
-  </details>
   <h3>从样品 Sample 到样品频谱 Spectrum</h3>
   <p>s(r) = s(x, y) 表示像素位置 r = (x, y) 处的样品强度。二维离散傅里叶变换（Discrete Fourier Transform，DFT）把这些像素展开到不同频率的基函数上；S(q) = S(qₓ, qᵧ) 是频率 q 对应的复数系数，包含幅度和相位。FFT（Fast Fourier Transform）是计算 DFT 的快速算法。</p>
   <div class="theory-equation" data-equation="$$S(q_x,q_y)=\sum_{y=0}^{N-1}\sum_{x=0}^{N-1}s(x,y)\,\exp\!\left[-\frac{2\pi i}{N}(q_x x+q_y y)\right]$$"></div>
@@ -581,101 +580,105 @@
 <div id="fatal-error" class="fatal-error" role="alert" hidden></div>
 <noscript><div class="fatal-error">这个动画需要启用 JavaScript。也可以返回 <a href="sim_pipeline_atlas.html">重建图谱</a> 阅读公式。</div></noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-experiment.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-band-formulas.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/atlas/sim-atlas-core.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/beat-clock.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/text-transition.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/math-actors.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/tail-story.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/otf/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/match/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/comparison-data.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shift/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/otf/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/match/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/coarse/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/layout.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/tail-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/provisional-split/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/adopted-weights/teaching.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/adopted-weights/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/entry.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/provisional-split/parameter-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-parameter-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/sample/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/widefield/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/illumination/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/encoding-sum/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/detection/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/frequency-probe/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/mixed-sources/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/inverse-demix/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/verify-demix/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/separate-bands/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/relocate-bands/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/directions/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/single-direction-support/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/combined-support/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/otf-weight/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/sum-contributions/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/wiener/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/apodization/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/inverse-fft/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/image-comparison/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/frequency-audit/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/index.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/inverse-demix/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/mixed-sources/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/separate-bands/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/phase-acquisition/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/detection/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/encoding-sum/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/frequency-encoding/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/otf-weight/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/sum-contributions/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/wiener/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/apodization/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/inverse-fft/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-model.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/sample/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/encoding-sum/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/detection/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/directions/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/otf-weight/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/image-comparison/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-stages.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-fourier.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/scene-registry.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/rehearsal.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/frequency-encoding/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/phase-acquisition/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/relocate-bands/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/mixed-sources/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/sim-core.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-experiment.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-band-formulas.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/atlas/sim-atlas-core.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/beat-clock.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/text-transition.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/math-actors.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-story.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-story.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/comparison-data.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-formula-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/adopted-weights/teaching.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/provisional-split/parameter-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-parameter-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/sample/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/widefield/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/illumination/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/encoding-sum/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/detection/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/frequency-probe/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/mixed-sources/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/inverse-demix/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/verify-demix/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/separate-bands/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/relocate-bands/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/directions/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/single-direction-support/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/combined-support/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/otf-weight/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/sum-contributions/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/wiener/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/apodization/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/inverse-fft/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/image-comparison/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/frequency-audit/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/index.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/inverse-demix/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/mixed-sources/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/separate-bands/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/phase-acquisition/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/detection/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/encoding-sum/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/frequency-encoding/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/otf-weight/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/sum-contributions/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/wiener/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/apodization/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/inverse-fft/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-model.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/sample/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/encoding-sum/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/detection/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/directions/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/otf-weight/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/image-comparison/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-stages.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-fourier.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/scene-registry.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/rehearsal.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/frequency-encoding/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/phase-acquisition/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/relocate-bands/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/mixed-sources/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion.js?v=coefficient-derivation-20261019-v3"></script>
 </body>
 </html>

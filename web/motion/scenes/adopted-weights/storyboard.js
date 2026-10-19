@@ -3,7 +3,6 @@
  * This is the inverse of the residual alpha in the temporary +1 band. */
 (function(root){
   'use strict';
-  const Teaching=typeof module!=='undefined'&&module.exports?require('./teaching.js'):root.SIMAdoptedTeaching;
   function create(Story) {
     const scenes=[{
       id:'adopted-weights',label:'先补偿临时旁带',duration:10000,
@@ -26,13 +25,12 @@
       equation:String.raw`$$u_{0,j}=\frac13,\qquad u_{\pm1,j}=\frac{2}{3\widehat m}e^{\mp i(\phi'_j+\widehat\phi_\Delta)},\qquad U=M^{-1}$$`,
       note:'U 的行对应 0、+1、−1 级，列对应三帧。正式解混重新使用完整观测，输出仍含检测 OTF；估计用的筛选工作副本不进入正式融合。',
       inputs:['restored-positive-weight'],outputs:['positive-demixing-row']
-    }].map(s=>({...s,duration:Teaching.durations[s.id]?Teaching.durations[s.id]*1000:s.duration,
-      teachingBeats:Teaching.shots[s.id]?.map((b,i,all)=>({key:b[0],action:b[2],start:b[1]/Teaching.durations[s.id],end:(all[i+1]?.[1]??Teaching.durations[s.id])/Teaching.durations[s.id]})),
+    }].map(s=>({...s,
       unit:'web/motion/scenes/adopted-weights/storyboard.js'}));
     function adoptedState(progress,id='adopted-weights') {
       const p=Story.clamp(progress),r=Story.ramp,step=scenes.findIndex(s=>s.id===id);
       if(step<0)throw new Error('未知权重回填场景：'+id);
-      return {progress:p,id,step,teaching:Teaching.state(id,p),
+      return {progress:p,id,step,teaching:null,
         cardMove:step ? 1 : r(p,.16,.44),
         cards:step<2 ? 1 : 1-r(p,.05,.25),
         pending:step===0 ? r(p,.46,.65) : step===1 ? 1-r(p,.08,.24) : 0,

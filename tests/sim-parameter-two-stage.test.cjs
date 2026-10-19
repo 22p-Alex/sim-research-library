@@ -690,23 +690,16 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
     assert.deepEqual(nodes.filter(n=>n.attrs['data-otf-term']!==undefined).map(n=>[n.attrs.transform,n.attrs.opacity]),preparedTerms);
     assert.equal(byId.get('equation').attrs['data-formula-mode'],'match-prepare');
   }
-  // Zero phase is reported as observed; the known ramp does not invent a
-  // trial common phase. Final accumulation uses a separate source-faithful pass.
-  near(e.phase,0); seek('least-squares-fit',.32);
-  assert.equal(context.SIMParameterLesson.leastSquaresState(lesson,.32).phase,null);
-  const fitting=get('data-get-peak'), ratio=get('data-study-ratio'), peak=e.finalPeak;
-  for(const progress of [.62,.70,.75,.79,.84,.87,1]) {
-    seek('least-squares-fit',progress);
-    const count=+fitting.attrs['data-count'], sum=peak.sums[count];
-    near(fitting.attrs['data-sum-re'],sum.re); near(fitting.attrs['data-sum-im'],sum.im); near(fitting.attrs['data-energy'],sum.energy);
-    if(+fitting.attrs['data-divide']>0)assert.equal(count,peak.count);
+  near(e.phase,0);
+  const fitting=get('data-coefficient-mainline'), ratio=get('data-coefficient-result-vector');
+  const mainline=context.SIMCoefficientMainline, frequency=mainline.dataFor(lesson);
+  for(const progress of [.02,.2,.43,.6,.8,1]) {
+    seek('coefficient-sum',progress);
+    const count=+fitting.attrs['data-count'],sum=frequency.sums[count];
+    near(fitting.attrs['data-sum-re'],sum.re);near(fitting.attrs['data-sum-im'],sum.im);near(fitting.attrs['data-sum-energy'],sum.energy);
   }
+  seek('coefficient-read',1);near(zOf(ratio).re,e.finalPeak.alpha.re);near(zOf(ratio).im,e.finalPeak.alpha.im);
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined).map(n=>n.attrs.href),imageURLs);
-  near(zOf(ratio).re,peak.alpha.re);near(zOf(ratio).im,peak.alpha.im);
-  assert.equal(get('data-fit-cloud'),undefined);
-  assert.equal(get('data-fit-parameter','m').attrs['data-value'],String(e.m));
-  assert.equal(get('data-fit-parameter','phase').attrs['data-value'],String(e.phase));
-  assert.equal(get('data-illumination-preview'),undefined,'the stripe preview is removed');
   // The shortened illumination bridge hides the spectra. The next estimation
   // scene restores their full scale when they become visible again.
   byId.get('progress').value=flow.index('provisional-split');byId.get('progress').dispatch('input');
@@ -720,14 +713,14 @@ test('every meaningful intermediate state is reversible and formula terms use th
   const h=boot(), {context,byId,nodes}=h, flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
   const seek=(id,p)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const tracked=nodes.filter(n=>['data-frequency-map','data-frequency-pair','data-candidate-panel','data-vector-u','data-vector-v','data-vector-prediction','data-vector-product','data-fitting','data-study-ratio','data-rejected-q','data-otf-term','data-otf-product-highlight','data-otf-fraction-line','data-otf-cancel','data-otf-normalization'].some(k=>n.attrs[k]!==undefined));
-  const snapshots=new Map(), positions=L.scenes.flatMap(s=>[.001,.19,.34,.52,.76,1].map(p=>[s.id,p]));
+  const snapshots=new Map(), positions=L.navigationScenes.flatMap(s=>[.001,.19,.34,.52,.76,1].map(p=>[s.id,p]));
   for(const [id,p] of [...positions,...positions.toReversed()]) {
     seek(id,p); const key=id+':'+p;
     const state=tracked.map(n=>Object.fromEntries(Object.entries(n.attrs).filter(([k])=>k==='d'||k==='opacity'||k==='transform'||k.startsWith('data-'))));
     if(snapshots.has(key))assert.deepEqual(state,snapshots.get(key));else snapshots.set(key,state);
   }
-  seek('get-peak-sum',.43);const formula=byId.get('equation').children[0], count=h.mathRenders;
-  seek('get-peak-sum',.5);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
-  assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-finalSum-B3-stage');
+  seek('coefficient-sum',.43);const formula=byId.get('equation').children[0], count=h.mathRenders;
+  seek('coefficient-sum',.5);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'],'coefficient-pooledRatio');
   h.windowEvents.pagehide.forEach(f=>f());assert.equal(byId.get('parameter-stage').children.length,0);assert.equal(byId.get('frequency-handoff-stage').children.length,0);
 });

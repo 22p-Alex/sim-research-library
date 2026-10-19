@@ -36,7 +36,7 @@
       [.22, 'gridLimit', 'gridLimit', '放大整数峰附近的一格。背景来自本组观测的实际局部分数采样，标记来自局部拟合；本组峰可恰在整数点，不预设格间真值。这里的亚像素指小数 DFT 频率格，不是样品空间像素。'],
       [.56, 'phaseRamp', 'subpixel', '先逆 FFT，乘单位模的线性相位斜坡，再正 FFT；按离散傅里叶模型计算非整数频率值，不做频域像素插值。仅在两边 H 可靠的公共区各除自身 H，再算归一化相关分数。单位模乘法可逆且保持复场能量；它不会增加观测信息。'],
       [scene.returnStart, 'zoomCascade', 'local', scene.note],
-      [1.01, 'returnSpectrum', 'lockedAddresses', 'k̂ 已确定对应地址；共同复比例 α=m exp(iφΔ) 中，m 表示反差，φΔ 是三帧共用的共同相位。工作副本从原始临时频带准备，不重复校正搜索结果。'],
+      [1.01, 'returnSpectrum', 'lockedAddresses', '位置已经对齐，接下来求两路之间的幅度与相位差。'],
   ];
   scene.beats = stages.map(([end,key,formula,note],i)=>({key,action:key,start:i?stages[i-1][0]:0,end:Math.min(1,end),formula,note}));
   const zoom=scene.beats[2];zoom.end=lockStart;

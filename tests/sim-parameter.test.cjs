@@ -293,7 +293,7 @@ test('estimated parameters are actually adopted by formal demixing and agree wit
   assert.throws(() => M.createLesson({ capture: weak, direction: 0 }), /回退值/);
 });
 
-test('all equations compile, local links resolve, and the Demo is offline with no theory popup', () => {
+test('all equations compile, local links resolve, and the Demo is offline with an optional implementation explanation', () => {
   const html = read('sim_parameter_demo.html');
   assert.equal(Motion.bandFormulas, BandFormulas); assert.equal(M.bandFormulas, BandFormulas);
   assert.equal(M.teachingEquations.source, BandFormulas.provisional);
@@ -316,7 +316,7 @@ test('all equations compile, local links resolve, and the Demo is offline with n
     if (/^https?:|^#/.test(url)) continue;
     assert.ok(fs.existsSync(path.join(root, url.split(/[?#]/)[0])), url);
   }
-  assert.doesNotMatch(html, /<dialog|equation-info|theory-context|<script[^>]+https?:/);
+  assert.doesNotMatch(html, /equation-info|theory-context|<script[^>]+https?:/);
   const visibleHtml = html.replace(/<script[\s\S]*?<\/script>/g, '').replace(/<[^>]+>/g, '');
   const copy = M.scenes.flatMap(scene => [scene.label, scene.chapter, scene.title, scene.copy, scene.note, scene.equation]);
   for (const scene of M.scenes) for (let j = 0; j <= 20; j++) {
@@ -421,13 +421,13 @@ test('an embedded renderer accepts no truth, stays scene-local, and removes only
   view.destroy(); assert.deepEqual(container.children, [sentinel]);
 });
 
-test('standalone production renderer and controls run through all twenty-one stops without a browser', () => {
+test('standalone production renderer and controls run through all sixteen stops without a browser', () => {
   const boot = require('./helpers/motion-dom.cjs');
   const h = boot({ page: 'sim_parameter_demo.html', renderer: 'web/parameter-demo/sim-parameter-app.js' });
   const { nodes, byId, doc, pending, errors, context } = h;
   assert.deepEqual(errors, []);
   const { player, view, lesson: actual, preview: P } = context.SIMParameterDemo;
-  assert.equal(P.scenes.length, 21); assert.equal(byId.get('pe-stops').children.length, 21);
+  assert.equal(P.scenes.length, 16); assert.equal(byId.get('pe-stops').children.length, 16);
   const positions = Array.from({ length: P.scenes.length }, (_, i) => [.001, .15, .4, .8, 1].map(p => i + p)).flat();
   const snapshots = new Map();
   for (const t of [...positions, ...positions.toReversed()]) {
@@ -451,11 +451,11 @@ test('standalone production renderer and controls run through all twenty-one sto
     const [j,b] = node.attrs['data-matrix-coefficient'].split(':').map(Number), z = view.data.matrix[j][b];
     near(Number(node.attrs['data-re']), z.re); near(Number(node.attrs['data-im']), z.im);
   }
-  const ratio = nodes.find(n => n.attrs['data-study-ratio'] !== undefined);
-  player.seek(P.index('get-peak-read') + .9); const endpoint = ratio.attrs.d;
-  player.seek(P.index('get-peak-read') + 1); assert.equal(ratio.attrs.d, endpoint);
-  player.seek(P.index('get-peak-sum') + .43); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
-  player.seek(P.index('get-peak-sum') + .5); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
+  const ratio = nodes.find(n => n.attrs['data-coefficient-result-vector'] !== undefined);
+  player.seek(P.index('coefficient-read') + .9); const endpoint = ratio.attrs.d;
+  player.seek(P.index('coefficient-read') + 1); assert.equal(ratio.attrs.d, endpoint);
+  player.seek(P.index('coefficient-sum') + .43); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
+  player.seek(P.index('coefficient-sum') + .5); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
   player.seek(P.index('refill') + 1); byId.get('pe-replay').dispatch('click'); assert.equal(player.state().playing, true);
   player.pause(); player.seek(0);
   doc.dispatch('click', { target: byId.get('pe-stage'), clientX: 1100, button: 0 }); assert.equal(player.state().playing, true);

@@ -348,7 +348,7 @@ test('a host can address each estimation scene at zero and one without starting 
     assert.deepEqual(start,Story.navigationState(id,0));
     assert.deepEqual(end,Story.navigationState(id,1));
     assert.ok(end.progress>start.progress);
-    if(!Story.navigationScene(id).getPeakBeat){
+    if(!Story.navigationScene(id).coefficientBeat){
       assert.equal(start.id,id);assert.equal(start.progress,0);assert.equal(end.progress,1);
       near(start.position,Story.index(id));near(end.position,Story.index(id)+1);
     }

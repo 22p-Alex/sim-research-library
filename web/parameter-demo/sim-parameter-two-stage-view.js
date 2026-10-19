@@ -216,6 +216,8 @@
       const own = otfTerm(group, 'own:' + b, 'H_' + b, 70, colors[b]);
       const sample = otfTerm(group, 'sample:' + b, 'S', 60);
       const alpha = b ? otfTerm(group, 'alpha', String.raw`\alpha`, 70, colors[2]) : null;
+      const commonFactor=b?otfTerm(group,'coefficient-factor',String.raw`\left({\color{#efb879}m}e^{i{\color{#b7a5eb}\phi_\Delta}}\right)`,210,colors[2]):null;
+      if(commonFactor){set(commonFactor,'data-coefficient-stage-factor','');opacity(commonFactor,0);}
       const conjugate = otfTerm(group, 'conjugate:' + b, 'H_' + b + '^*', 80, colors[b]);
       const lhsConjugate = otfTerm(group, 'lhs-conjugate:' + b, 'H_' + b + '^*', 80, colors[b]);
       const power = otfTerm(group, 'power:' + b, '|H_' + b + '|^2', 110, colors[b]);
@@ -230,11 +232,16 @@
       const reference = b ? otfTerm(group, 'reference', 'U', 80, colors[0]) : null;
       set(own, 'data-otf-original-factor', b);
       for(const node of [conjugate, lhsConjugate])set(node, 'data-otf-conjugate-of', b);
-      return { y, group, productHighlight, band, equals, own, sample, alpha, conjugate, lhsConjugate,
+      return { y, group, productHighlight, band, equals, own, sample, alpha, commonFactor, conjugate, lhsConjugate,
         power, lhsDenominator, rhsDenominator, lhsLine, rhsLine, cancel, one, name, reference };
     });
     const operationNote = note(otfCorrection, 1110, 464, '', 'pe-two-text', colors[2]);
     const normalizationNote = note(otfCorrection, 1110, 491, '', 'pe-two-small');
+    const recallHeading=label(otfCorrection,1040,111,'回看：共轭与模平方归一','pe-two-value',colors[2]);
+    const recallCaption=label(otfCorrection,1040,146,'先乘自身 H*，再除以 |H|²','pe-two-small');
+    set(recallHeading,'data-coefficient-recall-heading','');
+    set(recallCaption,'data-coefficient-recall-caption','');
+    opacity(recallHeading,0);opacity(recallCaption,0);
     const filterGuide = el('g', { 'data-otf-filter-guide': '' }, stage);
     label(filterGuide, 1110, 245, 'H < τ · 剔除', 'pe-two-text', '#e29a90');
     label(filterGuide, 1110, 292, 'H ≥ τ · 保留', 'pe-two-text', colors[2]);
@@ -347,13 +354,41 @@
     for (const child of Array.from(stage.children)) if (child !== legacyBody && !chrome.has(child)) {
       child.remove(); legacyBody.appendChild(child);
     }
-    const fitView = GetPeak.createView({ parent: stage, lesson, el, label, line, path, vector, set, text, opacity, raster, defs, uid });
+    const viewOptions={parent:stage,lesson,el,label,line,path,vector,set,text,opacity,raster,defs,uid};
+    let fitView;
+    const coefficientView=root.SIMCoefficientMainline.createView(viewOptions);
     const lineRoot = el('g', { 'data-line-bridge': '' }), lineView = L.createLineView(lineRoot, lesson);
     function drawScene(id, progress) {
+      coefficientView.draw(null);
+      if(id==='coefficient'){
+        // returnSpectrum at local .694 has already restored this exact spectrum
+        // pose. Keep its original nodes, axes and opacity throughout the recap.
+        drawLegacyScene('refine',1);fitView?.draw(null);
+        const peak=root.SIMCoefficientMainline.state(lesson,progress),s=L.stateForScene(id,progress);
+        opacity(legacyBody,peak.overview);opacity(sharedRoot,peak.overview);opacity(lockedVector,peak.overview);
+        // refine already prepares the completed OTF row poses. Only their
+        // right-side group fades in; the spectrum does not switch to otf(1).
+        opacity(otfCorrection,peak.recall);opacity(recallHeading,1);opacity(recallCaption,1);
+        const local=peak.mode==='correspondence'?peak.local:1,motion=root.SIMCoefficientMainline.correspondenceMotion(local);
+        const side=otfRows[1],offset=140*motion.growth;
+        set(otfCorrection,'data-correspondence-substep',peak.substep);
+        set(otfCorrection,'data-coefficient-expansion',motion.growth);
+        set(otfCorrection,'aria-label',motion.final?'V = (m e^{iφΔ}) U':motion.substitute===1?'V = α U':motion.growth===1?'V = (m e^{iφΔ}) S':'V = α S');
+        opacity(side.alpha,motion.alpha);set(side.alpha,'transform',`translate(1040 ${side.y-12*(1-motion.alpha)}) scale(1)`);
+        opacity(side.commonFactor,motion.factor);
+        set(side.commonFactor,'transform',`translate(${1040+offset/2} ${side.y+12*(1-motion.factor)}) scale(1)`);
+        opacity(side.group,peak.mode==='correspondence'?1:0);
+        const rhsX=1153+offset;
+        opacity(side.sample,1-motion.substitute);set(side.sample,'transform',`translate(${rhsX} ${side.y}) scale(1)`);
+        opacity(side.reference,motion.substitute);set(side.reference,'transform',`translate(${rhsX} ${side.y}) scale(1)`);
+        coefficientView.draw(progress,{entry:{V:side.name,eq:side.equals,factor:side.commonFactor,U:side.reference}});
+        set(container,'data-scene-id',id);set(container,'data-position',s.position);set(container,'data-step',s.step);return s;
+      }
       if (id !== GetPeak.scene.legacyId) {
-        opacity(legacyBody, 1); fitView.draw(null);
+        opacity(legacyBody, 1); fitView?.draw(null);
         return drawLegacyScene(id, progress);
       }
+      fitView ||= GetPeak.createView(viewOptions);
       // Reconstruct the declared entry from any seek direction. A single
       // owned group exits; this scene never enumerates another scene's actors.
       drawLegacyScene(GetPeak.entry.from, 1);
@@ -386,6 +421,8 @@
     }
     function drawLegacyScene(id, progress) {
       const s = L.stateForScene(id, progress), p = s.progress, early = s.phase === 'position';
+      opacity(recallHeading,0);opacity(recallCaption,0);
+      for(const attribute of ['aria-label','data-correspondence-substep','data-coefficient-expansion'])otfCorrection.removeAttribute(attribute);
       refineView.draw(null);
       if (id === 'line-shift') {
         // The actual selected regions remain visible while the teaching row
@@ -575,8 +612,10 @@
         set(otfCorrection, 'data-' + key + '-progress', filtering[key]);
       const place = (node, x, y, scale = 1) => set(node, 'transform', `translate(${x} ${y}) scale(${scale})`);
       otfRows.forEach((row, b) => {
+        opacity(row.group,1);
         const { multiply: travel, power, divide, cancel, name, relation } = filtering;
         const lift = 22 * divide, cancelled = M.ramp(cancel, .35, 1);
+        if(row.commonFactor){opacity(row.commonFactor,0);place(row.commonFactor,0,0);}
         place(row.band, 895 + 15 * name, row.y - lift * (1 - name), 1 - .15 * name);
         opacity(row.band, 1 - name); place(row.equals, 995, row.y);
         // The RHS conjugate comes from this row's H and stays in this row.
@@ -790,6 +829,9 @@
     }
     function drawSingle(s,mount=true) {
       const formula = resolve(s), mode = resolveMode(s);
+      if(!cache.has(mode)&&s.id==='coefficient'&&mode!=='coefficient-correspondence'){
+        const shared=[...cache.values()].find(item=>item.parts.derivation);if(shared)cache.set(mode,shared);
+      }
       if (!cache.has(mode)) {
         const group = doc.createElement('div'); group.setAttribute('class', 'pe-study-formula pe-two-formula');
         const parts = {};
@@ -814,6 +856,10 @@
           parts.minusK = compile(parts.substitution, 'k-cancel-minus', String.raw`-\mathbf k'`);
           parts.residual = compile(parts.substitution, 'q-residual', String.raw`=\mathbf q+(\mathbf k-\mathbf k')`);
           parts.same = compile(parts.substitution, 'same-sample', String.raw`\xrightarrow{\ \mathbf k'=\mathbf k\ }\mathbf q`);
+        } else if(mode==='coefficient-correspondence') {
+          parts.correspondence=root.SIMCoefficientMainline.createCorrespondenceFormulaView({parent:group,document:doc});
+        } else if(s.id==='coefficient') {
+          parts.derivation=root.SIMCoefficientMainline.createDerivationFormulaView({parent:group,document:doc});
         } else if (s.id === GetPeak.scene.legacyId) {
           Object.assign(parts, GetPeak.formulaView.build({ group, compile, progress: s.progress }));
         } else if(mode==='refine-phaseRamp'&&options.lesson) {
@@ -829,6 +875,9 @@
       }
       const p = s.progress;
       group.style.opacity = '1';
+      if(s.id==='coefficient'){group.style.visibility='visible';group.setAttribute('data-coefficient-footer',mode);}
+      if(parts.derivation){parts.derivation.draw(p);return formula;}
+      if(parts.correspondence){parts.correspondence.draw(L.coefficient.presentation(p).local);return formula;}
       if (s.id === GetPeak.scene.legacyId) GetPeak.formulaView.draw(group, parts, p,options.reducedMotion?.()||false);
       if(parts.refinement){parts.refinement.draw(p);return formula;}
       if (mode === 'shared-derive') {
@@ -859,7 +908,7 @@
     function draw(s) {
       const formula=drawSingle(s),mode=resolveMode(s),current=cache.get(mode).group;
       const transition=L.formulaTransition(s,options.reducedMotion?.()||false),previous=transition.previous;
-      const fading=previous&&transition.amount<1&&resolveMode(previous)!==mode&&resolve(previous).equation!==formula.equation;
+      const fading=s.id!=='coefficient'&&previous&&transition.amount<1&&resolveMode(previous)!==mode&&resolve(previous).equation!==formula.equation;
       container.classList.toggle('pe-formula-transition',!!fading);
       for(const child of Array.from(container.children))if(child!==current)child.remove();
       current.style.transform='translateY(0px)';current.setAttribute('aria-hidden','false');

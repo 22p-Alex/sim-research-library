@@ -309,9 +309,9 @@
           setText($('stage-caption'),teaching.shot+' · '+teaching.title);
         }
         if(frame.id==='adopted-weights'){
-          const transfer=M.ramp(frame.progress,0,2/28);
+          const transfer=M.ramp(frame.progress,0,.18);
           parameterAlpha=1-transfer;adoptedAlpha=transfer;
-          parameterView.drawScene('least-squares-fit',1);pairAlpha=1-transfer;
+          parameterView.drawScene('coefficient',1);pairAlpha=1-transfer;
         }
       }
     } else if (frame.owner === 'parameters') {
@@ -344,6 +344,7 @@
         setText($('scene-svg-description'),formula.copy+' '+formula.note);
       }
       if(frame.getPeakBeat) setText($('equation-domain'),window.SIMGetPeak.presentation(state.progress).domain);
+      if(frame.coefficientBeat){setText($('equation-domain'),'频域 · 共同复比例');setText($('stage-caption'),frame.label);}
       setText($('equation-note'), formula.note); $('equation-note').hidden = !formula.note;
     } else if (frame.id === 'separate-bands' && M.scenes.find(s=>s.id==='separate-bands').applicationProgress(frame.progress) < .42) {
       const p=M.scenes.find(s=>s.id==='separate-bands').applicationProgress(frame.progress),reveal=M.ramp(p,.30,.42);
@@ -378,7 +379,8 @@
     $('chapter').textContent = data.chapter; $('scene-title').textContent = data.title;
     $('scene-description').textContent = data.copy; $('scene-number').textContent = String(index + 1).padStart(2, '0');
     parameterFormulaView?.reset();
-    math($('equation'), data.equation); $('equation-note').textContent = data.note;
+    if(!data.coefficientBeat)math($('equation'), data.equation);
+    $('equation-note').textContent = data.note;
     attr($('equation'), 'data-motion-formula-mode', '');
     $('equation-note').hidden = !data.note;
     $('equation-domain').textContent = data.formulaDomain;

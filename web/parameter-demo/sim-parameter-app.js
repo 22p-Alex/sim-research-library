@@ -81,6 +81,8 @@
     $('pe-previous').addEventListener('click', () => player.navigate(-1)); $('pe-next').addEventListener('click', () => player.navigate(1));
     $('pe-play').addEventListener('click', () => player.toggle()); $('pe-restart').addEventListener('click', () => player.seek(0));
     $('pe-progress').addEventListener('input', () => player.seek(Number($('pe-progress').value)));
+    $('pe-theory-toggle').addEventListener('click',()=>{player.pause();$('pe-theory').showModal();});
+    $('pe-theory-close').addEventListener('click',()=>$('pe-theory').close());
     $('pe-progress').addEventListener('pointerdown', () => { scrubbing = true; player.pause(); });
     const finishScrub = () => {
       if (!scrubbing) return;
@@ -90,10 +92,12 @@
     root.addEventListener('blur', finishScrub);
     $('pe-speed').addEventListener('click', () => { const speeds = [.5, 1, 1.5, 2]; player.setSpeed(speeds[(speeds.indexOf(player.state().speed) + 1) % speeds.length]); });
     document.addEventListener('click', event => {
+      if($('pe-theory').open)return;
       if (event.button !== 0 || event.defaultPrevented || event.target.closest(interactive) || root.getSelection()?.toString()) return;
       player.navigate(event.clientX < root.innerWidth / 2 ? -1 : 1);
     });
     document.addEventListener('keydown', event => {
+      if($('pe-theory').open)return;
       if (event.target.closest(interactive) || event.altKey || event.ctrlKey || event.metaKey || event.repeat) return;
       if (['ArrowLeft', 'ArrowRight', ' ', 'Home', 'End'].includes(event.key)) event.preventDefault();
       if (event.key === 'ArrowLeft') player.navigate(-1);

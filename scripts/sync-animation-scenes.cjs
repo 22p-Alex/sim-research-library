@@ -6,6 +6,7 @@ const assert = require('node:assert/strict');
 const root = path.resolve(__dirname, '..');
 const check = process.argv.includes('--check');
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'web/animation-assets.json'), 'utf8'));
+const coefficientTheory=fs.readFileSync(path.join(root,'web/parameter-demo/scenes/get-peak/theory.html'),'utf8').trim();
 
 function write(file, content) {
   const full = path.join(root, file);
@@ -21,7 +22,8 @@ for (const [page, assets] of Object.entries(manifest.pages)) {
   for (const asset of assets) {
     assert.ok(fs.existsSync(path.join(root, asset)), asset + ' 不存在');
   }
-  const source = fs.readFileSync(path.join(root, page), 'utf8');
+  let source = fs.readFileSync(path.join(root, page), 'utf8');
+  if(source.includes('<!-- coefficient-theory:start -->'))source=source.replace(/<!-- coefficient-theory:start -->[\s\S]*?<!-- coefficient-theory:end -->/,()=>`<!-- coefficient-theory:start -->\n${coefficientTheory}\n<!-- coefficient-theory:end -->`);
   const pattern = /<script src="web\/[\s\S]*?(?=<\/body>)/;
   assert.ok(pattern.test(source), page + ' 缺少本地脚本区块');
   const scripts = assets.map(file => `<script src="${file}?v=${manifest.version}"></script>`).join('\n') + '\n';
@@ -53,7 +55,7 @@ function link(file, label) {
 const rows = registry.entries.map(entry => {
   const folder = path.dirname(entry.unit);
   const ownedFiles = fs.readdirSync(path.join(root, folder))
-    .filter(file => /^(state|view|formula-view|layout)\.js$/.test(file))
+    .filter(file => entry.coefficientBeat ? /^mainline-(state|view)\.js$/.test(file) : /^(state|view|formula-view|layout)\.js$/.test(file))
     .map(file => path.posix.join(folder, file));
   const links = [link(entry.unit, '分镜'), ...ownedFiles.map(file => link(file, path.basename(file, '.js')))];
   const sharedFiles = new Set(templates.filter(template => template.scenes.includes(entry.id)).flatMap(template => template.files));

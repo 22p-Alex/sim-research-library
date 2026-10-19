@@ -613,10 +613,9 @@
       const product=mathAt(g,0,0,330,'u_{+1,'+j+'}'+String.raw`\cdot D_`+j+String.raw`(\mathbf f)`);
       return {g,number,product};
     });
-    const teachingView=root.SIMAdoptedTeaching.createView({...options,parent:adopted,
-      single,singleName,singleNumber,parameterCards,cards});
+    let teachingView;
     function drawApplication(progress){
-      teachingView.draw(null,0);
+      teachingView?.draw(null,0);
       const p=M.clamp(progress),move=M.ramp(p,.04,.23),symbol=M.ramp(p,.25,.30);
       [parameterCards,pending,substitution,single,compensation].forEach(g=>opacity(g,0));
       const extract=M.ramp(p,0,.04);
@@ -672,13 +671,14 @@
         const s = Chapter.adoptedState(progress,id);
         attr(adopted,'data-adopted-progress',s.progress);attr(adopted,'data-adopted-scene',id);
         if(s.teaching){
+          teachingView ||= root.SIMAdoptedTeaching.createView({...options,parent:adopted,single,singleName,singleNumber,parameterCards,cards});
           [pending,substitution,single,compensation,matrix,applicationRow,next].forEach(g=>opacity(g,0));
           teachingView.draw(id,progress);return s;
         }
-        teachingView.draw(null,0);
+        teachingView?.draw(null,0);
         opacity(applicationRow,0);
         opacity(parameterCards,s.cards);
-        cards.forEach(({g,x})=>attr(g,'transform',`translate(${x} ${M.lerp(425,130,s.cardMove)})`));
+        cards.forEach(({g,x})=>attr(g,'transform',`translate(${x} 72)`));
         opacity(compensation,id==='adopted-weights'?M.ramp(progress,.46,.65):0);
         if(id==='adopted-weights'){
           const a=lesson.probe.orders[1].value,angle=group.phases[0],m=group.m;

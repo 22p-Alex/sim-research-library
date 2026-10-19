@@ -10,11 +10,11 @@ const katex = require('../vendor/katex/katex.min.js');
 const near = (x, y, tolerance = 1e-9) => assert.ok(Number.isFinite(x) && Math.abs(x - y) < tolerance, `${x} != ${y}`);
 const capture = E.capture(), lesson = M.createLesson({ raw: capture.raw, config: capture.config });
 
-test('the standalone draft brackets the sixteen navigation scenes without changing the Motion scene list', () => {
-  assert.equal(P.scenes.length, 21);
+test('the standalone draft brackets the eleven navigation scenes without changing the Motion scene list', () => {
+  assert.equal(P.scenes.length, 16);
   assert.deepEqual(P.scenes.map(s => s.id), ['pending', 'temporary', ...L.navigationScenes.map(s => s.id), 'refill', 'solve', 'relocation']);
-  assert.equal(P.durations.length, 21);
-  assert.equal(P.durations[P.index('least-squares-fit')], 21000);
+  assert.equal(P.durations.length, 16);
+  assert.equal(P.durations[P.index('least-squares-fit')], 16000);
   assert.equal(P.durations[P.index('solve')], 11000);
   assert.equal(M.durations[M.index('fit')], 8000, 'presentation timing does not mutate the base chapter model');
   assert.match(P.scenes[P.index('refine')].note, /5×5.*搜索步长不是测量精度/);

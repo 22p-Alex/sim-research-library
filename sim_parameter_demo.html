@@ -6,7 +6,7 @@
   <title>SIM · 参数估计衔接 Demo</title>
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter.css?v=desktop-spacing-20261018">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=inverse-address-expand-20261019-v4">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=coefficient-mainline-20261019-v2">
   <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=ui-review-20261019">
 </head>
 <body>
@@ -14,14 +14,14 @@
   <header class="pe-header">
     <a class="pe-brand" href="sim_motion_demo.html" aria-label="返回完整 SIM 演示"><svg viewBox="0 0 44 40" aria-hidden="true"><circle cx="17" cy="14" r="10"/><circle cx="28" cy="14" r="10"/><circle cx="22.5" cy="24" r="10"/></svg><b>SIM</b><span>/</span><small>PARAMETER STUDY</small></a>
     <span class="pe-mode"><i></i> 参数估计 · 移动、评分与幅相读出</span>
-    <div class="pe-links"><button id="rehearsal-toggle" type="button" aria-expanded="false" aria-controls="scene-rehearsal">分镜排练</button><a class="pe-back" href="web/parameter-demo/README.md">方法与来源 ↗</a><a class="pe-back" href="sim_motion_demo.html">返回完整演示 ↗</a></div>
+    <div class="pe-links"><button id="rehearsal-toggle" type="button" aria-expanded="false" aria-controls="scene-rehearsal">分镜排练</button><button id="pe-theory-toggle" type="button">原理与实现</button><a class="pe-back" href="web/parameter-demo/README.md">方法与来源 ↗</a><a class="pe-back" href="sim_motion_demo.html">返回完整演示 ↗</a></div>
   </header>
   <section id="scene-rehearsal" class="scene-rehearsal" aria-label="分镜排练" hidden></section>
   <main>
     <section class="pe-heading" aria-labelledby="pe-title">
       <div class="pe-chapter" id="pe-chapter">01 / 估计的起点</div>
       <div id="pe-scene-copy"><h1 id="pe-title">从求逆公式出发，跑通参数估计…</h1><p id="pe-copy">入口衔接 → 参数估计 → 回填矩阵 → 正式解混与归位</p></div>
-      <div class="pe-count"><span id="pe-step-number">01</span><small id="pe-step-total">/ 21</small></div>
+      <div class="pe-count"><span id="pe-step-number">01</span><small id="pe-step-total">/ 16</small></div>
     </section>
     <section class="pe-stage" id="pe-stage" aria-label="参数估计动画">
       <div class="pe-stage-meta" hidden><span id="pe-stage-label">PROVISIONAL BANDS → ESTIMATION</span><span>第 1 方向 · 同一份三相位数据</span></div>
@@ -36,53 +36,88 @@
     <div class="pe-timeline"><div id="pe-timeline-track"><input id="pe-progress" type="range" min="0" max="16" value="0" step="0.001" aria-label="参数估计时间轴"><div id="pe-stops" class="pe-stops" role="group" aria-label="十六个停点"></div></div></div>
   </footer>
 </div>
+<dialog id="pe-theory" class="pe-method-dialog" aria-labelledby="pe-theory-title"><button id="pe-theory-close" type="button" aria-label="关闭原理说明">关闭 ×</button><h2 id="pe-theory-title">从对应频点求幅度与相位</h2>
+<!-- coefficient-theory:start -->
+<p><strong>位置对齐后，两路同源信息只差一个复比例。</strong>在可靠公共区各除以自己的 OTF，将对应频率值记作 U、V：</p>
+<div class="theory-equation" data-equation="$$U(\mathbf q)=\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)},\qquad V(\mathbf q)=\frac{\widetilde A_{+1}(\mathbf q+\widehat{\mathbf k})}{H(\mathbf q+\widehat{\mathbf k})}\approx\alpha U(\mathbf q),\quad\alpha=m e^{i\phi_\Delta}$$"></div>
+<p><strong>一个非零点就能求比例。</strong>在正确匹配的无噪声模型中，先把 U(q₁) 移到分母，再将分子、分母同乘 U*(q₁)：</p>
+<div class="theory-equation" data-equation="$$V(\mathbf q_1)=m e^{i\phi_\Delta}U(\mathbf q_1)\quad\Longrightarrow\quad\frac{V(\mathbf q_1)}{U(\mathbf q_1)}=\frac{U^*(\mathbf q_1)V(\mathbf q_1)}{|U(\mathbf q_1)|^2}=m e^{i\phi_\Delta}\qquad(U(\mathbf q_1)\ne0)$$"></div>
+<p><strong>共轭为什么消掉样品自身的相位？</strong>写 U(q₁)=r₁ exp(iθ₁)。共轭把 θ₁ 变为 −θ₁，乘回 U 后两者相消，留下非负实数 r₁²；共同相位 φΔ 仍保留：</p>
+<div class="theory-equation" data-equation="$$U^*(\mathbf q_1)V(\mathbf q_1)=r_1e^{-i\theta_1}\,m e^{i\phi_\Delta}r_1e^{i\theta_1}=m e^{i\phi_\Delta}r_1^2=m e^{i\phi_\Delta}|U(\mathbf q_1)|^2$$"></div>
+<p><strong>实际用全部可靠点共同估计。</strong>单点相除对弱信号和噪声敏感。在工作公共区 Ω 中分别累计共轭乘积与参考能量，最后只除一次。理想乘积同向；含噪数据求一个共同的最小二乘系数：</p>
+<div class="theory-equation" data-equation="$$C=\sum_{\mathbf q\in\Omega}U^*(\mathbf q)V(\mathbf q),\quad E_U=\sum_{\mathbf q\in\Omega}|U(\mathbf q)|^2,\qquad\widehat\alpha=\frac{C}{E_U}=\widehat m e^{i\widehat\phi_\Delta}\quad(E_U>0)$$"></div>
+<p><strong>复比例的模长给调制度，相角给共同相位。</strong>由于 E_U 是正实数，除以它不改变相角。本例三步等间隔相移已知，将共同偏移加回各帧：</p>
+<div class="theory-equation" data-equation="$$\widehat m=\frac{|C|}{E_U},\qquad\widehat\phi_\Delta=\arg C,\qquad\widehat\phi_j=\frac{2\pi j}{3}+\widehat\phi_\Delta,\quad j=0,1,2$$"></div>
+<p>相角读取要求 C≠0。以上假设相对相移已知且准确；等号的单点演示对应正确匹配的理想模型。临时旁带的 2/3 权重已补偿余弦的 1/2，最终模长直接给 m。这里的参考值 U(q) 是复数标量，后续 U=M⁻¹ 则表示解混矩阵。估计使用工作副本；正式解混重新使用完整观测，仍保留检测 OTF。</p>
+<details class="parameter-correlation-detail" data-coefficient-theory="least-squares"><summary>为什么这个比值也是最小二乘解？</summary>
+  <p>固定参考数据 U，在 Ω 内寻找共同系数 a，使 V−aU 的总平方残差最小。展开平方并配方：</p>
+  <div class="theory-equation" data-equation="$$J(a)=\sum_{\mathbf q\in\Omega}|V-aU|^2=E_U\left|a-\frac{C}{E_U}\right|^2+\sum_{\mathbf q\in\Omega}|V|^2-\frac{|C|^2}{E_U}$$"></div>
+  <p>后两项与 a 无关。E_U&gt;0 时，第一项在 a=C/E_U 处为零，因此该比值是唯一的最小二乘解。各点按参考能量分配影响，不是单点比值的算术平均；共同求和能降低不相干噪声的影响，不能消除 OTF、位移或相对相移误差。</p>
+</details>
+<details class="parameter-correlation-detail" data-coefficient-theory="implementation"><summary>fairSIM 为什么还做逆 FFT 和相位校正？</summary>
+  <p>这是同一个整体比例的空域实现。源码先从临时频带复制工作数组，以 commonRegion 筛选并除以各自 H，得到原生地址中的 B₀、B₁；然后逆 FFT。它们的空间表示不是最终样品图像：</p>
+  <div class="theory-equation" data-equation="$$u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\}$$"></div>
+  <p>先按整数 DFT 波矢及理想匹配说明。把 f=q+k̂ 代入 v 的逆变换，频谱值与指数里的地址必须一起替换：</p>
+  <div class="theory-equation" data-equation="$$\begin{aligned}v(\mathbf r)&=\frac1{N^2}\sum_{\mathbf q}B_1(\mathbf q+\widehat{\mathbf k})e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}\\&\approx\alpha e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}\frac1{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i\mathbf q\cdot\mathbf r/N}=\alpha e^{i\delta(\mathbf r)}u(\mathbf r).\end{aligned}$$"></div>
+  <div class="theory-equation" data-equation="$$\delta(\mathbf r)=\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r,\qquad v_{\widehat{\mathbf k}}=ve^{-i\delta}\approx\alpha u$$"></div>
+  <p>δ 是频率地址差带来的已知、随位置变化的转角；φΔ 是 α 中待估的共同相位。先反向消掉 δ，再累计 u*vₖ 并除以 Σ|u|²。小数波矢按有限傅里叶求值定义移频，不把小数地址当成数组下标。</p>
+  <div class="theory-equation" data-equation="$$U=B_0,\qquad V=\mathcal F_N\{v_{\widehat{\mathbf k}}\},\qquad\frac{\sum_{\mathbf q}U^*V}{\sum_{\mathbf q}|U|^2}=\frac{N^2\sum_{\mathbf r}u^*v_{\widehat{\mathbf k}}}{N^2\sum_{\mathbf r}|u|^2}=\widehat\alpha$$"></div>
+  <p>Parseval 关系使两个相同的 N² 因子抵消。因此逆 FFT 是计算同一估计量的一条实现路径。主线用频域值解释比例，实际估计器仍使用原空域实现；频域动画只对相同最终数组换表示，不复用搜索阶段的累计量。</p>
+  <p>依据：<a href="Wiener-SIM/fairSIM-论文/fairSIM-2016-SI.pdf">fairSIM Supplementary Note 1，第 10—11 页</a>；固定提交 711afd12 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">Correlation.java：getPeak/commonRegion</a> 与 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java">BandSeparation.java</a>。共轭方向按源码的 B₀*B₁ 约定；DFT 与 Parseval 归一化由<a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">正逆 DFT 定义</a>直接推出。</p>
+</details>
+<!-- coefficient-theory:end -->
+</dialog>
 <div id="pe-error" class="pe-error" role="alert" hidden></div>
 <noscript>这个 Demo 需要启用 JavaScript；公式与方法可阅读 web/parameter-demo/README.md。</noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-experiment.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-band-formulas.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/atlas/sim-atlas-core.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/beat-clock.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/text-transition.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/math-actors.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/tail-story.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/otf/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/match/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/comparison-data.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shift/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/otf/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/match/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/coarse/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/state.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/refine/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/line-shift/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/layout.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/tail-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/provisional-split/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/adopted-weights/teaching.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/scenes/adopted-weights/storyboard.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/scenes/shared/entry.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-preview.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/scene-registry.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/shared/animation/rehearsal.js?v=parameter-tail-20261019-v1"></script>
-<script src="web/parameter-demo/sim-parameter-app.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/sim-core.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-experiment.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-band-formulas.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/atlas/sim-atlas-core.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/beat-clock.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/text-transition.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/math-actors.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-story.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-story.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/comparison-data.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/get-peak/mainline-formula-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/adopted-weights/teaching.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-preview.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/scene-registry.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/shared/animation/rehearsal.js?v=coefficient-derivation-20261019-v3"></script>
+<script src="web/parameter-demo/sim-parameter-app.js?v=coefficient-derivation-20261019-v3"></script>
 </body>
 </html>

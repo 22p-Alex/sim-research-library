@@ -6,7 +6,7 @@
     const entries = scenes.map((scene, index) => {
       const localId = scene.sceneId || scene.id.replace(/^parameters\./, '');
       const parameter = scene.owner === 'parameters' || scene.section === 'estimation';
-      const canonical = (scene.getPeakBeat || localId === 'least-squares-fit') ? 'get-peak' : localId;
+      const canonical = (scene.coefficientBeat || scene.getPeakBeat || localId === 'least-squares-fit') ? 'get-peak' : localId;
       const folder = parameter ? 'web/parameter-demo/scenes/' : 'web/motion/scenes/';
       const path = scene.unit || (scene.owner === 'connection' ? 'web/parameter-demo/sim-parameter-preview.js' : folder + canonical + '/storyboard.js');
       let beats = scene.beats || [{ key: 'main', action: scene.label, start: 0, end: 1 }];
@@ -14,7 +14,7 @@
       if(scene.teachingBeats){
         beats=[...(scene.teachingBeats[0].start>0?[{key:'product-operation',action:'共轭乘积 · 原有操作',start:0,end:scene.teachingBeats[0].start}]:[]),...scene.teachingBeats];
       }
-      if (canonical === 'get-peak' && !scene.getPeakBeat) beats = getPeak.timeline.beats;
+      if (canonical === 'get-peak' && !scene.getPeakBeat && !scene.coefficientBeat) beats = getPeak.timeline.beats;
       if (localId === 'frequency-encoding' && motion) {
         const source = motion.encodingDerivationStages;
         beats = [{ key:'entry', action:'接住条纹照明', start:0, end:source[0].start-2 },
@@ -28,7 +28,7 @@
       }
       const start = kind === 'motion' ? Math.max(0, index - 1) : index;
       return { id:scene.id, canonical, index, label:scene.label, title:scene.title, objective:scene.title,
-        unit:path, getPeakBeat:scene.getPeakBeat, beats, aliases, duration:scene.duration || 0, start, initial:kind === 'motion' && index === 0,
+        unit:path, getPeakBeat:scene.getPeakBeat,coefficientBeat:scene.coefficientBeat, beats, aliases, duration:scene.duration || 0, start, initial:kind === 'motion' && index === 0,
         entry:index ? scenes[index-1].id : null, exit:scenes[index+1]?.id || null,
         review:{ numerical:'automated', formula:'automated', transition:'automated', visual:'pending-user' } };
     });
@@ -36,6 +36,14 @@
     const find = id => entries.find(e=>e.id===id || e.canonical===id);
     function resolve({ scene, beat='main', progress=0 }) {
       let entry=find(scene);
+      const prefix=String(scene).startsWith('parameters.')?'parameters.':'',localId=String(scene).replace(/^parameters\./,'');
+      const legacyBeats={finalPrepare:'correspondence',finalInverse:'singleRatio',finalShift:'singleRatio',finalShiftScan:'singleRatio',finalCompare:'singleRatio',finalProduct:'pooledRatio',finalSum:'pooledRatio',finalDivide:'pooledRatio',finalRead:'readParameters'};
+      const legacyScenes={'get-peak-inverse':'singleRatio','get-peak-point':'singleRatio','get-peak-scan':'singleRatio','get-peak-compare':'singleRatio','get-peak-product':'pooledRatio','get-peak-sum':'pooledRatio','get-peak-divide':'pooledRatio','get-peak-read':'readParameters'};
+      const oldShot=/^[A-D][1-6]$/.test(beat)?({A:'pooledRatio',B:'pooledRatio',C:'pooledRatio',D:'readParameters'})[beat[0]]:null;
+      const replacement=legacyBeats[beat]||oldShot||legacyScenes[localId];
+      if(replacement&&entries.some(e=>e.coefficientBeat===replacement)){
+        entry=entries.find(e=>e.coefficientBeat===replacement&&e.id.startsWith(prefix));beat=replacement;
+      }
       // Legacy composite locators select the new stop that owns this beat.
       if(entry?.canonical==='get-peak' && ![...entry.beats,...entry.aliases].some(b=>b.key===beat)) {
         entry=entries.find(e=>e.canonical==='get-peak' && e.getPeakBeat===beat);

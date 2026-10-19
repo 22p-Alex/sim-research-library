@@ -190,11 +190,11 @@ test('compensation, the separated-band hold and the ending preserve their meanin
   const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
   const seek=(id,p)=>{slider.value=flow.index(id)-1+p;slider.dispatch('input');};
   assert.deepEqual(h.errors,[]);
-  seek('adopted-weights',20/28);
+  seek('adopted-weights',.95);
   // Read the full array; the former probe display divided values by N².
-  const out=get('data-weight-output'),band=lesson.group.separated[1],target={re:band.re[6],im:band.im[6]};
-  near(out.attrs['data-re'],target.re);near(out.attrs['data-im'],target.im);
-  assert.ok(+get('data-weight-actual-compensation').style.opacity>0);
+  const out=get('data-compensated-band-vector'),band=lesson.group.separated[1],target={re:band.re[6],im:band.im[6]};
+  near(out.attrs['data-re'],target.re/(128*128));near(out.attrs['data-im'],target.im/(128*128));
+  assert.ok(+get('data-adopted-compensation').style.opacity>0);
   assert.equal(h.nodes.filter(n=>n.attrs['data-adopted-parameter']!==undefined).length,3);
   seek('separate-bands',.90);
   near(flow.frame(flow.index('separate-bands')-1+.90).baseTime,11);

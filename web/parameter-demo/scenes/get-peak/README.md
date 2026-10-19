@@ -1,123 +1,65 @@
-# getPeak 分镜单元
+# 共同幅相：四幕主线
 
-主线第 19—27 幕、独立参数页第 10—18 幕共用此单元。规范名称 `get-peak`；宿主兼容 ID 是 `least-squares-fit`。按本地 fairSIM 最终幅相路径，从锁定位置的临时频带得到一个共同复系数，先解释旁带补偿，再交给正式权重。
+完整页第 19—22 幕、独立参数页第 10—13 幕共用本单元。完整页 38 幕，独立页 16 幕。修改前源码检查点 `19c33d6`；执行设计见[四幕简化计划](../../../motion/plans/2026-10-19-coefficient-mainline-simplification.md)。
 
-当前修改按[第 18 幕后连贯性修订计划](../../../motion/plans/2026-10-19-scene18-continuity.md)执行。旧设计与交付计划已清理，可从 Git 基线 `e7e412c` 恢复；现行动作、理论和数据约定集中维护在本目录。
+## 当前主线
+
+| ID | 时长 | 要回答的问题 |
+|---|---|---|
+| `least-squares-fit` | 16 秒 | 对应频点各除自身 OTF 后，为何只差一个共同复比例？ |
+| `coefficient-point` | 20 秒 | 一个非零点怎样移项、乘共轭并消去样品相位？ |
+| `coefficient-sum` | 22 秒 | 为什么用全部对应点分别累计分子、分母？ |
+| `coefficient-read` | 12 秒 | 复比例怎样读成调制度与共同相位？ |
+
+总计 70 秒。对应内容幕在下方公式区完成 OTF 化简与 α 代入，右侧关系同步。随后三幕改为同一条居中公式的连续推导：频谱与辅助图淡出，不再切入工作频谱、伸缩旋转示意或另一张复平面。原舞台 V、U 从右侧交接到中央 `(720,240)`，再移入同一分式；字幕、下方公式区和舞台共用归一化推导进度，支持倒放与任意定位。计算仍来自实际最终工作数组，估计器未改。
+
+| 推导进度 subProgress | 导航停点及局部进度 | 动作 |
+|---|---|---|
+| 0—0.25 | `singleRatio` 的 0—0.520833 | 淡出背景、公式居中并放大；补入 q₁；U 移入分母；上下同乘 U*，分母合为模平方 |
+| 0.25—0.48 | `singleRatio` 的 0.520833—1 | V 展开成 m exp(iφΔ)U；高亮 U*、U 合成非负实数，再恢复 U*V 的观测写法 |
+| 0.48—0.75 | `pooledRatio` 的 0—1 | q₁ 的下标消失；两路求和号加入；参数戴估计帽号；显示 C、E_U 及同组数据累计 |
+| 0.75—1 | `readParameters` 的 0—1 | 上移并保留总式，分叉生成橙色调制度、紫色共同相位两张结果卡片；恢复三步各帧相位 |
+
+三幕边界的公式状态相同。每个变量、地址和分式横线只创建一次，局部扩展而非整式交叉淡入。帽号的旧、新系数先后出现。原右侧关系的字形位置只测量一次作交接；播放时不重复编译或测量。调制度和相位卡片使用实际最终估计，随后补偿、矩阵回填和正式重建继续使用同一数据。
+
+`scene=parameters.refine&beat=returnSpectrum&p=0.694000` 时频谱已完成归位。第 19 幕完整保留这一频谱状态：原图、OTF、坐标轴、显示位置和透明度保持不变，锁定波矢继续显示；右侧仅渐显“回看：共轭与模平方归一”和已完成的校正关系，随后出现可靠公共区说明。不切回第 15 幕、不恢复 P/Q/R 和旧掩膜、不展开双图。下方公式区仍复用 `otf/storyboard.js` 的 `correct` 公式：分子保留自身 H*，分母保留 |H|²。回看公式中 5 处 k′ 在本拍 22%—33% 同步轻跳、原位换成 k̂；两行公式持续显示，分式、基线和真实 k 项保持固定。35%—39% 在正确对齐的无噪声模型下消去样品项的 −k+k̂，40%—44.5% 用 H*/|H|²=1/H（H≠0）将原分式化成除以自身 H，同时将固定波矢的 Vₖ̂ 简记为 V。消去的符号先淡出、所占宽度再收拢；原两行节点一直保留，46%—51% 只在系数槽展开 α，其余项保留；53% 按原字形位置交接到后续演员，避免整式叠印。随后继续 α 与 U 的代入。第 19 幕保持 16 秒；只有进入下一幕单点比例时，才淡出概览并将原关系移到中央。所有状态按同一进度支持定位和倒放，不重新采集或估计。
 
 | 文件 | 职责 |
 |---|---|
-| `storyboard.js` | 九幕时长、动作、标题、说明、公式拆项、强调顺序、拍内 cues 和可见性 |
-| `state.js` | 纯展示状态，读取最终数组、示例位置和完整前缀和；不重新计算估计 |
-| `layout.js` | 固定桌面 SVG 槽位 |
-| `view.js` | 持久画面演员及更新 |
-| `inverse-view.js` | 紧凑原定义、单条 MathML 主等式、局部变形与最后的额外转角 |
-| `formula-view.js` | 按本拍定义构建和强调公式节点；复用 α 伸缩、旋转及合并的同一组符号 |
+| `mainline-story.js` | 四幕目的、文案、公式、时长、子步与旧定位映射 |
+| `mainline-state.js` | 同一最终数组的频域表示、实际频点与前缀和、可逆展示状态 |
+| `mainline-view.js` | 居中移项、共轭消相位、公共区求和、同步公式与幅相结果卡片 |
+| `mainline-formula-view.js` | 对应内容幕下方公式区的 OTF 校正回看、锁定代入、U/V 定义与 α 代入动画 |
+| `theory.html` | 两页同步的简版理论及折叠的最小二乘、fairSIM 实现推导 |
 
-## 九幕与交接
+`sim-parameter-two-stage.js` 的导航组合使用四个新停点，内部状态 ID 为 `coefficient`。`scene-registry.js` 将旧逆变换、旋转、比较定位导向单点幕，旧乘积、累计、除法定位导向多点幕，旧读取定位导向参数幕；旧进度保留为新幕的局部进度，不保证历史时间逐秒相等。
 
-| key | 时长 | 运算 |
-|---|---|---|
-| `finalPrepare` | 21 秒 | 对应地址 → 重新筛选与各自 OTF → 定义 B₀、B₁ → 共同关系与复数着色 |
-| `finalInverse` | 60 秒 | 原定义固定在紧凑参考区；中央一条等式依次换地址、代入、提出 α、拆指数、提出因子、识别 u，最后演示转角 |
-| `finalShift` | 7 秒 | 放大实际位置，反向撤掉已知额外转角 |
-| `finalShiftScan` | 5 秒 | 输入、输出两图同步扫描，将单点动作推广到全场 |
-| `finalCompare` | 15 秒 | 对齐后解释 α 的伸缩与转角，再回到实际位置比较 |
-| `finalProduct` | 44.3648 秒 | 保留原 12.3648 秒入口；A1—A5 展开相位抵消与参考能量 |
-| `finalSum` | 40 秒 | B1—B5：三项提取公因子，再回到实际全场累计 |
-| `finalDivide` | 36 秒 | C1—C4：两边同除、约去能量、数值比值、预测观测 |
-| `finalRead` | 24 秒 | D1—D3：读取模长与相角，再加到三次已知步进 |
+## 数学与数值来源
 
-总时长由拍定义求和，当前 252.3648 秒，前五幕合计 108 秒。第 20 幕为 60 秒，各个操作后留有静止阅读时间。修改本拍 `duration` 即可改变节奏；动作区间使用本拍 0—1 进度，自动测试核对改时长后公式、动作及揭示顺序不变。`steps` 定义幕内标题、说明与公式切换，和动作共用同一时钟。新增公式 token 时，同时给出强调节点名称；布局修改集中在 `layout.js`。
-
-入口声明为 `locked-spectrum`，来自 `refine(1)`。原频谱和波矢标记置于 `legacyBody` 之外：第 19 幕展开同一频谱演员的原生检测坐标，在同槽位交给工作频谱；波矢标记保留到第 24 幕输入就位后。单点和全场校正时参考场暂退：第 21 幕由放大复平面讲清反向旋转，第 22 幕只显示输入 v 与输出 vₖ。下一幕恢复原参考场，比较与共轭复用同一组向量节点、样本和标尺。输出为 `estimated-parameter-cards`，依次交给 `adopted-weights`、`restore-weight`、`assemble-weights`。`stops` 给出九个独立导航定义；`stopProgress` 将局部进度映射到同一计算时钟。旧 `least-squares-fit + beat` 定位码仍兼容。整个场景读取宿主进度，不维护播放器。
-
-第 19 幕说明最终幅相估计从原始临时频带重新筛选，而非复用位置搜索的旧选区。筛选后各除自身 H，在 9.5 秒先定义 B₀、B₁，11 秒才写两路对应地址的共同关系；α 仍是未知量。随后建立模长→对数亮度、相角→色相的显示标尺。标尺最终回到实际 B₀(q)，使用与频谱相同的 `displayColor` 函数。α 的伸缩与共同相位演示放在第 23 幕，明确标为几何示意；实际主线相位接近零时，不给真实箭头添加示意转角。
-
-第 20 幕按[公式教学设计](../../../motion/plans/2026-10-19-inverse-formula-teaching-design.md)实现。0—3 秒提出问题；3—6.1 秒原位逆变换并让整图退场，完整定义出现。6—9.5 秒移动的是青色 u、紫色 v 两条变换公式，它们向左归位；图像中心不随公式左移，p=0.108 时已退场。10—11.5 秒 v 的副本从左侧移到视野中央，字号由 21 放大为 36；12—12.8 秒下方换元式浮现，13—14 秒高亮框描出 f，15.5—18.2 秒 f 在原有括号和指数中展开成 q+k̂，高亮框与地址槽连续变宽，周围项平滑让位，同时更换求和指标。19—24 秒只替换频谱值，24—27 秒单独提出 α；27—34 秒拆指数；34—40 秒说明固定 r 后额外因子与 q 无关，并提出求和；40—45 秒将剩余完整求和与左侧青色定义对照，收成 u；45—49 秒先定义 δ，再将指数写成 exp(iδ)。49—57 秒保持主式与原定义，用同长示意箭头展示额外转角；57—60 秒停住结论，交给下一幕反向校正。
-
-主式由 `storyboard.js` 的 `inverseTokens/inverseStages` 提供唯一数学内容；`state.js` 的 `inverseMotion` 连续计算每个数学演员的位置、缩放与透明度。MathML 符号组以一次缓存的真实字宽组成主行，固定左端与关系符号列。地址变形由 `inverseAddressParts/inverseAddressExpansion` 单独管理：B₁、括号、指数前后项保留为持久子式，f 原位变为 q，再沿水平方向展开 +k̂；外围槽位按相同增长量让位。不得用完整 B₁ 或完整指数的切换代替槽内扩展。后续 α 提出、指数拆分、因子移出求和、求和块收拢、δ 副本进入指数继续使用同一时钟。完整参考定义左移后固定保留，底部隐藏重复公式。所有公式只编译一次，运动过程不重复测量布局，可正反定位。
-
-末段区域：公式层限定在 SVG y≤350，复平面层从 y=366 开始，两层有独立裁剪边界。主行位于 y=180，δ 定义位于 y=280；复平面中心为 (565,453)，几何性质和坐标读数在右侧。代数区域与复平面区域不共用行高或槽位，末帧两条公式不会继续占据几何区。
-
-风格接口：用户停止并行风格修改后，本段的样式由 `sim-parameter-two-stage.css` 中独立的 `formula-teaching` 规则管理。新公式容器为 `.pe-inverse-math`，所属根标记为 `[data-inverse-style-scope="formula-teaching"]`；旧的 `.pe-peak-math` 字号规则不控制新行。可通过继承变量 `--sim-inverse-main-size`、`--sim-inverse-reference-size`、`--sim-inverse-rule-size`、`--sim-inverse-angle-size`、`--sim-inverse-unit-size` 与 `--sim-inverse-ink/accent/reference/side` 调整字号及颜色。真实浏览器在首次展开前缓存 MathML 字宽；无字体布局的状态测试采用 `layout.js` 的紧凑 em 宽度。MathML 结构、基线及场景槽位由本目录 JS 管理。资产版本 `inverse-address-expand-20261019-v4` 同步两个入口，确保刷新后加载新的动画和样式。
-
-正向旋转使用明确标记的复乘示意，基准 z=αu 的单位长度和初始方向只用于几何讲解，不代表估计值。整数位置 r 从本组网格选取，δ=2πk̂·r/N 由已锁定波矢计算；显示模 2π 的主值转角。几何箭头满足 z→z exp(iδ)，保持模长。第 21 幕才对实际旁带值引入负号反向因子。主画面随后进入第 22 幕的两图扫描。
-
-α 公式在第 23 幕的 `alphaStretch → alphaRotate → commonAcross` 三步共用 `alphaProduct` 缓存节点。上行保留 z→mz，再展开旋转一段；复制的 m、z 先就位，相位因子从运算标签进入预留位置，最后由 α 接替两个因子，末尾 z 不移动。下行依次显示模长、相角与对齐后的空域关系，不带行首逗号。第 23 幕的 5.4—6.0 秒展开公式，8.1—9.0 秒合并系数，10.8—11.4 秒退出示意、返回真实箭头；末段回到最初位置，交给下一幕共轭相乘。减少动态效果时，公式直接显示当前子步结果。
-
-## 数据与来源
-
-在整数 DFT 波矢与公共信息匹配的理想模型中，由对应地址的关系直接展开逆变换：
+工作副本来自 `estimate.finalPeak`，不是位置搜索的 `estimate.fit`。记原生地址工作频谱为 B₀、B₁：
 
 $$
-\begin{aligned}
-v(\mathbf r)
-&=\frac1{N^2}\sum_{\mathbf f}B_1(\mathbf f)e^{2\pi i\mathbf f\cdot\mathbf r/N}\\
-&=\frac\alpha{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}\\
-&=\alpha u(\mathbf r)e^{i\delta(\mathbf r)},\qquad
-\delta(\mathbf r)=\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r.
-\end{aligned}
+U=B_0,\quad u=\mathcal F_N^{-1}\{B_0\},\quad
+v=\mathcal F_N^{-1}\{B_1\},\quad
+v_k=v\exp(-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N),\quad V=\mathcal F_N\{v_k\}.
 $$
 
-上述展开直接使用 [NumPy 正逆 DFT 定义](https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details) 与指数恒等式；归一化为二维逆变换的 1/N²。固定 r 后，exp(2πik̂·r/N) 与求和指标 q 无关，所以可提出。这说明额外正号因子来自原有频率地址差；逆变换只是将该差别写成空域形式。实际估计存在误差时，动画与公式使用近似关系。先推导 δ，再引入反向因子，最后解释剩余的共同 α。
-
-反向旋转因子仅由锁定波矢和数组坐标决定，原理如下；它不再作为第三张图占据主舞台：
+整数波矢时 V(q)=B₁(q+k̂)；小数波矢时按有限 Fourier 求值解释。视图只对既有 `finalPeak.shifted` 正变换一次以取得 V，不重新估计、不读取生成真值、不使用搜索掩膜下的旧累计量。
 
 $$
-\theta(\mathbf r)=-\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r,\qquad
-p_{\widehat{\mathbf k}}(\mathbf r)=e^{i\theta(\mathbf r)},\qquad
-v_{\widehat{\mathbf k}}(\mathbf r)=v(\mathbf r)p_{\widehat{\mathbf k}}(\mathbf r).
+\widehat\alpha=\frac{\sum_q U^*V}{\sum_q|U|^2}
+=\frac{N^2\sum_r u^*v_k}{N^2\sum_r|u|^2},\qquad
+\widehat m=|\widehat\alpha|,\quad\widehat\phi_\Delta=\arg\widehat\alpha.
 $$
 
-第 21 幕使用实际位置的 v 放大演示，旋转动画选取模 2π 的主值角，保持长度；第 22 幕输入和输出在相同坐标取值，按行生成完整输出。旋转因子处处为单位模，v 与 vₖ 共用原来的亮度标尺。逐点乘法改变复数相角，空域坐标不变；负号正向 DFT 下有：
+工作公共区 Ω 按最终工作参考数组的非零支撑定义，动画只累计 U 严格非零的频点；其他位置对分子、分母均贡献零，因此不改变完整数组结果。这个频域计数不是旧动画的 N² 空域位置数。OTF、掩膜、噪声和位移误差仍会影响估计。准确的相对相移是单一共同相位模型的前提。
 
-$$
-\begin{aligned}
-\mathcal F_N\{v\,p_{\widehat{\mathbf k}}\}(\mathbf f)
-&=\sum_{\mathbf r}v(\mathbf r)e^{-2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}
-e^{-2\pi i\mathbf f\cdot\mathbf r/N}\\
-&=\sum_{\mathbf r}v(\mathbf r)e^{-2\pi i(\mathbf f+\widehat{\mathbf k})\cdot\mathbf r/N}
-=B_1(\mathbf f+\widehat{\mathbf k}).
-\end{aligned}
-$$
+依据：[fairSIM SI，第 10—11 页](../../../../Wiener-SIM/fairSIM-论文/fairSIM-2016-SI.pdf)，固定源码 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732` 的 [Correlation.getPeak/commonRegion](../../../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java)。getPeak 第 199—217 行保持原空域实现；commonRegion 第 242—297 行筛选并除自身 OTF。临时分离系数沿用 [BandSeparation](../../../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java)，模长直接给 m，不再乘 2。
 
-即旁带频谱整体移动 −k̂。整数波矢是 DFT 格上的循环移频；非整数波矢时，上式右侧按有限 DFT 的三角插值延拓取值。输入场与最终估计沿用原计算。计算来源是下方 Correlation.java 的 `getPeak`：先逆变换，再 `fourierShift`，然后才共轭相乘。坐标符号转换见[本地计算实现](../../../shared/sim-parameter-estimation.js)的 `fairSimGetPeak` 注释与逐点公式。
+逆变换、已知额外转角 δ、反向校正、Parseval 和最小二乘配方留在两页可展开的说明中。`theory.html` 由 `npm run scenes:sync` 同步到完整页“原理与数值”和独立页“原理与实现”，不是额外的播放时钟。
 
-### 换域为什么保留共同复比例
+## 兼容与验证
 
-固定同一组最终工作频谱，定义对齐旁带：
+旧九幕的 `storyboard/state/layout/view/formula-view`、`inverse-view`、`tail-*` 保留原有直接 API，供历史公式与数值回归；它们不在主导航中。旧视图按需创建，主线不会挂载旧的逆变换与长段尾部演员。原分镜可从检查点 `19c33d6` 恢复。
 
-$$
-u=\mathcal F_N^{-1}\{B_0\},\qquad
-v=\mathcal F_N^{-1}\{B_1\},\qquad
-B_{1,\widehat{\mathbf k}}=\mathcal F_N\{v_{\widehat{\mathbf k}}\}.
-$$
-
-把负指数正 DFT 代入频域内积，展开两路空域求和。不同位置的指数交叉项求和为零，同一位置留下 N²，由此得到：
-
-$$
-\begin{aligned}
-\sum_{\mathbf q}B_0^*(\mathbf q)B_{1,\widehat{\mathbf k}}(\mathbf q)
-&=N^2\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r),\\
-\sum_{\mathbf q}|B_0(\mathbf q)|^2
-&=N^2\sum_{\mathbf r}|u(\mathbf r)|^2.
-\end{aligned}
-$$
-
-参考能量非零时，相同的 N² 在比值中抵消。这个内积等价由 [DFT 定义与二维归一化](https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details)直接推出，对任意已准备数组和上述频移都成立，包括按有限傅里叶求值定义的小数位移；它并不保证估计系数就是真实照明参数。最终工作数组和搜索工作数组使用不同掩膜，不能将它们的累计量直接等同。
-
-共同复比例的因果链与九幕同步：入口先重新准备工作数组、建立同源频率关系，再说明换域目的；逆变换后推出额外正号相位，再反向补偿；对齐后才讲 α 的伸缩与转角。随后说明 u*vₖ≈α|u|²，再分别累计；除法拍先说明 C≈αE₀，再读取 α̂。精确比例限于匹配的理想模型；最小二乘推导继续留在完整页理论区。
-
-唯一最终计算入口是 `lesson.estimate.finalPeak`。`prepared`、`spatial`、`shifted`、`product`、`energy` 和 `sums` 分别对应各拍。`sums` 包含 N²+1 项，首项为零；屏幕累计计数指完整空域位置。`supportCounts` 仅说明最终频域掩膜保留点数，不能作为空域累计次数。
-
-$$
-\widehat\alpha=
-\frac{\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r)}
-{\sum_{\mathbf r}|u(\mathbf r)|^2},\qquad
-\widehat m=|\widehat\alpha|,\qquad
-\widehat\phi_\Delta=\arg\widehat\alpha.
-$$
-
-来源：[本地 Correlation.java](../../../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java) 的 `commonRegion/getPeak`，固定提交 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732`。`getPeak` 第 199—217 行依次复制、准备、逆变换、移频、共轭相乘并除以参考能量；`commonRegion` 第 242—297 行定义 OTF 筛选和径向排除。[Java 与独立 DFT 对照测试](../../../../tests/sim-fairsim-get-peak.test.cjs)核验掩膜、频带、复系数、归一化和小数位移。入口选点来自最终双路掩膜，在原始临时频带中读取数值；不参与最终计算或累计。
-
-修改后执行 `npm run check`；使用两页的“分镜排练”定位拍内状态。数值和公式状态通过不代表实际字体及布局已验收。通用规则见[治理约定](../../../motion/GOVERNANCE.md)。
+`tests/sim-coefficient-mainline.test.cjs` 核验整数与小数位移的频域/空域一致性、独立有限 Fourier 求值、整体最小二乘、单拍改时长、两页生产入口、连续移项、共轭消相位、同步公式、求和与帽号、前缀和、两张结果卡片、回退、旧定位和说明弹窗。固定频谱检查直接以 `returnSpectrum/.694` 为基准，逐节点比较第 19 幕正反定位的属性、文本、可见性，并核对原图节点未替换。原 Java 与独立 DFT 回归继续保留。执行 `npm run scenes:sync`、`npm run check`、`git diff --check`。视觉由用户验收，不运行浏览器或截图。
