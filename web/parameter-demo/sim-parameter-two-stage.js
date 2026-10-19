@@ -9,6 +9,7 @@
   const E = node ? require('../shared/sim-parameter-estimation.js') : root.SIMParameterEstimation;
   const A = node ? require('../atlas/sim-atlas-core.js') : root.SIMAtlas;
   const GetPeak = node ? require('./scenes/get-peak/state.js') : root.SIMGetPeak;
+  const TextTransition = node ? require('../shared/animation/text-transition.js') : root.SIMTextTransition;
   const { clamp, ramp } = M;
   const bandColors = Object.freeze(['#7ad5cd', '#b7a5eb', '#efb879']);
   const units = node ? [
@@ -21,6 +22,9 @@
     require('./scenes/refine/storyboard.js'),
   ] : ["shared", "line-shift", "shift", "otf", "match", "coarse", "refine"].map(id=>root.SIMParameterUnits[id]);
   const scenes = [...units, { ...GetPeak.scene, id: GetPeak.scene.legacyId }];
+  const navigationScenes = [...units, ...GetPeak.stops];
+  const navigationScene = id => navigationScenes.find(s=>s.id===id);
+  const navigationState = (id,p) => { const stop=navigationScene(id); if(!stop)throw new Error('未知参数场景：'+id); return stateForScene(stop.sceneId || id, stop.getPeakBeat ? GetPeak.stopProgress(stop,p) : p); };
   const formulas = Object.assign({}, ...units.map(s=>s.formulas), GetPeak.formulas, {"coefficient": "$$U_j=S(\\mathbf q_j),\\qquad V_j=m e^{i\\phi_\\Delta}U_j$$", "fit": "$$J(\\alpha)=E_0\\left|\\alpha-\\frac C{E_0}\\right|^2+E_1-\\frac{|C|^2}{E_0}$$"});
   const index = id => scenes.findIndex(s => s.id === id);
   const scene = id => { const s = scenes[index(id)]; if (!s) throw new Error('未知参数场景：' + id); return s; };
@@ -34,18 +38,35 @@
   }
   const presentationContext = () => ({M,formulas,lineState,otfState,refinementPhaseState});
   function formulaAt(s) {
-    if(s.id===GetPeak.scene.legacyId){const state=GetPeak.presentation(s.progress);return {equation:state.formula.equation,note:state.note};}
+    if(s.id===GetPeak.scene.legacyId){const state=GetPeak.presentation(s.progress);return {equation:state.formula.equation,note:state.note,title:state.title,copy:state.copy};}
     return scene(s.id).present(s.progress,presentationContext());
   }
   const dataFor = (node ? require('./comparison-data.js') : root.SIMComparisonData)({M,E,A});
-  const { sharedState, sharedPointState } = (node ? require('./scenes/shared/state.js') : root.SIMParameterStateFactories['shared'])({ M, E, A, dataFor });
+  const { sharedState, sharedPointState, sharedFocusPose } = (node ? require('./scenes/shared/state.js') : root.SIMParameterStateFactories['shared'])({ M, E, A, dataFor });
   const { lineState } = (node ? require('./scenes/line-shift/state.js') : root.SIMParameterStateFactories['line-shift'])({ M, E, A, dataFor });
   const { returnTo2DState } = (node ? require('./scenes/shift/state.js') : root.SIMParameterStateFactories['shift'])({ M, E, A, dataFor });
   const { otfState, rejectionProgress } = (node ? require('./scenes/otf/state.js') : root.SIMParameterStateFactories['otf'])({ M, E, A, dataFor });
   function formulaMode(s) {
-    if(s.id===GetPeak.scene.legacyId)return s.id+'-'+GetPeak.presentation(s.progress).formula.mode;
+    if(s.id===GetPeak.scene.legacyId){const f=GetPeak.presentation(s.progress).formula;return s.id+'-'+(f.motion?f.motion.key:f.mode);}
     const data=scenes.find(x=>x.id===s.id);
     return data ? data.formulaMode(s.progress,presentationContext()) : s.id;
+  }
+  function formulaTransition(s,reduced=false) {
+    const unit=scenes.find(unit=>unit.id===s.id);
+    if(!unit)return {...TextTransition.state(1,560),previous:null};
+    if(s.id===GetPeak.scene.legacyId) {
+      const p=GetPeak.presentation(s.progress),boundary=p.boundary;
+      const previous=boundary>0?stateForScene(s.id,boundary-1e-7):stateForScene('refine',1);
+      return {...TextTransition.state(s.progress,GetPeak.timeline.duration,boundary,reduced),previous};
+    }
+    const cuts=unit.formulaCuts||(unit.beats||[]).map(beat=>beat.start);
+    // Match storyboard rounding when the host recovers local progress by
+    // subtracting a scene index (for example, .18 may become .17999999999999).
+    const progress=Math.round(s.progress*1e12)/1e12;
+    const boundary=[0,...cuts].filter(cut=>cut<=progress).at(-1);
+    const previous=boundary>0?stateForScene(s.id,boundary-1e-7)
+      :index(s.id)>0?stateForScene(scenes[index(s.id)-1].id,1):null;
+    return {...TextTransition.state(progress,unit.duration,boundary,reduced),previous};
   }
   const { matchingState, scanState } = (node ? require('./scenes/match/state.js') : root.SIMParameterStateFactories['match'])({ M, E, A, dataFor });
   const { fftState } = (node ? require('./scenes/coarse/state.js') : root.SIMParameterStateFactories['coarse'])({ M, E, A, dataFor });
@@ -57,6 +78,6 @@
   const getPeakBeats = GetPeak.timeline.beats.map(b => Object.freeze([b.key, b.start, b.end, b.action, b.title, b.copy, b.note, b.footer]));
   const getPeakDataFor = GetPeak.dataFor, leastSquaresNarrative = GetPeak.narrative, leastSquaresState = GetPeak.state;
 
-  const api = { scenes, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, sharedState, sharedPointState, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, getPeakBeats, getPeakDataFor, leastSquaresNarrative, leastSquaresState };
+  const api = { scenes, navigationScenes, navigationScene, navigationState, scene, index, formulas, bandColors, stateForScene, formulaAt, formulaMode, formulaTransition, sharedState, sharedPointState, sharedFocusPose, lineState, returnTo2DState, otfState, rejectionProgress, dataFor, matchingState, scanState, fftState, refinementNarrative, refinementPhaseState, refinementState, refinementDataFor, getPeakBeats, getPeakDataFor, leastSquaresNarrative, leastSquaresState };
   if (node) module.exports = api; else root.SIMParameterLesson = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

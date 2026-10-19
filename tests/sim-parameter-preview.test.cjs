@@ -10,25 +10,26 @@ const katex = require('../vendor/katex/katex.min.js');
 const near = (x, y, tolerance = 1e-9) => assert.ok(Number.isFinite(x) && Math.abs(x - y) < tolerance, `${x} != ${y}`);
 const capture = E.capture(), lesson = M.createLesson({ raw: capture.raw, config: capture.config });
 
-test('the standalone draft brackets the eight production scenes without changing the Motion scene list', () => {
-  assert.equal(P.scenes.length, 13);
-  assert.deepEqual(P.scenes.map(s => s.id), ['pending', 'temporary', ...L.scenes.map(s => s.id), 'refill', 'solve', 'relocation']);
-  assert.equal(P.durations.length, 13);
-  assert.equal(P.durations[P.index('least-squares-fit')], 80000);
+test('the standalone draft brackets the sixteen navigation scenes without changing the Motion scene list', () => {
+  assert.equal(P.scenes.length, 21);
+  assert.deepEqual(P.scenes.map(s => s.id), ['pending', 'temporary', ...L.navigationScenes.map(s => s.id), 'refill', 'solve', 'relocation']);
+  assert.equal(P.durations.length, 21);
+  assert.equal(P.durations[P.index('least-squares-fit')], 21000);
   assert.equal(P.durations[P.index('solve')], 11000);
   assert.equal(M.durations[M.index('fit')], 8000, 'presentation timing does not mutate the base chapter model');
-  assert.match(P.scenes[P.index('refine')].note, /5×5.*10×10/);
+  assert.match(P.scenes[P.index('refine')].note, /5×5.*搜索步长不是测量精度/);
   assert.doesNotMatch(P.scenes[P.index('solve')].equation, /0&0&1/);
   const html = fs.readFileSync(path.join(__dirname, '../sim_motion_demo.html'), 'utf8');
+  assert.match(html,/10×10/,'implementation comparisons remain in the reference layer');
   assert.doesNotMatch(html, /sim-parameter-preview\.js/);
   for (let step = 0; step < P.scenes.length; step++) {
     for (const progress of [.000001, .08, .22, .5, .75, 1]) {
       const s = P.state(step + progress);
       assert.equal(s.step, step); near(s.progress, progress); assert.equal(s.id, P.scenes[step].id);
-      if (s.parameter) assert.deepEqual(s.parameter, L.stateForScene(s.id, s.progress));
+      if (s.parameter) assert.deepEqual(s.parameter, L.navigationState(s.id, s.progress));
     }
   }
-  assert.equal(P.state(0).id, 'pending'); assert.equal(P.state(13).id, 'relocation');
+  assert.equal(P.state(0).id, 'pending'); assert.equal(P.state(P.scenes.length).id, 'relocation');
   assert.throws(() => P.state(NaN), /有限/);
 });
 
@@ -44,7 +45,8 @@ test('the scan writes actual valid candidate scores and ends at the coarse peak,
     const f = P.leastSquaresState(lesson, i / 100);
     if (f.divide > 0) assert.equal(f.count, lesson.estimate.finalPeak.count, 'the ratio never uses unfinished sums');
   }
-  const from = P.leastSquaresState(lesson, .84), to = P.leastSquaresState(lesson, .85);
+  const Peak=require('../web/parameter-demo/scenes/get-peak/state.js');
+  const from = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',.3)), to = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',.4));
   assert.equal(from.count, to.count); assert.ok(to.divide > from.divide);
   assert.equal(from.alpha,null); assert.equal(to.alpha,null);
   const p = .73;
@@ -52,7 +54,7 @@ test('the scan writes actual valid candidate scores and ends at the coarse peak,
 });
 
 test('every entry and exit formula compiles, with explicit provisional factors and estimated parameters', () => {
-  for (let i = 0; i <= 1500; i++) {
+  for (let i = 0; i <= P.scenes.length*100; i++) {
     const s = P.state(i / 100), formula = P.formulaAt(s);
     assert.match(formula.equation, /^\$\$[\s\S]*\$\$$/);
     assert.doesNotThrow(() => katex.renderToString(formula.equation.slice(2, -2), { displayMode: true, output: 'mathml', throwOnError: true, strict: 'error' }));

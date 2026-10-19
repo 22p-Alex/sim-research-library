@@ -8,7 +8,7 @@
   create('rect', {x:642,y:487,width:24,height:24,fill:'#7ad5cd','fill-opacity':.2,stroke:'#7ad5cd'}, grid);
   const label=(x,y,value)=>create('text',{x,y,'text-anchor':'middle',class:'svg-small'},grid,value);
   label(482,543,'128²'); const outputLabel=label(654,543,'256² · 外围补零'); label(561,505,'→');
-  label(1000,504,'DFT 格间隔不变 · 视野不变'); label(1000,535,'新信息来自观测，零填充只扩展地址');
+  // Grid-size changes are visible in the drawing; their meaning is in the scene note.
   function drawGrid(time) {
     const t=M.story(time).demixTime;
     const s=M.scenes.find(scene=>scene.id==='relocate-bands').present(M.clamp(t-4)),embed=s.cues.embed;

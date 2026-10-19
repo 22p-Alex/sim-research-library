@@ -39,14 +39,14 @@
   ];
   // Entry/exit remain page-owned; estimation graphics, formulas and timing are
   // shared with the complete reconstruction story.
-  const scenes = [...entry, ...Study.scenes.map((s, i) => ({ ...Study.scene(s.id), section: 'estimation', owner: 'estimation' })), ...exit];
+  const scenes = [...entry, ...Study.navigationScenes.map(s => ({ ...s, section: 'estimation', owner: 'estimation' })), ...exit];
   const durations = scenes.map(s => s.duration), index = id => scenes.findIndex(s => s.id === id);
   function state(position) {
     if (!Number.isFinite(position)) throw new Error('预览进度必须为有限数值。');
     const t = M.clamp(position, 0, scenes.length), step = M.clamp(Math.ceil(t - 1e-9) - 1, 0, scenes.length - 1), progress = M.clamp(t - step);
     const data = scenes[step];
     return { position: t, step, id: data.id, owner: data.owner, progress,
-      parameter: data.owner === 'estimation' ? Study.stateForScene(data.id, progress) : null };
+      parameter: data.owner === 'estimation' ? Study.navigationState(data.id, progress) : null };
   }
   function formulaAt(s) {
     if (s.parameter) return Study.formulaAt(s.parameter);
@@ -54,7 +54,12 @@
     return { equation: scenes[s.step].equation, note: scenes[s.step].note };
   }
   const { leastSquaresState, matchingState } = Study;
-  const createFormulaView = (container,lesson) => Study.createFormulaView(container, { formulaAt,lesson });
+  function createFormulaView(container,lesson,options={}){
+    const view=Study.createFormulaView(container,{lesson,...options,
+      formulaAt:s=>s.owner==='connection'?formulaAt(s):Study.formulaAt(s),
+      formulaMode:s=>s.owner==='connection'?s.id:Study.formulaMode(s)});
+    return {...view,draw:s=>view.draw(s.parameter||s)};
+  }
   const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
   function dataFor(lesson) {
     const g = lesson.bridge.pipeline.groups[0];
@@ -68,7 +73,7 @@
     return { matrix, products, responses, group: g, probe,
       residual: Math.max(...responses.map((z, b) => Math.hypot(z.re - (b === 2 ? 1 : 0), z.im))) };
   }
-  function createView(container, lesson) {
+  function createView(container, lesson,options={}) {
     const doc = container.ownerDocument || root.document, ns = 'http://www.w3.org/2000/svg', n = lesson.capture.config.n;
     const data = dataFor(lesson), owned = [], groups = {}, draws = {}, shared = lesson.estimate.context.separated;
     const set = (el, name, value) => { if (el.getAttribute(name) !== String(value)) el.setAttribute(name, value); };
@@ -151,7 +156,7 @@
       };
     }
     const estimationContainer = el('g', { 'data-connection-scene': 'estimation', opacity: 0 });
-    const estimationView = Study.createView(estimationContainer, lesson);
+    const estimationView = Study.createView(estimationContainer, lesson,options);
     {
       const g = group('refill'), e = lesson.estimate;
       label(g, 340, 69, 'm̂ = ' + num(e.m), 'pe-svg-title', colors[0]);
@@ -250,7 +255,7 @@
       };
     }
     function drawContent(scene, progress) {
-      if (scene.owner === 'estimation') { estimationView.drawScene(scene.id, progress); return estimationContainer; }
+      if (scene.owner === 'estimation') { const s=Study.navigationState(scene.id,progress); estimationView.drawScene(s.id,s.progress); return estimationContainer; }
       draws[scene.id](progress); return groups[scene.id];
     }
     function draw(position) {

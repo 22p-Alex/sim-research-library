@@ -9,7 +9,7 @@
       const s=scene.present(progress,timeline),p=lesson.pipeline,apply=s.mode==='normalize';
       const middle=apply?{kind:'scalar',values:lesson.reciprocal,log:true}:
         {kind:'scalar',values:p.signalResponse,to:p.denominator,mix:s.cues.extraZero,log:true};
-      return {...s,phase:'wiener',index:-1,inverseProgress:0,
+      return {...s,phase:'wiener',focus:[6,0],index:-1,inverseProgress:0,
         views:[complex(p.numerator),middle,complex(p.numerator,p.preApoSpectrum,s.cues.normalize)],
         titles:['累计频谱 F_sum',apply?'归一化系数 1/(R+w²)':s.mode==='sourceDenominator'?'R₀ + 额外零级 → R':'基础传递系数 R₀',apply?'滤波频谱 ŜW':'F_sum · 尚未归一化'],
         detail:s.action,

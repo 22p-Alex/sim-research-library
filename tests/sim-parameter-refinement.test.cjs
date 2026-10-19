@@ -3,7 +3,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const A=require('../web/atlas/sim-atlas-core.js'),E=require('../web/shared/sim-parameter-estimation.js');
 const M=require('../web/parameter-demo/sim-parameter-model.js'),L=require('../web/parameter-demo/sim-parameter-two-stage.js');
 const boot=require('./helpers/motion-dom.cjs');
-const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); return alpha; };
+const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) { if(n.attrs.display==='none'||n.hidden)return 0; alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); } return alpha; };
 const near=(a,b,tol=1e-9)=>assert.ok(Number.isFinite(+a)&&Math.abs(+a-b)<=tol*Math.max(1,Math.abs(b)),`${a} != ${b}`);
 const capture=E.capture(),lesson=M.createLesson({raw:capture.raw,config:capture.config});
 
@@ -33,7 +33,7 @@ test('fractional phase modulation equals direct Fourier evaluation, preserves en
 });
 
 test('the three phases use the actual nested 5 by 5 searches and never claim measurement accuracy from step size',()=>{
-  for(const [p,mode] of [[0,'gridLimit'],[.219,'gridLimit'],[.22,'phaseRamp'],[.559,'phaseRamp'],[.56,'zoomCascade'],[.934,'zoomCascade'],[.935,'returnSpectrum']])
+  for(const [p,mode] of [[0,'gridLimit'],[.219,'gridLimit'],[.22,'phaseRamp'],[.559,'phaseRamp'],[.56,'zoomCascade'],[.914,'zoomCascade'],[.934,'lockWinner'],[.953,'returnSpectrum']])
     assert.equal(L.refinementState(lesson,p).mode,mode);
   const sweep=L.refinementState(lesson,.415);
   assert.equal(sweep.count,0);assert.ok(!Number.isInteger(sweep.candidate.kx)&&!Number.isInteger(sweep.candidate.ky));
@@ -99,6 +99,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
     const createView=c.SIMParameterLesson.createView;c.SIMParameterLesson.createView=(...args)=>(lessonView=createView(...args));
   }});
   const {context,byId,nodes}=h,motion=page==='sim_motion_demo.html';
+  assert.deepEqual(h.errors,[],'the production page initializes before phase and coordinate checks');
   const flow=motion?context.SIMMotionParameterChapter.plan(context.SIMMotion):context.SIMParameterPreview;
   const slider=byId.get(motion?'progress':'pe-progress'),index=flow.index(motion?'parameters.refine':'refine');
   const seek=p=>{slider.value=motion?index-1+p:index+p;slider.dispatch('input');};
@@ -116,7 +117,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
     assert.equal(byId.get(motion?'scene-title':'pe-title').textContent,s.title);
     assert.equal(cells.filter(c=>c.attrs['data-written']==='true').length,s.count);
     assert.ok(+get('data-refine-candidate-readout').attrs.opacity===0||+get('data-refine-round-summary').attrs.opacity===0,'candidate and round summaries have exclusive presentation states');
-    if(p>=.66){near(get('data-refine-search-backdrop').attrs.opacity,1);near(get('data-refine-round-summary').attrs.opacity,1-M.ramp(p,.935,.95));}
+    if(p>=.66){near(get('data-refine-search-backdrop').attrs.opacity,1);near(get('data-refine-round-summary').attrs.opacity,1-s.returnView.collapse);}
     for(const [i,c] of cells.entries()){near(c.attrs['data-score'],s.candidates[i].score);near(c.attrs['data-kx'],s.candidates[i].kx);near(c.attrs['data-ky'],s.candidates[i].ky);}
     const otf=get('data-refine-shifted-otf');near(otf.attrs.cx,-s.candidate.kx*220/27);near(otf.attrs.cy,-s.candidate.ky*220/27);
     near(get('data-refine-phase-ramp').attrs['data-kx'],s.candidate.kx);near(get('data-refine-phase-ramp').attrs['data-ky'],s.candidate.ky);
@@ -162,13 +163,17 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   seek(1);near(get('data-refine-final-target').attrs.opacity,1);near(get('data-subpixel-refine').attrs.opacity,0);
   near(get('data-frequency-map').attrs.opacity,1);near(get('data-frequency-pair').attrs.opacity,1);
   assert.equal(lessonView.sharedPair.bands,chapter.lesson.estimate.context.separated.bands,'return the original observed spectra');
+  const retired=nodes.filter(n=>n.attrs['data-reference-point']!==undefined||n.attrs['data-corresponding-point']!==undefined||['P','Q','R'].includes(n.attrs['data-complex-plane']));
+  const assertLock=()=>{for(const node of retired)near(visibleAlpha(node),0);near(visibleAlpha(get('data-locked-wavevector')),1);};
+  assertLock();
   const images=nodes.filter(n=>n.attrs['data-shared-band']!==undefined),originalImages=[...images];
   const overviewNodes=[get('data-frequency-map'),get('data-frequency-pair'),get('data-overlap-mask'),...images,
     ...nodes.filter(n=>n.attrs['data-band-panel']!==undefined||n.attrs['data-otf-band']!==undefined||n.attrs['data-reference-point']!==undefined
       ||['P','Q','R'].includes(n.attrs['data-complex-plane'])||['P','Q','R'].includes(n.attrs['data-vector-u'])||['P','Q','R'].includes(n.attrs['data-vector-v']))];
   const before=overviewNodes.map(n=>({...n.attrs}));
   lessonView.drawScene('least-squares-fit',0);
-  assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'18 ends in the exact frequency and complex-value pose used by 19 at entry');
+  assertLock();
+  assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'18 hands the same spectra and locked vector to 19 without selected-point examples');
   assert.deepEqual(nodes.filter(n=>n.attrs['data-shared-band']!==undefined),originalImages,'the handoff never replaces spectrum nodes');
   for(const p of [.2,.32,.52,.82]) {
     lessonView.drawScene('least-squares-fit',p);
@@ -179,6 +184,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   const peak=get('data-get-peak');
   assert.equal(+peak.attrs['data-total'],chapter.lesson.estimate.finalPeak.count,'final accumulation uses the full spatial grid');
   lessonView.drawScene('refine',1);
-  assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'reverse restores all overview actors');
+  assert.deepEqual(overviewNodes.map(n=>({...n.attrs})),before,'reverse restores the same spectrum-only handoff');
+  assertLock();
   assert.deepEqual(h.errors,[]);
 });

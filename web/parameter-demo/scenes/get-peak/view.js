@@ -6,7 +6,7 @@
   const Story = root.SIMGetPeak, M = root.SIMParameterStory, A = root.SIMAtlas;
   const layout = Story.layout;
   function createView({ parent, lesson, el, label, line, path, vector, set, text, opacity, raster, defs, uid }) {
-    const { peak } = Story.dataFor(lesson), { n } = peak, colors = ['#7ad5cd', '#b7a5eb', '#efb879'];
+    const { peak, frequencyPoint, frequencyPoints, comparisonMaximum, displayScales } = Story.dataFor(lesson), { n } = peak, colors = ['#7ad5cd', '#b7a5eb', '#efb879'];
     const stage = el('g', { 'data-get-peak': '', 'data-least-squares-fit': '', 'data-source': 'fairSIM-getPeak', 'data-total': peak.count }, parent);
     const number = (x, digits = 4) => Math.abs(x) < 1e-12 ? '0' : Math.abs(x) < 1e-4 ? x.toExponential(2) : x.toFixed(digits);
     const complex = z => `${number(z.re)} ${z.im < -1e-12 ? '−' : '+'} ${number(Math.abs(z.im))}i`;
@@ -18,41 +18,37 @@
     const urls = new Map();
     // Display only: hue encodes the actual complex phase, log brightness the
     // modulus. The full nonzero OTF support fits in the frequency window.
-    function fieldURL(z, frequency = false, scale) {
-      if (urls.has(z)) return urls.get(z);
-      const max = scale || z.re.reduce((m, re, i) => Math.max(m, Math.hypot(re, z.im[i])), 1e-30);
-      const side = frequency ? domainSide : n;
-      const url = raster(side, side, (x, y) => {
-        const i = frequency ? A.idx(x - Math.floor(side / 2), y - Math.floor(side / 2), n) : y * n + x;
-        const amplitude = Math.hypot(z.re[i], z.im[i]);
-        if (!amplitude) return [0, 0, 0, 255];
-        const h = (Math.atan2(z.im[i], z.re[i]) / (2 * Math.PI) + 1) % 1;
-        const v = Math.log1p(1e3 * amplitude / max) / Math.log1p(1e3), sector = h * 6;
-        const c = .78 * v, q = c * (1 - Math.abs(sector % 2 - 1)), base = .22 * v;
-        const rgb = sector < 1 ? [c, q, 0] : sector < 2 ? [q, c, 0] : sector < 3 ? [0, c, q]
-          : sector < 4 ? [0, q, c] : sector < 5 ? [q, 0, c] : [c, 0, q];
-        return [...rgb.map(v => Math.round(255 * (v + base))), 255];
+    function fieldURL(z, frequency = false, scale, phaseColor=true) {
+      const mode=phaseColor?'phase':'gray',cached=urls.get(z)||{};
+      if(cached[mode])return cached[mode];
+      const max=scale||z.re.reduce((m,re,i)=>Math.max(m,Math.hypot(re,z.im[i])),1e-30);
+      const side=frequency?domainSide:n;
+      const url=raster(side,side,(x,y)=>{
+        const i=frequency?A.idx(x-Math.floor(side/2),y-Math.floor(side/2),n):y*n+x;
+        return [...Story.displayColor(z.re[i],z.im[i],max,phaseColor).rgb,255];
       });
-      urls.set(z, url); return url;
+      cached[mode]=url;urls.set(z,cached);return url;
     }
     const vMaximum = peak.spatial[1].re.reduce((m, re, i) => Math.max(m, Math.hypot(re, peak.spatial[1].im[i])), 1e-30);
     const energyMaximum = peak.energy.reduce((maximum, v) => Math.max(maximum, v), 1e-30);
     const images = {
-      prepared: peak.prepared.map(z => fieldURL(z, true)),
+      prepared: peak.prepared.map((z,b) => fieldURL(z, true,displayScales.prepared[b])),
+      preparedGray:peak.prepared.map((z,b)=>fieldURL(z,true,displayScales.prepared[b],false)),
       spatial: peak.spatial.map(z => fieldURL(z, false)),
       shifted: fieldURL(peak.shifted, false, vMaximum), product: fieldURL(peak.product, false),
       energy: raster(n, n, (x, y) => { const v=Math.log1p(1e3*peak.energy[y*n+x]/energyMaximum)/Math.log1p(1e3); return [122,213,205].map(c=>Math.round(c*v)).concat(255); }),
     };
+    const note=(...args)=>{const node=label(...args);set(node,'display','none');set(node,'data-scene-note','');return node;};
     function panel(parent, x, y, width, height, color = '#36525d') {
       return el('rect', { x, y, width, height, rx: 6, class: 'pe-two-panel', stroke: color }, parent);
     }
     function field(parent, x, y, size, title, subtitle, href, color, name) {
       const g = el('g', { transform: `translate(${x} ${y})`, 'data-get-peak-field': name }, parent);
-      label(g, 0, -size / 2 - 28, title, 'pe-peak-field-title', color);
+      const heading=label(g, 0, -size / 2 - 28, title, 'pe-peak-field-title', color);
       panel(g, -size / 2 - 9, -size / 2 - 9, size + 18, size + 18, color);
       const image = el('image', { x: -size / 2, y: -size / 2, width: size, height: size, href,
         style: 'image-rendering:pixelated', 'data-get-peak-image': name, 'data-n': n }, g);
-      const caption = label(g, 0, size / 2 + 33, subtitle, 'pe-two-small');
+      const caption = (name==='shift-output'?label:note)(g, 0, size / 2 + 33, subtitle, 'pe-two-small');
       const cursor = el('rect', { width: size / n, height: size / n, fill: '#fff', 'fill-opacity': .16,
         stroke: '#fff', 'stroke-width': 1.4, 'data-get-peak-cursor': name }, g);
       const row = el('line', { x1: -size / 2, x2: size / 2, stroke: '#fff', 'stroke-opacity': .3,
@@ -65,13 +61,16 @@
         opacity(cursor, visible); opacity(row, visible);
       };
       moveCursor(0, 0);
-      return { g, image, caption, moveCursor, size, liftCursor() { for (const node of [row,cursor]) { node.remove(); g.appendChild(node); } } };
+      return { g, image, heading, caption, moveCursor, size, liftCursor() { for (const node of [row,cursor]) { node.remove(); g.appendChild(node); } } };
     }
-    function plane(parent, x, y, radius, name) {
+    function plane(parent, x, y, radius, name, axisLabels={}) {
       const g = el('g', { transform: `translate(${x} ${y})`, 'data-get-peak-plane': name }, parent);
       el('circle', { r: radius, fill: 'none', stroke: '#36525d' }, g);
       line(g, -radius - 15, 0, radius + 15, 0); line(g, 0, -radius - 15, 0, radius + 15);
-      label(g, radius + 28, 5, 'Re', 'pe-two-small'); label(g, 12, -radius - 16, 'Im', 'pe-two-small');
+      label(g, radius + 28, 5, 'Re', 'pe-two-small');
+      const imaginary=axisLabels.imaginary||{x:12,y:-radius-16,anchor:'middle'};
+      const imaginaryLabel=label(g,imaginary.x,imaginary.y,'Im','pe-two-small');
+      set(imaginaryLabel,'text-anchor',imaginary.anchor);
       return g;
     }
     function prefix(node, count, size) {
@@ -80,50 +79,147 @@
         + (remainder ? ` M ${-size / 2} ${-size / 2 + rows * step} h ${remainder * step} v ${step} h ${-remainder * step} Z` : ''));
       set(node, 'data-count', count); set(node, 'data-total', peak.count);
     }
-    const groups = Story.timeline.beats.filter(b => b.layout !== 'result').map(beat => el('g', { 'data-get-peak-beat': beat.key }, stage));
+    const keys=['finalPrepare','finalInverse','finalShift','finalProduct','finalSum'];
+    const groups=keys.map(key=>el('g', {'data-get-peak-beat':key}, stage));
     const [prepare, inverse, shift, product, sum] = groups;
-    const action = label(stage, 720, layout.actionY, '', 'pe-two-text', colors[2]);
+    const action = note(stage, 720, layout.actionY, '', 'pe-two-text', colors[2]);
     set(action, 'data-get-peak-action', '');
-    const legend = label(stage, 720, layout.legendY, '亮度＝对数模长 · 色相＝复数相角 · 各图独立标尺，v 与 vₖ 共用标尺', 'pe-two-small');
+    const legend = label(stage, 720, layout.legendY, '亮度：模长 · 色相：相角', 'pe-two-small');
     set(legend, 'data-get-peak-display-key', '');
     const prepared = [0, 1].map(b => field(prepare, layout.pair.x[b], layout.pair.y, layout.pair.size,
-      `B${b ? '₁' : '₀'} · 最终位移下的工作频带`, `自身 OTF 可靠且成对筛选 · 保留 ${peak.supportCounts[b]} 个频点`, images.prepared[b], colors[b], 'prepared-' + b));
-    label(prepare, 720, 278, '复制', 'pe-two-value');
-    label(prepare, 720, 310, '筛选与校正', 'pe-two-small');
-    label(prepare, 720, layout.pair.detailY, `k̂ = (${number(peak.kx, 2)}, ${number(peak.ky, 2)}) · OTF 阈值 ${peak.threshold} · 径向比例 ${peak.distanceFraction}`, 'pe-two-small');
+      `B${b ? '₁' : '₀'} · 工作频带`, `自身 OTF 可靠且成对筛选 · 保留 ${peak.supportCounts[b]} 个频点`, images.preparedGray[b], colors[b], 'prepared-' + b));
+    const preparedColor=prepared.map((f,b)=>{
+      const picture=el('image',{x:-f.size/2,y:-f.size/2,width:f.size,height:f.size,href:images.prepared[b],style:'image-rendering:pixelated','data-get-peak-color-field':b},f.g);
+      f.liftCursor();return picture;
+    });
+    const prepareOperation=el('g',{'data-get-peak-preparation-operation':''},prepare);
+    label(prepareOperation,720,265,'可靠公共区','pe-two-text');
+    label(prepareOperation,720,298,'各自校正 OTF','pe-two-small');
+    const concept=el('g',{'data-get-peak-correspondence':''},prepare);
+    const correspondenceLine=path(concept,colors[2],{'stroke-width':1.5,'stroke-dasharray':'4 4'});
+    const pointActors=[0,1].map(b=>{
+      const marker=el('g',{'data-get-peak-frequency-point':b},concept);
+      el('circle',{r:7,fill:'none',stroke:colors[2],'stroke-width':2},marker);
+      const address=label(marker,0,-16,b?'q+k̂':'q','pe-two-small',colors[b]);
+      const location=label(concept,layout.pair.x[b],layout.preparation.addressY,b?'检测地址 q+k̂':'参考地址 q','pe-two-small',colors[b]);
+      set(location,'data-get-peak-address-label',b);
+      const h=label(concept,layout.pair.x[b],layout.preparation.otfY,'','pe-two-small',colors[b]);
+      set(h,'data-get-peak-otf-label',b);
+      const value=label(concept,layout.pair.x[b],layout.preparation.valueY,'','pe-two-small',colors[b]);
+      return {marker,address,location,h,value};
+    });
+    function mathLabel(parent,cx,y,width,tex,color,attrs={}) {
+      const box=el('foreignObject',{x:cx-width/2,y,width,height:48,...attrs},parent);
+      const div=root.document.createElementNS('http://www.w3.org/1999/xhtml','div');
+      div.setAttribute('class','pe-peak-math');div.style.color=color;box.appendChild(div);
+      root.katex.render(tex,div,{displayMode:true,output:'mathml',throwOnError:true,strict:'error'});
+      return box;
+    }
+    const samples=[0,1].map(b=>mathLabel(concept,layout.pair.x[b],layout.preparation.sampleY,layout.preparation.sampleWidth,
+      b?String.raw`\alpha\,{\color{#efb879}S(\mathbf q)}`:String.raw`{\color{#efb879}S(\mathbf q)}`,colors[b],{'data-get-peak-sample-symbol':b}));
+    const alphaIllustration=el('g',{'data-get-peak-alpha-illustration':''},shift);
+    const commonMeaning=el('g',{'data-get-peak-common-alpha':''},alphaIllustration),explain=layout.explanation;
+    const alphaParts=[
+      mathLabel(commonMeaning,explain.x-79,explain.formulaY,74,String.raw`\alpha=`,colors[2]),
+      mathLabel(commonMeaning,explain.x-21,explain.formulaY,42,'m',colors[2],{'data-get-peak-alpha-factor':'scale'}),
+      mathLabel(commonMeaning,explain.x+58,explain.formulaY,116,String.raw`e^{i\phi_\Delta}`,colors[2],{'data-get-peak-alpha-factor':'rotate'})
+    ];
+    const commonMeaningLabel=label(alphaIllustration,explain.x,explain.detailY,'共同的伸缩与转角','pe-two-small',colors[2]);
+    const geometry=el('g',{'data-get-peak-alpha-geometry':'illustration'},alphaIllustration);
+    label(geometry,explain.x,explain.captionY,'复乘几何示意 · 非本组估计值','pe-two-small');
+    const geometryPlane=plane(geometry,explain.x,explain.planeY,explain.radius,'alpha-illustration',explain.axisLabels);
+    const geometrySource=path(geometryPlane,colors[0],{'stroke-dasharray':'4 3','data-get-peak-geometry-source':''});
+    const geometryScaled=path(geometryPlane,colors[2],{'stroke-dasharray':'3 3','data-get-peak-geometry-scaled':''});
+    const geometryTarget=path(geometryPlane,colors[1],{'data-get-peak-geometry-target':''});
+    const geometryArc=path(geometryPlane,colors[1],{'stroke-width':2,'data-get-peak-geometry-arc':''});
+    const geometryAngle=label(geometryPlane,0,0,'φΔ','pe-two-small',colors[1]);
+    const geometryLabel=label(geometry,explain.x,explain.labelY,'','pe-two-small');
+    const key=layout.colorKey,colorKey=el('g',{'data-get-peak-color-key':''},prepare);
+    mathLabel(colorKey,key.x,explain.formulaY,300,String.raw`z=|z|e^{i\psi}`,colors[2]);
+    const colorCaption=label(colorKey,key.x,explain.captionY,'显示标尺演示 · 不改动数据','pe-two-small');
+    const keyPlane=plane(colorKey,key.x,key.planeY,key.radius,'display-key');
+    const hueRing=el('g',{'data-get-peak-hue-ring':''},keyPlane);
+    for(let i=0;i<72;i++){
+      const a=i*2*Math.PI/72,b=(i+1)*2*Math.PI/72,r=key.radius+8;
+      const rgb=Story.displayColor(Math.cos(a),Math.sin(a),1).rgb;
+      path(hueRing,`rgb(${rgb.join(',')})`,{'stroke-width':5,d:`M ${r*Math.cos(a)} ${-r*Math.sin(a)} A ${r} ${r} 0 0 0 ${r*Math.cos(b)} ${-r*Math.sin(b)}`});
+    }
+    const colorVector=path(keyPlane,colors[2],{'data-get-peak-color-vector':''});
+    const keyMessage=label(colorKey,key.x,359,'','pe-two-small');
+    for(let i=0;i<52;i++){
+      const rgb=Story.displayColor((i+.5)/52,0,1,false).rgb;
+      el('rect',{x:key.barX+i*key.barWidth/52,y:key.barY,width:key.barWidth/52+.2,height:key.barHeight,fill:`rgb(${rgb.join(',')})`},colorKey);
+    }
+    const brightnessCursor=el('path',{stroke:colors[2],'stroke-width':2,fill:'none','data-get-peak-brightness-cursor':''},colorKey);
+    const colorReadout=label(colorKey,key.x,421,'','pe-two-small');
+    const colorTile=el('rect',{x:key.tileX,y:key.tileY,width:key.tileSize,height:key.tileSize,rx:3,stroke:'#c6d5d7','stroke-width':1,'data-get-peak-color-tile':''},colorKey);
+    const colorFoot=label(colorKey,key.x,495,'','pe-two-small');
+    const otherPoints=frequencyPoints.map(point=>[0,1].map(b=>{
+      const address=[point.q[0]+b*peak.kx,point.q[1]+b*peak.ky];
+      return el('circle',{cx:layout.pair.x[b]+address[0]*layout.pair.size/27,cy:layout.pair.y+address[1]*layout.pair.size/27,
+        r:3,fill:colors[2],'data-get-peak-common-q':point.q.join(','),'data-band':b},concept);
+    }));
     const inverseCards = [0, 1].map(b => {
-      const f = field(inverse, layout.pair.x[b], layout.pair.y, layout.pair.size, b ? 'B₁  →  v' : 'B₀  →  u', '频域工作副本 → 空域复数场', images.prepared[b], colors[b], 'inverse-' + b);
-      const spatial = el('image', { x: -112, y: -112, width: 224, height: 224, href: images.spatial[b],
+      const f = field(inverse, layout.pair.x[b], layout.pair.y, layout.pair.size, b ? 'B₁ → v' : 'B₀ → u', '频域工作副本 → 空域复数场', images.prepared[b], colors[b], 'inverse-' + b);
+      const spatial = el('image', { x:-layout.pair.size/2,y:-layout.pair.size/2,width:layout.pair.size,height:layout.pair.size,href:images.spatial[b],
         style: 'image-rendering:pixelated', 'data-get-peak-spatial': b }, f.g);
       const transform = label(f.g, 0, 0, '逆 FFT', 'pe-peak-transform', colors[b]);
       return { ...f, spatial, transform };
     });
-    label(inverse, 720, layout.pair.detailY, '两路独立执行 · 不新增拍摄 · 不是最终样品强度图', 'pe-two-text');
+    const derivation=el('g',{'data-get-peak-derivation':''},inverse),proof=layout.derivation;
+    label(derivation,proof.x,proof.captionY,'把 f = q + k̂ 代入逆变换核','pe-two-text');
+    const kernel=mathLabel(derivation,proof.x,proof.y,proof.width,String.raw`e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}`,colors[1],{'data-get-peak-kernel':'combined'});
+    const kernelFactors=[
+      mathLabel(derivation,proof.x,proof.y,proof.factorWidth,String.raw`e^{2\pi i\mathbf q\cdot\mathbf r/N}`,colors[0],{'data-get-peak-kernel':'reference'}),
+      mathLabel(derivation,proof.x,proof.y,proof.factorWidth,String.raw`e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`,colors[2],{'data-get-peak-kernel':'extra'})
+    ];
+    const extraCaption=label(derivation,proof.factors[1],proof.explainY,'额外转角 δ(r) · 来自已知地址差','pe-two-small',colors[2]);
+    const referenceCaption=label(derivation,proof.factors[0],proof.explainY,'含 q 的项合成参考场 u(r)','pe-two-small',colors[0]);
     const shiftFields = [
-      field(shift, layout.shift.x[0], layout.shift.y, layout.shift.size, 'u · 保持不动', '参考复数场', images.spatial[0], colors[0], 'shift-reference'),
-      field(shift, layout.shift.x[1], layout.shift.y, layout.shift.size, 'v · 尚未位移校正', '旁带复数场', images.spatial[1], colors[1], 'shift-input'),
-      field(shift, layout.shift.x[2], layout.shift.y, layout.shift.size, 'vₖ · 逐点形成', '按行应用单位模指数', images.spatial[1], colors[1], 'shift-output'),
+      field(shift, layout.shift.x[0], layout.shift.y, layout.shift.size, 'u', '参考复数场', images.spatial[0], colors[0], 'shift-reference'),
+      field(shift, layout.shift.x[1], layout.shift.y, layout.shift.size, 'v', '旁带复数场', images.spatial[1], colors[1], 'shift-input'),
+      field(shift, layout.shift.x[2], layout.shift.y, layout.shift.size, 'vₖ', '按行应用单位模指数', images.spatial[1], colors[1], 'shift-output'),
     ];
     const shiftClip = el('clipPath', { id: uid + '-peak-shift' }, defs);
     const shiftPrefix = el('path', { 'data-get-peak-shift-prefix': '' }, shiftClip);
     el('image', { x: -93, y: -93, width: 186, height: 186, href: images.shifted,
       'clip-path': `url(#${uid}-peak-shift)`, style: 'image-rendering:pixelated', 'data-get-peak-shifted-image': '' }, shiftFields[2].g);
     shiftFields[2].liftCursor();
-    const rampPlane = plane(shift, ...layout.shift.plane, 'known-ramp');
+    const operation=layout.pointwise,pointwise=el('g',{'data-get-peak-pointwise':''},shift);
+    mathLabel(pointwise,...operation.operator,230,String.raw`\times e^{-i\delta(\mathbf r)}\ \longrightarrow`,colors[2]);
+    const scanCoordinate=label(pointwise,operation.x[0],operation.coordinateY,'','pe-two-small');
+    const scanCounter=label(pointwise,operation.x[1],operation.counterY,'','pe-two-small');
+    const demoClip=el('clipPath',{id:uid+'-peak-point-write'},defs);
+    const demoPixel=el('rect',{'data-get-peak-point-write-clip':''},demoClip);
+    const demoImage=el('image',{x:-layout.shift.size/2,y:-layout.shift.size/2,width:layout.shift.size,height:layout.shift.size,
+      href:images.shifted,'clip-path':`url(#${uid}-peak-point-write)`,style:'image-rendering:pixelated','data-get-peak-point-write':''},shiftFields[2].g);
+    shiftFields[2].liftCursor();
+    const pointDetail=el('g',{'data-get-peak-point-detail':''},shift);
+    const single=layout.single;
+    const rampPlane = plane(pointDetail, ...single.plane, 'known-ramp');
     const rampStart = path(rampPlane, colors[1], { 'stroke-width': 1.5, 'stroke-dasharray': '3 3' });
     const rampArrow = path(rampPlane, colors[2], { 'data-get-peak-ramp-vector': '' });
-    const rampAngle = label(shift, 862, 393, '', 'pe-two-small');
-    const rampPosition = label(shift, 862, 179, '', 'pe-two-small');
-    label(shift, 862, 420, '同一实际位置 · 相角按 2π 取模', 'pe-two-small');
-    const productFields = [
-      field(product, layout.product.x[0], layout.product.y, layout.product.size, 'u(r)', '参考场 · 光标选取同一 r', images.spatial[0], colors[0], 'product-reference'),
-      field(product, layout.product.x[1], layout.product.y, layout.product.size, 'vₖ(r)', '', images.shifted, colors[1], 'product-target'),
-    ];
-    const conjugatePlane = plane(product, ...layout.product.plane, 'conjugation');
-    const sourceU = path(conjugatePlane, colors[0], { 'stroke-width': 1.3, 'stroke-dasharray': '4 3' });
-    const conjugateU = path(conjugatePlane, colors[0], { 'data-get-peak-conjugate-vector': '' });
-    label(product, 1125, 170, 'u → u*', 'pe-two-text', colors[0]);
-    label(product, 1125, 389, '实部不变 · 虚部变号', 'pe-two-small');
+    const rampAngle = label(pointDetail, single.plane[0], single.angleY, '', 'pe-two-small');
+    const rampPosition = label(pointDetail, single.plane[0], single.positionY, '', 'pe-two-small');
+    const rampSwatches=[0,1].map(b=>{
+      const x=single.plane[0]-63+b*109;
+      label(pointDetail,x-17,single.swatchY+17,b?'vₖ':'v','pe-two-small',colors[1]);
+      return el('rect',{x,y:single.swatchY,width:layout.shift.swatchSize,height:layout.shift.swatchSize,rx:3,'data-get-peak-ramp-color':b},pointDetail);
+    });
+    label(pointDetail,single.plane[0],single.hintY,'紫：原箭头 · 橙：反向旋转 · 长度保持','pe-two-small');
+    const rampArc=path(rampPlane,colors[2],{'stroke-width':2,'data-get-peak-ramp-arc':''});
+    const compareLabel=label(shift,...layout.shift.model,'vₖ ≈ αu','pe-two-text',colors[2]);
+    set(compareLabel,'data-get-peak-compare','');
+    // These fields and vectors continue through comparison into conjugation.
+    const comparison=el('g',{'data-get-peak-comparison-detail':''},shift);
+    const comparisonPlane=plane(comparison,0,0,layout.shift.plane[2],'common-ratio');
+    const sourceU=path(comparisonPlane,colors[0],{'stroke-width':1.3,'stroke-dasharray':'4 3'});
+    const conjugateU=path(comparisonPlane,colors[0],{'data-get-peak-compare-u':'','data-get-peak-conjugate-vector':''});
+    const targetV=path(comparisonPlane,colors[1],{'data-get-peak-compare-v':''});
+    const comparisonPosition=label(comparison,0,-133,'','pe-two-small');
+    const vectorNames=label(comparison,0,141,'u · vₖ','pe-two-small');
+    const directionNote=label(shift,720,490,'','pe-two-small');
+
     const productPosition = label(product, 280, 443, '', 'pe-two-small');
     const productOperation = label(product, 690, 412, 'u*(r) × vₖ(r) → z(r)', 'pe-two-text', colors[2]);
     const zReadout = label(product, 690, 443, '', 'pe-two-small', colors[2]);
@@ -138,14 +234,14 @@
       'clip-path': `url(#${uid}-peak-sum)` }, productField.g);
     const cPlane = plane(sum, ...layout.sum.plane, 'cross-sum');
     const cArrow = path(cPlane, colors[2], { 'data-get-peak-cross-vector': '' });
-    label(sum, 930, 152, 'C · 复数累计', 'pe-peak-field-title', colors[2]);
+    label(sum, 930, 152, 'C', 'pe-peak-field-title', colors[2]);
     const cNumber = label(sum, 930, 407, '', 'pe-two-text', colors[2]);
-    label(sum, 1240, 152, 'E₀ · 参考能量累计', 'pe-peak-field-title', colors[0]);
+    label(sum, 1240, 152, 'E₀', 'pe-peak-field-title', colors[0]);
     panel(sum, 1195, 189, 90, 161, colors[0]);
     const energyFill = el('rect', { x: 1205, width: 70, y: 340, height: 0, fill: colors[0], 'fill-opacity': .6, 'data-get-peak-energy-fill': '' }, sum);
     const energyNumber = label(sum, 1240, 407, '', 'pe-two-text', colors[0]);
     const sumCount = label(sum, 720, 443, '', 'pe-two-text', colors[2]);
-    const sampleNumber = label(sum, 720, 465, '', 'pe-two-small');
+    const sampleNumber = note(sum, 720, 465, '', 'pe-two-small');
     const toC = path(sum, colors[2], { d: 'M 327 220 Q 365 175 405 175 H 806 Q 842 175 864 220', 'stroke-width': 1.5 });
     const toE = path(sum, colors[0], { d: 'M 667 315 Q 710 376 770 376 H 1100 Q 1170 376 1182 315', 'stroke-width': 1.5 });
     label(sum, 770, 201, 'z → 分子', 'pe-two-small', colors[2]);
@@ -156,9 +252,9 @@
     const divide = el('g', { 'data-get-peak-division': '' }, result);
     const cBox = el('g', {}, divide), eBox = el('g', {}, divide);
     panel(cBox, 115, 190, 420, 90, colors[2]); panel(eBox, 115, 313, 420, 90, colors[0]);
-    label(cBox, 325, 219, 'C · N² 项复数和', 'pe-two-small', colors[2]);
+    label(cBox, 325, 219, 'C', 'pe-two-small', colors[2]);
     const finalC = label(cBox, 325, 253, '', 'pe-two-value', colors[2]);
-    label(eBox, 325, 341, 'E₀ · N² 项参考能量和', 'pe-two-small', colors[0]);
+    label(eBox, 325, 341, 'E₀', 'pe-two-small', colors[0]);
     const finalE = label(eBox, 325, 377, '', 'pe-two-value', colors[0]);
     line(divide, 555, 236, 643, 280, colors[2]); line(divide, 555, 358, 643, 300, colors[0]);
     el('circle', { cx: 678, cy: 290, r: 29, fill: '#102128', stroke: colors[2] }, divide);
@@ -171,16 +267,16 @@
     const length = path(ratio, colors[2], { 'stroke-width': 7, 'stroke-opacity': .2, 'data-get-peak-length': '' });
     const ratioText = label(result, 1070, 406, '', 'pe-two-text', colors[2]);
     const read = el('g', { 'data-get-peak-readout': '' }, result);
-    label(read, 335, 204, '一个复系数，读取两个参数', 'pe-two-text');
+    note(read, 335, 204, '一个复系数，读取两个参数', 'pe-two-text');
     const phaseText = label(read, 335, 269, '', 'pe-two-value', colors[1]);
     const lengthText = label(read, 335, 324, '', 'pe-two-value', colors[2]);
-    label(read, 335, 371, 'φ̂ⱼ = φ′ⱼ + φ̂Δ · 采用已知三相相对步进', 'pe-two-small');
+    note(read, 335, 371, 'φ̂ⱼ = φ′ⱼ + φ̂Δ · 采用已知三相相对步进', 'pe-two-small');
     const cards = el('g', { 'data-fit-parameter-cards': '' }, result);
     const cardNodes = ['k', 'm', 'phase'].map((key, i) => {
       const x = layout.result.cardX[i], color = [colors[0], colors[2], colors[1]][i];
       const g = el('g', { 'data-fit-parameter': key }, cards);
       panel(g, x - layout.result.cardWidth / 2, layout.result.cardY, layout.result.cardWidth, layout.result.cardHeight, color);
-      label(g, x, 451, ['锁定波矢 k̂', '调制度 m̂ = |α̂|', '共同相位 φ̂Δ = arg α̂'][i], 'pe-two-text', color);
+      label(g, x, 451, ['k̂', 'm̂', 'φ̂Δ'][i], 'pe-two-text', color);
       const v = label(g, x, 480, '', 'pe-two-value', color);
       return { g, v };
     });
@@ -194,34 +290,135 @@
       for (const [key, v] of Object.entries({ mode: s.mode, count: s.count, total: s.total,
         'sum-re': s.sum.re, 'sum-im': s.sum.im, energy: s.sum.energy, divide: s.divide,
         solved: s.solved, read: s.read, kx: peak.kx, ky: peak.ky, sample: s.sample })) set(stage, 'data-' + key, v);
-      groups.forEach((g, i) => opacity(g, s.panels[i]));
-      text(action, `${s.beat + 1} / ${s.beatCount} · ${s.action}`); opacity(action, s.textAlpha);
-      opacity(legend, s.layout !== 'result' ? s.textAlpha : 0);
+      groups.forEach((g,i) => opacity(g, i===2 ? s.panels.slice(2,6).reduce((a,b)=>a+b,0) : s.panels[Story.timeline.beats.findIndex(b=>b.key===keys[i])]));
+      text(action, s.action); opacity(action, s.textAlpha);
+      opacity(legend,s.mode==='finalPrepare'?s.cues.colorExit:['finalCompare','finalShiftScan'].includes(s.mode)?1:0);
+      const c=s.cues;
+      prepared.forEach(f=>opacity(f.g,c.workSpectra));preparedColor.forEach(node=>opacity(node,c.colorPaint));
+      opacity(prepareOperation,c.workSpectra*(1-c.colorEnter));
+      opacity(concept,1-c.workSpectra);
+      const q=frequencyPoint.q, markerPositions=[];
+      pointActors.forEach((actor,b)=>{
+        const address=[q[0]+b*peak.kx,q[1]+b*peak.ky],native=c.nativeLayout;
+        const start=[layout.entry.cx+q[0]*layout.entry.unit,layout.entry.cy+q[1]*layout.entry.unit];
+        const end=[layout.pair.x[b]+address[0]*layout.pair.size/layout.entry.range,layout.pair.y+address[1]*layout.pair.size/layout.entry.range];
+        const position=start.map((v,i)=>v+(end[i]-v)*native);markerPositions.push(position);
+        set(actor.marker,'transform',`translate(${position[0]} ${position[1]})`);
+        set(actor.marker,'data-address',address.join(','));set(actor.marker,'data-q',q.join(','));
+        opacity(actor.marker,s.frequencyPointAlpha);opacity(actor.location,c.addressPoint);
+        const h=b?frequencyPoint.h1:frequencyPoint.h0,z=b?frequencyPoint.rawY:frequencyPoint.rawX,corrected=b?frequencyPoint.y:frequencyPoint.x;
+        text(actor.h,`H${b?'₁(q+k̂)':'₀(q)'} = ${number(h,5)}`);opacity(actor.h,c.ownOtf);
+        text(actor.value,(c.correction===1?'校正后：':'记录：')+complex(c.correction===1?corrected:z));
+        set(actor.value,'data-re',c.correction===1?corrected.re:z.re);set(actor.value,'data-im',c.correction===1?corrected.im:z.im);
+        opacity(actor.value,c.ownOtf);
+        opacity(samples[b],c.correction);
+      });
+      set(correspondenceLine,'d',`M ${markerPositions[0].join(' ')} L ${markerPositions[1].join(' ')}`);
+      opacity(correspondenceLine,s.frequencyPointAlpha*(1-c.commonAlpha));
+      opacity(alphaIllustration,s.illustrationAlpha);
+      opacity(commonMeaning,1);opacity(commonMeaningLabel,1);
+      const g=s.geometry;
+      opacity(geometry,c.alphaDemo);set(geometry,'data-scale',g.scale);set(geometry,'data-angle',g.angle);
+      vector(geometrySource,g.source,explain.radius-8);vector(geometryScaled,g.scaled,explain.radius-8);vector(geometryTarget,g.target,explain.radius-8);
+      opacity(geometryScaled,c.alphaRotate);
+      const arcRadius=39,theta=g.psi+g.angle;
+      set(geometryArc,'d',g.angle<1e-9?'M 0 0':`M ${arcRadius*Math.cos(g.psi)} ${-arcRadius*Math.sin(g.psi)} A ${arcRadius} ${arcRadius} 0 0 0 ${arcRadius*Math.cos(theta)} ${-arcRadius*Math.sin(theta)}`);
+      opacity(geometryAngle,c.alphaRotate);set(geometryAngle,'x',56*Math.cos(g.psi+g.angle/2));set(geometryAngle,'y',-56*Math.sin(g.psi+g.angle/2));
+      set(alphaParts[1],'data-emphasized',s.substep==='alphaStretch');set(alphaParts[2],'data-emphasized',s.substep==='alphaRotate');
+      text(geometryLabel,c.alphaRotate>0?'青：原箭头 z · 紫：αz':'同一线性标尺 · 方向不变，长度 ×m');
+      text(commonMeaningLabel,c.alphaShared>0?'换一个 z，仍用同一个 m 与 φΔ':c.alphaRotate>0?'② 转过 φΔ，保持缩放后的长度':c.alphaDemo>0?'① 乘 m，先改变长度':'共同的伸缩与转角');
+      const color=s.displayKey;
+      opacity(colorKey,color.alpha);opacity(hueRing,c.colorPhase>0?1:0);
+      set(colorKey,'data-actual',color.actual);set(colorKey,'data-rho',color.rho);set(colorKey,'data-brightness',color.brightness);set(colorKey,'data-hue',color.hue);
+      vector(colorVector,{re:color.re,im:color.im},key.radius-7);
+      const barX=key.barX+color.rho*key.barWidth;
+      set(brightnessCursor,'d',`M ${barX} ${key.barY-5} v ${key.barHeight+10}`);
+      text(keyMessage,c.colorPhase>0?'角度 → 色相环；长度保持不变':'长度 → 对数亮度');
+      text(colorReadout,`ρ = ${number(color.rho,3)} → L = ${number(color.brightness,3)}`);
+      text(colorCaption,c.colorPaint>0?'回到本组实际选点 B₀(q)':'显示标尺演示 · 不改动数据');
+      text(colorFoot,c.colorPaint>0?'同一规则，应用于每个复数':'亮度与色相分别记录长度和角度');
+      set(colorTile,'fill',`rgb(${color.rgb.join(',')})`);set(colorTile,'data-rgb',color.rgb.join(','));
+      const pixelX=layout.pair.x[0]+q[0]*layout.pair.size/layout.entry.range,pixelY=layout.pair.y+q[1]*layout.pair.size/layout.entry.range;
+      const tileSize=key.tileSize+(layout.pair.size/layout.entry.range-key.tileSize)*c.colorPaint;
+      set(colorTile,'width',tileSize);set(colorTile,'height',tileSize);
+      set(colorTile,'x',key.tileX+(pixelX-tileSize/2-key.tileX)*c.colorPaint);
+      set(colorTile,'y',key.tileY+(pixelY-tileSize/2-key.tileY)*c.colorPaint);
+      otherPoints.flat().forEach(n=>opacity(n,c.commonPoints));
       inverseCards.forEach(card => {
+        opacity(card.g,1-c.derivationEnter);
         opacity(card.image, 1 - M.ramp(s.inverse, 0, .35));
         opacity(card.spatial, M.ramp(s.inverse, .55, 1));
         opacity(card.transform, s.inverse > 0 && s.inverse < 1 ? 1 : 0);
       });
-      // Explain one actual value first; then construct the output field.
-      // Pending positions stay blank instead of displaying unshifted v as v_k.
-      const shiftCount = Math.min(peak.count, Math.floor((s.shiftScan + 1e-12) * peak.count));
-      prefix(shiftPrefix, shiftCount, layout.shift.size);
-      opacity(shiftFields[2].g, s.shiftOutput); opacity(shiftFields[2].image, 0);
-      text(shiftFields[2].caption, `已处理 ${shiftCount} / ${peak.count} 个位置`);
+      opacity(derivation,c.derivationEnter);
+      opacity(kernel,1-M.ramp(c.kernelSplit,0,.35));
+      kernelFactors.forEach((node,i)=>{
+        const split=c.kernelSplit;
+        set(node,'transform',`translate(${(proof.factors[i]-proof.x)*split} ${(i?1:-1)*45*Math.sin(Math.PI*split)})`);
+        opacity(node,M.ramp(split,.55,.85));
+      });
+      opacity(extraCaption,c.deltaReveal);
+      opacity(referenceCaption,c.deltaReveal);
+      const op=s.pointwise,shiftCount=op.count;
+      prefix(shiftPrefix,shiftCount,layout.shift.size);
+      const scanBeat=Story.timeline.beats.find(b=>b.key==='finalShiftScan');
+      const scanEnter=M.ramp(s.progress,scanBeat.start,scanBeat.start+(scanBeat.end-scanBeat.start)*.12);
+      opacity(pointDetail,1-scanEnter);
+      const dock=c.productDock,actualCompare=s.comparisonAlpha;
+      shiftFields.forEach((f,i)=>{
+        let x=layout.shift.x[i],y=layout.shift.y,size=layout.shift.displaySize;
+        if(i===1){
+          x+=(single.input[0]-x)*c.pointLayout;size+=(single.input[2]-size)*c.pointLayout;
+          x+=(operation.x[0]-x)*op.arrange;size+=(layout.shift.displaySize-size)*op.arrange;
+        } else {const b=i===0?0:1;x+=(layout.product.x[b]-x)*dock;y+=(layout.product.y-y)*dock;size+=(layout.product.size-size)*dock;}
+        set(f.g,'transform',`translate(${x} ${y}) scale(${size/layout.shift.size})`);
+      });
+      opacity(shiftFields[0].g,op.referenceAlpha);
+      opacity(shiftFields[1].g,1-c.compareExit);
+      opacity(compareLabel,actualCompare*(1-dock));
+      opacity(shiftFields[2].g,s.shiftOutput);opacity(shiftFields[2].image,0);
+      set(shiftFields[2].caption,'display','none');
+      opacity(pointwise,op.alpha);
+      set(pointwise,'data-index',op.index);set(pointwise,'data-r',op.r.join(','));
+      set(pointwise,'data-known-angle',op.theta);set(pointwise,'data-applied-angle',op.angle);
+      text(scanCoordinate,`同一坐标 r = (${op.r.join(', ')})`);
+      text(scanCounter,`已处理 ${shiftCount} / ${peak.count} 个位置`);
+      const pixelSize=layout.shift.size/n;
+      set(demoPixel,'x',-layout.shift.size/2+op.r[0]*pixelSize);set(demoPixel,'y',-layout.shift.size/2+op.r[1]*pixelSize);
+      set(demoPixel,'width',pixelSize);set(demoPixel,'height',pixelSize);
+      opacity(demoImage,op.write);set(demoImage,'data-index',op.index);
       const cursor = Story.dataFor(lesson).sampleIndex, [rx, ry] = position(cursor);
       const angle = principal(-2 * Math.PI * (peak.kx * rx + peak.ky * ry) / n);
-      const v = value(peak.spatial[1], cursor), rotate = angle * s.shift, c = Math.cos(rotate), sn = Math.sin(rotate);
-      const current = { re: v.re * c - v.im * sn, im: v.re * sn + v.im * c };
-      const vScale = 49 / Math.max(1e-30, mag(v));
+      const v = value(peak.spatial[1], cursor), rotate = angle * s.shift, cosine = Math.cos(rotate), sn = Math.sin(rotate);
+      const current = { re: v.re * cosine - v.im * sn, im: v.re * sn + v.im * cosine };
+      [v,current].forEach((z,b)=>{
+        const color=Story.displayColor(z.re,z.im,displayScales.spatial[1]);
+        set(rampSwatches[b],'fill',`rgb(${color.rgb.join(',')})`);set(rampSwatches[b],'data-brightness',color.brightness);set(rampSwatches[b],'data-hue',color.hue);
+      });
+      const vScale = (single.plane[2]-8) / comparisonMaximum;
       vector(rampStart, v, vScale); vector(rampArrow, current, vScale);
       set(rampArrow, 'data-known-angle', angle); set(rampArrow, 'data-applied-angle', rotate);
-      text(rampAngle, `斜坡相角 ${number(rotate, 3)} rad`); text(rampPosition, `r = (${rx}, ${ry})`);
-      shiftFields.slice(0, 2).forEach(f => f.moveCursor(cursor, 1));
-      shiftFields[2].moveCursor(Math.max(0, shiftCount - 1), shiftCount > 0 && shiftCount < peak.count ? 1 : 0);
-      productFields.forEach(f => f.moveCursor(s.sample, 1));
-      const u = value(peak.spatial[0], s.sample), conjugated = { re: u.re, im: -u.im * (2 * s.conjugate - 1) };
-      const uScale = 69 / Math.max(1e-30, mag(u));
-      vector(sourceU, u, uScale); vector(conjugateU, conjugated, uScale);
+      text(rampAngle, `反向转过 ${number(rotate,3)} rad`);
+      const psi=Math.atan2(v.im,v.re),rampArcRadius=62;
+      set(rampArc,'d',Math.abs(rotate)<1e-10?'M 0 0':`M ${rampArcRadius*Math.cos(psi)} ${-rampArcRadius*Math.sin(psi)} A ${rampArcRadius} ${rampArcRadius} 0 0 ${rotate>=0?0:1} ${rampArcRadius*Math.cos(psi+rotate)} ${-rampArcRadius*Math.sin(psi+rotate)}`); text(rampPosition, `r = (${rx}, ${ry})`);
+      text(shiftFields[2].heading,'vₖ');
+      const comparisonOn=s.compare>0;
+      shiftFields[0].moveCursor(s.sample,comparisonOn?1:0);
+      const operationCursor=op.alpha>0?1:0;
+      shiftFields[1].moveCursor(op.alpha>0?op.index:cursor,op.alpha>0?operationCursor:scanEnter<1?1:0);
+      shiftFields[2].moveCursor(comparisonOn?s.sample:op.index,comparisonOn?1:operationCursor);
+      const u = value(peak.spatial[0], s.sample), conjugated = { re: u.re, im: u.im*(1-2*s.conjugate) },target=value(peak.shifted,s.sample);
+      const uScale=(layout.shift.plane[2]-8)/comparisonMaximum;
+      vector(sourceU,u,uScale);vector(conjugateU,conjugated,uScale);vector(targetV,target,uScale);
+      opacity(sourceU,s.conjugate);opacity(comparison,actualCompare);
+      set(comparison,'transform',`translate(${layout.shift.plane[0]+(layout.product.plane[0]-layout.shift.plane[0])*dock} ${layout.shift.plane[1]+(layout.product.plane[1]-layout.shift.plane[1])*dock})`);
+      set(comparison,'data-sample',s.sample);set(comparison,'data-scale',uScale);
+      text(comparisonPosition,`r* = (${s.r.join(', ')})`);
+      text(vectorNames,s.conjugate>0?'u* · vₖ':'u · vₖ');
+      const localCross={re:u.re*target.re+u.im*target.im,im:u.re*target.im-u.im*target.re};
+      const sameDirection=localCross.re>0&&Math.abs(localCross.im)<1e-8*Math.max(1e-30,mag(u)*mag(target));
+      text(directionNote,sameDirection?'本例方向一致，共同作用表现为长度比例。':'对应位置的两根箭头，具有共同的伸缩与转角。');
+      opacity(directionNote,actualCompare*(1-dock));
       set(product, 'data-index', s.sample); set(product, 'data-r', s.r.join(','));
       const z = value(peak.product, s.sample), energy = peak.energy[s.sample];
       set(product, 'data-z-re', z.re); set(product, 'data-z-im', z.im); set(product, 'data-e', energy);
@@ -256,7 +453,7 @@
       set(phaseArc, 'd', Math.abs(arc) < 1e-10 ? 'M 0 0' : `M 36 0 A 36 36 0 ${Math.abs(arc) > Math.PI ? 1 : 0} ${arc >= 0 ? 0 : 1} ${36 * Math.cos(arc)} ${-36 * Math.sin(arc)}`);
       set(phaseArc, 'data-phase', s.phase === null ? '' : s.phase); opacity(phaseArc, s.phaseRead);
       opacity(length, s.lengthRead); opacity(read, s.readAlpha);
-      text(phaseText, s.phase === null ? '' : `φ̂Δ = ${number(s.phase, 4)} rad`); opacity(phaseText, s.phaseRead);
+      text(phaseText, s.phase === null ? '' : Math.abs(s.phase)<1e-10?'本例共同相位 φ̂Δ ≈ 0 rad':`φ̂Δ = ${number(s.phase, 4)} rad`); opacity(phaseText, s.phaseRead);
       text(lengthText, s.m === null ? '' : `m̂ = ${number(s.m, 4)}`); opacity(lengthText, s.lengthRead);
       opacity(cards, s.cards); legs.forEach(node => opacity(node, s.cards));
       cardNodes.forEach(({ g, v }, i) => {

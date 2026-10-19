@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <title>SIM Motion · 从样品到超分辨重建</title>
-  <link rel="stylesheet" href="web/motion/sim-motion.css?v=centered-observation-expansion-8">
+  <link rel="stylesheet" href="web/motion/sim-motion.css?v=alpha-color-20261019-v2">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=post-lock-coherence-20261018">
-  <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=scene-governance-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=alpha-formula-20261019-v3">
+  <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=rehearsal-grid-20261018">
 </head>
 <body>
 <div class="app" id="app">
@@ -22,10 +22,10 @@
     <section class="scene-heading" aria-labelledby="scene-title">
       <div class="heading-index"><span id="chapter">01 / 样品与边界</span><div class="heading-line"></div></div>
       <div id="scene-copy"><h1 id="scene-title">细节，藏在高频里。</h1><p id="scene-description">从同一张样品出发，跟着一个高频分量，走完编码、解混、归位和融合。</p></div>
-      <span class="scene-counter" aria-hidden="true"><b id="scene-number">01</b><span id="scene-total">/ 33</span></span>
+      <span class="scene-counter" aria-hidden="true"><b id="scene-number">01</b><span id="scene-total">/ 43</span></span>
     </section>
     <div class="stage" id="stage">
-      <div class="stage-topline"><span id="view-label">REAL SPACE / 相机观测</span><span id="stage-caption">3 PHASES · 1 DIRECTION</span></div>
+      <div class="stage-topline" hidden><span id="view-label">REAL SPACE / 相机观测</span><span id="stage-caption">3 PHASES · 1 DIRECTION</span></div>
       <div id="detection-context" class="capture-context" aria-hidden="true" style="opacity:0">
         <span class="capture-context-label">单方向 · 一次拍摄</span>
         <span class="capture-context-phase"><span>固定相位</span><span data-equation="$$\phi_0=0$$"></span></span>
@@ -102,31 +102,31 @@
         <div id="equation"></div>
         <div id="encoding-sum-equations" class="encoding-sum-equations" role="group" aria-label="欧拉展开、傅里叶移频与三个编码项加权叠加" hidden>
           <div id="encoding-derivation" class="encoding-derivation" aria-label="余弦展开、因子分配与逐项傅里叶变换">
-            <svg class="encoding-formula-canvas" viewBox="0 0 1200 144" role="img" aria-labelledby="encoding-algebra-description">
+            <svg class="encoding-formula-canvas" viewBox="0 0 1200 176" role="img" aria-labelledby="encoding-algebra-description">
               <desc id="encoding-algebra-description">记下总相位，写出正负欧拉公式，相加消去虚部并除以二，再代回条纹相位、拆开指数、分配样品，最后逐项做傅里叶变换。</desc>
               <g id="encoding-algebra-tokens"></g>
-              <foreignObject id="encoding-algebra-theta" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-theta" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\theta=\frac{2\pi x}{p}+\phi_j$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-identity" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-identity" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{i\theta}=\cos\theta+i\sin\theta,\qquad e^{-i\theta}=\cos\theta-i\sin\theta$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-cancel" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-cancel" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{i\theta}+e^{-i\theta}=2\cos\theta+\underbrace{i\sin\theta-i\sin\theta}_{0}=2\cos\theta$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-half" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-half" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\cos\theta=\frac{e^{i\theta}+e^{-i\theta}}{2}\quad\Longrightarrow\quad m\cos\theta=\frac m2\left(e^{i\theta}+e^{-i\theta}\right)$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-substitute" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-substitute" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{\pm i\theta}=e^{\pm i(2\pi x/p+\phi_j)}$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-factor" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-factor" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$e^{a+b}=e^ae^b\quad\Longrightarrow\quad e^{\pm i(2\pi x/p+\phi_j)}=e^{\pm i\phi_j}e^{\pm2\pi ix/p}$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-notation" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-notation" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\mathbf r=(x,y),\quad\mathbf k=(N/p,0),\quad\mathbf k\cdot\mathbf r/N=x/p$$"></div>
               </foreignObject>
-              <foreignObject id="encoding-algebra-theorem" x="110" y="107" width="980" height="35" opacity="0" aria-hidden="true">
+              <foreignObject id="encoding-algebra-theorem" x="110" y="110" width="980" height="58" opacity="0" aria-hidden="true">
                 <div xmlns="http://www.w3.org/1999/xhtml" class="encoding-algebra-detail" data-equation="$$\mathcal F_N\!\left\{s(\mathbf r)e^{\pm2\pi i\mathbf k\cdot\mathbf r/N}\right\}(\mathbf f)=S(\mathbf f\mp\mathbf k)$$"></div>
               </foreignObject>
             </svg>
@@ -236,7 +236,7 @@
           </div>
         </div>
         <p id="domain-guide" class="domain-guide" hidden></p>
-        <p id="equation-note"></p>
+        <div id="equation-note-slot"><p id="equation-note"></p></div>
         <button id="theory-context" class="theory-entry" type="button" aria-haspopup="dialog" aria-controls="theory" hidden></button>
         <button id="fourier-open" class="fourier-entry" type="button" aria-haspopup="dialog" aria-controls="fourier-lesson"><span class="fourier-entry-icon" aria-hidden="true">↗</span><span>频域里的点，怎样变成空域条纹？</span><span class="fourier-entry-detail">频率 · 系数 · 加权叠加</span></button>
       </div>
@@ -331,7 +331,7 @@
   <p>预设值描述希望产生的条纹，重建模型需要的是拍摄时样品处实际形成的条纹。两者是否一致，取决于光路与标定是否准确、采集时是否稳定；不能仅凭“已经设定”就认定它们相等：</p>
   <div class="theory-equation" data-equation="$$I_j(\mathbf r)=1+m\cos\!\left(\frac{2\pi}{N}\mathbf k\cdot\mathbf r+\phi_j\right)$$"></div>
   <p><strong>调制度 m：</strong>两束光到达样品时的强度比例、偏振匹配程度决定干涉反差。即使预设高反差，实际光束强度不平衡或偏振不匹配，条纹反差也会降低。</p>
-  <p><strong>相位 φ：</strong>相移命令规定每次改变多少相位，但样品处的相位起点还包含实际光程差带来的偏移。即使三帧之间准确移动了 2π/3，共同起点仍可能未知。本页假设该偏移在三帧内保持不变。</p>
+  <p><strong>相位 φ：</strong>相移命令规定每次改变多少相位，但样品处的相位起点还包含实际光程差带来的偏移。即使三帧之间准确移动了 2π/3，共同相位仍可能未知。本页假设该偏移在三帧内保持不变。</p>
   <p><strong>波矢 k：</strong>条纹的实际方向和间距由样品处两束光的传播方向决定。光束夹角或对准的偏差会改变波矢；换算成图像中的频率格，还需要准确的样品面像素尺度。</p>
   <details><summary>这些差异如何从两束光的干涉公式推出？</summary>
     <p>取同频、完全相干的两束平面波，强度为 J₁、J₂，单位偏振向量为 e₁、e₂。由电场叠加后取模平方，平均强度归一化后得到下式；偏振内积的相角并入 φⱼ：</p>
@@ -376,9 +376,9 @@
   <p>U、V 在这里表示完成自身 OTF 校正的标量频谱值；前面的 Ũ 表示临时分离矩阵。固定 q 处的 U 不变，改变候选时重新取旁带与其 OTF，并重新筛选公共区。记 H₀=H(q)、H₁=H(q+k)，在正确候选、无噪声模型下：</p>
   <div class="theory-equation" data-equation="$$\begin{aligned}U(\mathbf q)&=\frac{H_0^*(H_0S)}{|H_0|^2}=S(\mathbf q),\\V_{\mathbf k}(\mathbf q)&=\frac{H_1^*(m e^{i\phi_\Delta}H_1S)}{|H_1|^2}=m e^{i\phi_\Delta}S(\mathbf q)=m e^{i\phi_\Delta}U(\mathbf q).\end{aligned}$$"></div>
   <p>这个等价关系对一般非零复 OTF 也成立。本页采集使用实数非负 OTF，但公式保留共轭符号。只在两边 |H| 都达到阈值的公共区内相除；含噪声观测 HS+N 校正后仍有 N/H，不能理解成去除了噪声。</p>
-  <p>先用教学归一化复数相关寻找波矢并在峰附近细化。第 19 步另按本地 fairSIM 的最终 getPeak 路径准备工作副本，在空域计算共同幅相：</p>
+  <p>先用教学归一化复数相关寻找波矢并在峰附近细化。第 19—27 步按本地 fairSIM 的最终 getPeak 路径准备工作副本，在空域计算共同幅相：</p>
   <div class="theory-equation" data-equation="$$\widehat\alpha=\frac{\sum_{\mathbf r}u^*(\mathbf r)v_{\widehat{\mathbf k}}(\mathbf r)}{\sum_{\mathbf r}|u(\mathbf r)|^2},\qquad\widehat m=|\widehat\alpha|,\quad\widehat\phi_\Delta=\arg\widehat\alpha$$"></div>
-  <p>第 19 步对空域参考场 u 取共轭，是为累计两路计算场的相关；第 15 步对 H 取共轭，是为展开自身 OTF 校正。后面的 Wiener 重建还会用 H* 加权后合并多个频带，并使用总模平方与正则项作分母；不能把那一阶段的分母替换成本步的逐频带 |H|²。</p>
+  <p>第 24 步对空域参考场 u 取共轭，是为累计两路计算场的相关；第 15 步对 H 取共轭，是为展开自身 OTF 校正。后面的 Wiener 重建还会用 H* 加权后合并多个频带，并使用总模平方与正则项作分母；不能把那一阶段的分母替换成本步的逐频带 |H|²。</p>
   <p>临时分离已补偿余弦展开的 1/2，因此模长直接给 m。非等间隔相移需要另估各帧相位；弱公共区、噪声和 OTF 误差会影响估计。</p>
   <p>第 16 步只演示直接计算：每选一个候选 k′，扫过其可靠公共区，把对应复数值共轭相乘再求和；取模并按两边能量归一化，得到该格的匹配分数。先逐格看清，再加速填满图。主线不再展开最小二乘目标、最优系数和残差推导。</p>
   <div class="theory-equation" data-equation="$$C(\mathbf k')=\sum_{\mathbf q\in\Omega(\mathbf k')}U^*(\mathbf q)V_{\mathbf k'}(\mathbf q),\qquad\rho(\mathbf k')=\frac{|C(\mathbf k')|}{\sqrt{\sum_{\Omega}|U|^2\sum_{\Omega}|V_{\mathbf k'}|^2}}$$"></div>
@@ -411,12 +411,12 @@
     <div class="theory-equation" data-equation="$$\left|e^{-\frac{2\pi i}{N}\mathbf k'\cdot\mathbf r}\right|=1,\qquad |b_{\mathbf k'}[x,y]|=|a[x,y]|,\qquad\sum_{x,y}|b_{\mathbf k'}|^2=\sum_{x,y}|a|^2$$"></div>
     <p>这说明数学变换没有额外插值模糊；它不会增加观测信息，也不保证获得真实连续样品的任意频率信息。有限视野、边界、噪声与 OTF 模型仍会影响估计。紫色旁带与其 OTF 使用同一个小数坐标：在两边 H 都可靠的公共区分别校正，再按两边能量归一化得到 ρ(k′)。</p>
     <div class="theory-equation" data-equation="$$V_{\mathbf k'}(\mathbf q)=\frac{B_{\mathbf k'}(\mathbf q)}{H(\mathbf q+\mathbf k')},\quad U(\mathbf q)=\frac{\widetilde A_0(\mathbf q)}{H(\mathbf q)},\quad\mathbf q\in\Omega_{\mathbf k',\tau},\qquad\rho(\mathbf k')=\frac{|\sum_{\Omega}U^*V_{\mathbf k'}|}{\sqrt{\sum_{\Omega}|U|^2\sum_{\Omega}|V_{\mathbf k'}|^2}}$$"></div>
-    <p>第 18 步共 68 秒。0—22% 放大整数峰附近 ±0.5 格，背景等高线来自当前观测的 21×21 局部分数采样；橙色准星是本组局部拟合位置，不是已知真值。本页周期采集采用整数波矢，拟合峰可以恰与整数点重合。22—56% 先逆 FFT，再选上图橙点 r₀ 对照下方公式：单位模因子进入乘法，青色复数箭头旋转为紫色，长度保持不变；对整张空域复场完成逐点乘法后才进入 FFT 和评分。角度按模 2π 显示，箭头长度统一归一显示，数值来自同一实际像素。56—93.5% 放大局部网格、继续三轮缩进；0.01 格锁定后，最后 6.5% 收起网格，展开原来的完整频谱、OTF 和公共点，再让复数箭头出现。第 18 步结束时沿用第 19 步开始的同一组节点、位置与数值。</p>
+    <p>第 18 步共 68 秒。0—22% 放大整数峰附近 ±0.5 格，背景等高线来自当前观测的 21×21 局部分数采样；橙色准星是本组局部拟合位置，不是已知真值。本页周期采集采用整数波矢，拟合峰可以恰与整数点重合。22—56% 先逆 FFT，再选上图橙点 r₀ 对照下方公式：单位模因子进入乘法，青色复数箭头旋转为紫色，长度保持不变；对整张空域复场完成逐点乘法后才进入 FFT 和评分。角度按模 2π 显示，箭头长度统一归一显示，数值来自同一实际像素。56—93.5% 放大局部网格、继续三轮缩进；0.01 格锁定后，最后 6.5% 收起搜索网格，展开完整频谱与 OTF，并保留锁定波矢。P/Q/R 示例点与复平面在此不再使用。第 18 步的终点交给第 19 步，沿用同一组节点、位置与数值。</p>
     <p>小数频移的有限傅里叶频谱在可靠通带外仍可有非零尾迹，强对数色阶会把它们提亮。中栏现在仅显示各频带自身 H 达到阈值的区域，橙色公共格才参与评分；圈外仅在显示中隐藏，不把计算用复数频谱截断或置零。</p>
     <div class="theory-equation" data-equation="$$k'_{r,a}=c_{r,a}+\frac{j-2}{2}s_r,\quad j=0,\ldots,4,\quad a\in\{x,y\},\qquad s_r\in\{0.50,0.10,0.02\},\quad h_r=\frac{s_r}{2}\in\{0.25,0.05,0.01\}$$"></div>
     <p>每轮最高分成为下一轮中心，范围缩小 5 倍。0.01 格是最后一轮搜索步长，不是测量误差保证。推导采用 <a href="https://numpy.org/doc/stable/reference/routines.fft.html#implementation-details" target="_blank" rel="noopener">NumPy 的正逆 DFT 定义</a>；实现对应 <a href="web/atlas/sim-atlas-core.js">sim-atlas-core.js 的 shift</a> 和 <a href="web/shared/sim-parameter-estimation.js">教学估计器 compare、estimate</a>。原版 fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java">fitPeak</a> 同样逐候选移频后计算相关，但使用三轮 10×10 与不同半宽、预处理和评分。</p>
   </details>
-  <details class="parameter-correlation-detail"><summary>第 19 步：fairSIM 的最终 getPeak 实际计算什么？</summary>
+  <details class="parameter-correlation-detail"><summary>第 19—27 步：fairSIM 的最终 getPeak 实际计算什么？</summary>
     <p>位置锁定后，从未校正的临时频带重新复制两路工作数据。按最终位移筛选可靠 OTF 并执行源码的径向排除；只在保留位置除以各自 H，其他位置直接置零，得到各自原生检测坐标中的 B₀、B₁。准备的是新副本，没有对前面已校正的 U、V 再除一次 H。最终掩膜与前面位置搜索的教学公共区不同，频域保留点数也不同。</p>
     <div class="theory-equation" data-equation="$$B_b(\mathbf f)=\begin{cases}\widetilde A_b(\mathbf f)/H(\mathbf f),&amp;M_b(\mathbf f;\widehat{\mathbf k})=1,\\0,&amp;\text{其他},\end{cases}\quad b\in\{0,+1\}$$"></div>
     <p>接着两路逆 FFT；旁带空域场乘已锁定位移对应的单位模相位斜坡。这里 r=(x,y) 是空域像素索引。本页 y 向下、正变换用负指数，转换后斜坡为负号；源码的峰参数为 (−k̂ₓ,+k̂ᵧ)。</p>
@@ -491,7 +491,7 @@
   <div class="theory-equation" data-equation="$$\begin{bmatrix}D_0\\D_1\\D_2\end{bmatrix}=\underbrace{\begin{bmatrix}1&\frac m2e^{i\phi_0}&\frac m2e^{-i\phi_0}\\1&\frac m2e^{i\phi_1}&\frac m2e^{-i\phi_1}\\1&\frac m2e^{i\phi_2}&\frac m2e^{-i\phi_2}\end{bmatrix}}_{M}\begin{bmatrix}A_0\\A_{+1}\\A_{-1}\end{bmatrix}$$"></div>
   <p>结构推导仍使用 A；估计结束后，m、φⱼ、k 表示重建采用的估计值。M⁻¹ 的三行依次提取 0 级、 +1 级、 −1 级，列对应三帧观测。页面实际计算使用各方向估计出的相位与调制度；解混结果是否等于真实来源，还取决于噪声及估计误差。</p>
   <div class="theory-equation" data-equation="$$\begin{bmatrix}A_0\\A_{+1}\\A_{-1}\end{bmatrix}=M^{-1}\begin{bmatrix}D_0\\D_1\\D_2\end{bmatrix},\qquad M^{-1}M=I$$"></div>
-  <p>本页三次相位等间隔，允许共同的初相位 φΔ。此时可以直接写出逆矩阵：令 V 的三列为三个相位因子，利用三次单位根的正交性：</p>
+  <p>本页三次相位等间隔，允许共同相位 φΔ。此时可以直接写出逆矩阵：令 V 的三列为三个相位因子，利用三次单位根的正交性：</p>
   <div class="theory-equation" data-equation="$$\phi_j=\phi_\Delta+\frac{2\pi j}{3},\quad m\ne0,\qquad V_{j\ell}=e^{i\ell\phi_j},\qquad\sum_{j=0}^2e^{i(\ell-r)\phi_j}=3\delta_{\ell r},\quad\ell,r\in\{0,+1,-1\}$$"></div>
   <div class="theory-equation" data-equation="$$M=V\Lambda,\quad\Lambda=\operatorname{diag}(1,m/2,m/2),\quad V^\dagger V=3I\quad\Longrightarrow\quad U=M^{-1}=\frac13\Lambda^{-1}V^\dagger$$"></div>
   <div class="theory-equation" data-equation="$$u_{0,j}=\frac13,\qquad u_{+1,j}=\frac{2}{3m}e^{-i\phi_j},\qquad u_{-1,j}=\frac{2}{3m}e^{+i\phi_j}$$"></div>
@@ -500,6 +500,10 @@
   <div class="theory-equation" data-equation="$$A_\ell(\mathbf f)=\sum_{j=0}^{2}u_{\ell,j}D_j(\mathbf f),\qquad A_\ell(\mathbf f)=H(\mathbf f)S(\mathbf f-\ell\mathbf k)$$"></div>
   <p>源码依据：fairSIM 的 <a href="Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java">BandSeparation.java</a> 构造复数混合矩阵，三相位时调用 M.inverse()，再用返回的权重乘各帧频谱并累加。观测帧多于分量时使用伪逆。参数估计负责获得照明参数，求逆本身完成频带解混。</p>
   <p>正式解混读取原始完整三帧；估计中筛选、除 H 的工作副本只提供参数。归位前按有符号频率地址将 128² 频谱嵌入 256² 零数组，保持 DFT 格间隔和视野。最终逆 FFT 乘 (256/128)²=4 恢复强度标度，零填充本身不创造高频信息。</p>
+  <h3>实际矩阵 · 方向 1</h3>
+  <p>这里保留完整数值对照。M 的行是三帧，U 的行是三个频带；数值均由本次估计的幅相计算。</p>
+  <table><thead><tr><th>M 的行 / 帧</th><th>0 级系数</th><th>+1 级系数</th><th>−1 级系数</th></tr></thead><tbody id="adopted-mixing-values"></tbody></table>
+  <table><thead><tr><th>U 的行 / 频带</th><th>D₀ 权重</th><th>D₁ 权重</th><th>D₂ 权重</th></tr></thead><tbody id="adopted-inverse-values"></tbody></table>
   <h3>实际读数 · 选定的检测频率 f</h3><p class="subtle">复数均除以 128²，便于阅读。内部计算保留完整精度。</p>
   <table><thead><tr><th>观测</th><th>复数值</th><th>−1 级解混权重</th></tr></thead><tbody id="observed-values"></tbody></table>
   <h3>解混结果与归位位置</h3><table><thead><tr><th>级次</th><th>归位后的 q</th><th>复数值</th></tr></thead><tbody id="component-values"></tbody></table>
@@ -567,94 +571,96 @@
 <div id="fatal-error" class="fatal-error" role="alert" hidden></div>
 <noscript><div class="fatal-error">这个动画需要启用 JavaScript。也可以返回 <a href="sim_pipeline_atlas.html">重建图谱</a> 阅读公式。</div></noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/sim-experiment.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/sim-band-formulas.js?v=post-lock-coherence-20261018"></script>
-<script src="web/atlas/sim-atlas-core.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/animation/beat-clock.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/get-peak/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/shared/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/shift/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/otf/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/match/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/refine/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/comparison-data.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/shared/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/line-shift/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/shift/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/otf/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/match/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/coarse/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/refine/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/refine/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/line-shift/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/get-peak/layout.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/get-peak/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/provisional-split/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/adopted-weights/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/parameter-demo/scenes/shared/entry.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion-parameter-view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/sample/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/widefield/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/illumination/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/encoding-sum/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/detection/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/frequency-probe/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/mixed-sources/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/inverse-demix/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/verify-demix/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/separate-bands/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/relocate-bands/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/directions/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/single-direction-support/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/combined-support/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/otf-weight/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/sum-contributions/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/wiener/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/apodization/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/inverse-fft/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/image-comparison/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/frequency-audit/storyboard.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/index.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/inverse-demix/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/mixed-sources/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/separate-bands/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/phase-acquisition/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/detection/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/encoding-sum/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/frequency-encoding/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/otf-weight/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/sum-contributions/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/wiener/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/apodization/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/inverse-fft/state.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion-model.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/sample/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/encoding-sum/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/detection/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/directions/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/otf-weight/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/image-comparison/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion-stages.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion-fourier.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/animation/scene-registry.js?v=post-lock-coherence-20261018"></script>
-<script src="web/shared/animation/rehearsal.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/frequency-encoding/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/phase-acquisition/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/relocate-bands/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/scenes/mixed-sources/view.js?v=post-lock-coherence-20261018"></script>
-<script src="web/motion/sim-motion.js?v=post-lock-coherence-20261018"></script>
+<script src="web/shared/sim-core.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/sim-experiment.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/sim-band-formulas.js?v=phase-causality-20261019-v8"></script>
+<script src="web/atlas/sim-atlas-core.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/animation/beat-clock.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/animation/text-transition.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/comparison-data.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/provisional-split/parameter-view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion-parameter-view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/sample/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/widefield/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/illumination/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/frequency-encoding/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/encoding-sum/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/detection/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/phase-acquisition/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/frequency-probe/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/mixed-sources/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/inverse-demix/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/verify-demix/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/separate-bands/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/relocate-bands/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/recover-high-frequency/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/directions/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/single-direction-support/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/combined-support/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/otf-weight/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/sum-contributions/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/wiener/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/apodization/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/inverse-fft/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/image-comparison/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/frequency-audit/storyboard.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/index.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/inverse-demix/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/mixed-sources/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/separate-bands/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/phase-acquisition/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/detection/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/encoding-sum/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/frequency-encoding/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/otf-weight/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/sum-contributions/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/wiener/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/apodization/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/inverse-fft/state.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion-model.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/sample/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/encoding-sum/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/detection/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/directions/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/otf-weight/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/image-comparison/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion-stages.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion-fourier.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/animation/scene-registry.js?v=phase-causality-20261019-v8"></script>
+<script src="web/shared/animation/rehearsal.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/frequency-encoding/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/phase-acquisition/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/relocate-bands/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/scenes/mixed-sources/view.js?v=phase-causality-20261019-v8"></script>
+<script src="web/motion/sim-motion.js?v=phase-causality-20261019-v8"></script>
 </body>
 </html>

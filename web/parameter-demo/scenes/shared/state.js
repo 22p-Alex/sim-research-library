@@ -3,6 +3,12 @@
   'use strict';
   function create({ M, E, A, dataFor }) {
     const { clamp, ramp } = M;
+  // Presentation only: move the pair midpoint (690, 375) to (720, 280)
+  // while enlarging both panels equally. Detector coordinates stay intact.
+  function sharedFocusPose(amount = 1) {
+    const focus = clamp(amount), scale = 1 + .2 * focus, x = -108 * focus, y = -170 * focus;
+    return { amount: focus, scale, x, y, transform: `translate(${x} ${y}) scale(${scale})` };
+  }
   function sharedState(progress) {
     const p = clamp(progress);
     const separate = ramp(p, .80, .90), arrange = ramp(p, .39, .49), relocate = ramp(p, .54, .68);
@@ -31,7 +37,7 @@
       cursor: [q[0] + e.kx * s.derive, q[1] + e.ky * s.derive],
       displacement: [-e.kx * relocation, -e.ky * relocation] };
   }
-    return { sharedState, sharedPointState };
+    return { sharedState, sharedPointState, sharedFocusPose };
   }
   if(typeof module!=='undefined'&&module.exports)module.exports=create;
   else(root.SIMParameterStateFactories ||= {})['shared']=create;

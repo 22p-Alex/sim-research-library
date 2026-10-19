@@ -8,10 +8,13 @@
   function centeredMath(parent, x, y, width, height, tex, attrs = {}) {
     return formulaBox(parent, x - width / 2, y - height / 2, width, height, '$$' + tex + '$$', attrs);
   }
+  function note(attrs,parent,value) {
+    return create('text',{...attrs,display:'none','data-scene-note':''},parent,value);
+  }
   const originView = { panels: [], lastFilter: null };
   function buildSourceOrigins() {
     const root = $('demix-source-origin');
-    originView.caption = create('text', { x: 790, y: 86, 'text-anchor': 'middle', class: 'svg-small' }, root);
+    originView.caption = note({ x: 790, y: 86, 'text-anchor': 'middle', class: 'svg-small' }, root);
     originView.maximum = maximum([lesson.capture.truth.spectrum, lesson.emissionSpectrum]);
     const unweighted = ['S(\\mathbf f)', 'S(\\mathbf f-\\mathbf k)', 'S(\\mathbf f+\\mathbf k)'];
     for (let b = 0; b < 3; b++) {
@@ -33,7 +36,7 @@
       create('text', { x: 12, y: -12, class: 'probe-label', style: 'fill:currentColor' }, point, 'f');
       originView.panels.push({ group, pixels, cutoff, label, original, detected, alias, point });
     }
-    originView.note = create('text', { x: 790, y: 494, 'text-anchor': 'middle', class: 'svg-muted' }, root,
+    originView.note = note({ x: 790, y: 494, 'text-anchor': 'middle', class: 'svg-muted' }, root,
       '回看成像时的组成；相机实际记录三者的加权总和。现在要从三帧中求回这些来源。');
   }
   function drawSourceOrigins(state) {
@@ -84,7 +87,7 @@
         { 'data-source-definition': b });
       style(label, 'color', M.colors[b]);
     }
-    matrixView.caption = create('text', { x: 845, y: 545, 'text-anchor': 'middle', class: 'matrix-caption' }, root);
+    matrixView.caption = note({ x: 845, y: 545, 'text-anchor': 'middle', class: 'matrix-caption' }, root);
     matrixView.forward = create('g', {}, root);
     matrixView.backward = create('g', {}, root);
     matrixView.scaffold = create('g', {}, matrixView.forward);
@@ -135,9 +138,9 @@
       }
     }
     // Keep the inverse definition beside the heading, above the frame labels.
-    create('text', { x: 740, y: 197, 'text-anchor': 'middle', class: 'matrix-heading', 'data-inverse-heading': '' }, matrixView.backward, '来源 = 解混权重 × 三帧观测');
+    create('text', { x: 740, y: 197, 'text-anchor': 'middle', class: 'matrix-heading',display:'none','data-scene-note':'', 'data-inverse-heading': '' }, matrixView.backward, '来源 = 解混权重 × 三帧观测');
     centeredMath(matrixView.backward, 1050, 190, 190, 44, 'U=M^{-1}', { 'data-inverse-definition': '' });
-    ['第 0 帧权重', '第 1 帧权重', '第 2 帧权重'].forEach((label, c) => create('text', { x: 625 + c * 180, y: 247,
+    ['D₀', 'D₁', 'D₂'].forEach((label, c) => create('text', { x: 625 + c * 180, y: 247,
       'text-anchor': 'middle', class: 'matrix-caption' }, matrixView.backward, label));
     bracket(matrixView.backward, 260, 430, 268, 499);
     bracket(matrixView.backward, 535, 1065, 268, 499);
@@ -181,7 +184,7 @@
   ];
   function buildInverseTransform() {
     inverseView.root = create('g', { 'data-inverse-transform': '' }, $('demix-matrix-view'));
-    inverseView.heading = create('text', { x: 840, y: 207, 'text-anchor': 'middle', class: 'matrix-heading' }, inverseView.root);
+    inverseView.heading = note({ x: 840, y: 207, 'text-anchor': 'middle', class: 'matrix-heading' }, inverseView.root);
     inverseView.highlight = create('rect', { x: 830, y: 282, width: 290, height: 94, rx: 6,
       fill: '#7ad5cd0a', stroke: '#7ad5cd', 'stroke-width': 1.5 }, inverseView.root);
     const terms = {
@@ -227,7 +230,7 @@
   function buildDemixProof() {
     buildInverseTransform();
     const root = $('demix-proof-view'), application = $('demix-calculation-view');
-    create('text', { x: 840, y: 195, 'text-anchor': 'middle', class: 'matrix-heading' }, root, '提出同一个来源，括号就是这一行权重乘 M');
+    create('text', { x: 840, y: 195, 'text-anchor': 'middle', class: 'matrix-heading',display:'none','data-scene-note':'' }, root, '提出同一个来源，括号就是这一行权重乘 M');
     for (let b = 0; b < 3; b++) {
       const x = 300 + b * 360, center = x + 172.5;
       create('rect', { x, y: 218, width: 345, height: 275, rx: 6, class: 'matrix-result-card', color: M.colors[b] }, root);
@@ -245,17 +248,17 @@
     }
     proofView.conclusion = centeredMath(root, 840, 529, 1040, 54,
       'A_{-1}(\\mathbf f)=0A_0(\\mathbf f)+0A_{+1}(\\mathbf f)+1A_{-1}(\\mathbf f)');
-    create('text', { x: 840, y: 195, 'text-anchor': 'middle', class: 'matrix-heading' }, application, '参数确定后，对每个检测频率做同样的乘加');
+    create('text', { x: 840, y: 195, 'text-anchor': 'middle', class: 'matrix-heading',display:'none','data-scene-note':'' }, application, '参数确定后，对每个检测频率做同样的乘加');
     for (let j = 0; j < 3; j++) {
       const x = 475 + j * 360;
-      centeredMath(application, x, 265, 330, 85, 'u_{-1,' + j + '}\\cdot D_' + j + '(\\mathbf f)',
+      centeredMath(application, x, 265, 330, 85, 'u_{+1,' + j + '}\\cdot D_' + j + '(\\mathbf f)',
         { 'data-symbolic-input': j });
       calculationView.products.push(centeredMath(application, x, 355, 330, 85,
-        (j ? '+\\;' : '') + 'u_{-1,' + j + '}D_' + j + '(\\mathbf f)', { 'data-symbolic-product': j }));
+        (j ? '+\\;' : '') + 'u_{+1,' + j + '}D_' + j + '(\\mathbf f)', { 'data-symbolic-product': j }));
     }
     calculationView.total = centeredMath(application, 840, 450, 1060, 80,
-      '\\sum_{j=0}^{2}u_{-1,j}D_j(\\mathbf f)=A_{-1}(\\mathbf f)');
-    calculationView.otherRows = create('text', { x: 840, y: 527, 'text-anchor': 'middle', class: 'matrix-caption' }, application,
+      '\\sum_{j=0}^{2}u_{+1,j}D_j(\\mathbf f)=A_{+1}(\\mathbf f)');
+    calculationView.otherRows = note({ x: 840, y: 527, 'text-anchor': 'middle', class: 'matrix-caption' }, application,
       '其余两行同理；同一方向的权重用于全部频率。');
     calculationView.bandSummary = centeredMath($('demix-band-summary'), 825, 516, 1100, 62,
       'A_\\ell(\\mathbf f)=H(\\mathbf f)S(\\mathbf f-\\ell\\mathbf k),\\qquad\\ell\\in\\{0,+1,-1\\}');
@@ -263,7 +266,7 @@
   function drawDemix(demix, s) {
     drawSourceOrigins(demix.origin);
     const show = (el, value) => { opacity(el, value); attr(el, 'aria-hidden', value === 0); };
-    show($('demix-source-definitions'), demix.reveal * demix.definitions * (1 - demix.bands));
+    show($('demix-source-definitions'), demix.reveal * demix.definitions * (1 - demix.application));
     show($('demix-matrix-view'), demix.reveal * (1 - demix.proof));
     show(matrixView.forward, 1 - demix.inverse); show(matrixView.backward, M.ramp(demix.inversion.weights, .6, 1));
     drawInverseTransform(demix);

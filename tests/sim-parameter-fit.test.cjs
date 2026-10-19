@@ -3,10 +3,12 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const E = require('../web/shared/sim-parameter-estimation.js');
 const M = require('../web/parameter-demo/sim-parameter-model.js');
 const L = require('../web/parameter-demo/sim-parameter-two-stage.js');
+const Peak=require('../web/parameter-demo/scenes/get-peak/state.js');
+const navPosition=require('./helpers/parameter-navigation.cjs').position;
 const Chapter = require('../web/motion/sim-motion-parameter-chapter.js');
 const boot = require('./helpers/motion-dom.cjs');
 const near = (a, b, eps = 1e-10) => assert.ok(Math.abs(+a - b) <= eps * Math.max(1, Math.abs(b)), `${a} != ${b}`);
-const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); return alpha; };
+const visibleAlpha = node => { let alpha=1; for(let n=node;n;n=n.parent) { if(n.attrs.display==='none'||n.hidden)return 0; alpha *= Number(n.attrs.opacity ?? n.style.opacity ?? 1); } return alpha; };
 const multiply = (a, b) => ({ re: a.re * b.re - a.im * b.im, im: a.re * b.im + a.im * b.re });
 const magnitude = z => Math.hypot(z.re, z.im);
 const zOf = node => ({ re: +node.attrs['data-re'], im: +node.attrs['data-im'] });
@@ -27,12 +29,13 @@ test('the final getPeak playhead uses full spatial prefixes and reveals no fitte
     assert.equal(state.total, peak.count); assert.deepEqual(state.sum, peak.sums[state.count]);
     assert.ok(state.count >= 0 && state.count <= peak.count);
     if (state.divide > 0) assert.equal(state.count, peak.count);
-    if (p < .86) assert.equal(state.alpha, null); else assert.deepEqual(state.alpha, peak.alpha);
-    if (p < .90) { assert.equal(state.phase, null); assert.equal(state.m, null); }
+    if (!state.solved) assert.equal(state.alpha, null); else assert.deepEqual(state.alpha, peak.alpha);
+    if (!state.read) { assert.equal(state.phase, null); assert.equal(state.m, null); }
     else { near(state.phase, peak.phase); near(state.m, peak.m); }
     assert.equal('trial' in state, false); assert.equal('residual' in state, false);
-    assert.ok(state.panels.filter(alpha => alpha > 0).length <= 1, 'old and new beat bodies never overlap');
-    if (state.overview > 0) assert.equal(state.body, 0, 'overview exits before working fields enter');
+    assert.ok(state.panels.filter(alpha=>alpha>0).length<=2,'only adjacent panels may crossfade');
+    near(state.panels.reduce((a,b)=>a+b,0),state.beat?1:state.body);
+    if (state.overview > 0) assert.equal(state.cues.workSpectra,0,'native addresses unfold before prepared fields appear');
     if (state.shiftOutput > 0 || state.shiftScan > 0) near(state.shift, 1, 1e-12);
   }
   near(L.leastSquaresState(lesson, 1).phase, lesson.estimate.phase);
@@ -48,8 +51,8 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
   assert.deepEqual(h.errors, []);
   const flow = main ? context.SIMMotionParameterChapter.plan(context.SIMMotion) : context.SIMParameterDemo.preview;
   const seek = p => {
-    if (main) { byId.get('progress').value = flow.index('parameters.least-squares-fit') - 1 + p; byId.get('progress').dispatch('input'); }
-    else context.SIMParameterDemo.player.seek(flow.index('least-squares-fit') + p);
+    if (main) { byId.get('progress').value = navPosition(flow,'least-squares-fit',p); byId.get('progress').dispatch('input'); }
+    else context.SIMParameterDemo.player.seek(navPosition(flow,'least-squares-fit',p,false));
   };
   const get = (key, value) => nodes.find(n => value === undefined ? n.attrs[key] !== undefined : n.attrs[key] === String(value));
   const peak = lesson.estimate.finalPeak, stage = get('data-get-peak');
@@ -70,24 +73,31 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
     assert.equal(byId.get(main ? 'equation-note' : 'pe-note').textContent, state.note);
     const equation = byId.get(main ? 'equation' : 'pe-equation');
     assert.equal(equation.attrs['data-formula-mode'], L.formulaMode(L.stateForScene('least-squares-fit',p)));
-    assert.equal(equation.children[0].attrs['data-get-peak-formula-beat'], p < .07 ? 'handoff' : state.mode);
+    assert.equal(equation.children[0].attrs['data-get-peak-formula-beat'], state.formula.mode);
     assert.ok(byId.get(main ? 'scene-svg-description' : 'pe-svg-description').textContent.includes(state.note.slice(0, 8)));
-    if (main) assert.equal(byId.get('stage-caption').textContent, `${state.beat + 1}/7 · ${state.action}`);
+    if (main) assert.equal(byId.get('stage-caption').textContent, state.action);
     const vector = zOf(get('data-get-peak-alpha-vector'));
-    near(vector.re, p < .86 ? 0 : peak.alpha.re); near(vector.im, p < .86 ? 0 : peak.alpha.im);
+    near(vector.re, state.solved ? peak.alpha.re : 0); near(vector.im, state.solved ? peak.alpha.im : 0);
     for (const key of ['m', 'phase']) assert.equal(get('data-fit-parameter', key).attrs['data-value'], state.cards > 0 ? String(key === 'm' ? peak.m : peak.phase) : '');
-    if (p >= .055) {
+    if (state.overview===0) {
       near(visibleAlpha(get('data-frequency-map')), 0);
       for (const name of ['P', 'Q', 'R']) near(visibleAlpha(get('data-complex-plane', name)), 0);
     }
-    if (p >= .50 && p < .58) {
+    if(state.mode==='finalProduct'&&state.multiply>0) {
       const i = state.sample, conj = zOf(get('data-get-peak-conjugate-vector'));
       near(conj.re, peak.spatial[0].re[i]); near(conj.im, -peak.spatial[0].im[i]);
       const product = get('data-get-peak-beat', 'finalProduct');
       near(product.attrs['data-z-re'], peak.product.re[i]); near(product.attrs['data-z-im'], peak.product.im[i]); near(product.attrs['data-e'], peak.energy[i]);
     }
+    if(state.local>.3 && ['finalShift','finalShiftScan','finalCompare'].includes(state.mode)){
+      const field=name=>visibleAlpha(get('data-get-peak-field',name));
+      near(visibleAlpha(get('data-get-peak-point-detail')),state.mode==='finalShift'?1:0);
+      near(field('shift-reference'),state.mode==='finalCompare'?1:0);
+      near(field('shift-input'),state.mode==='finalCompare'?0:1);
+      near(field('shift-output'),state.mode==='finalShift'?0:1);
+    }
     const scanCount = +get('data-get-peak-shift-prefix').attrs['data-count'];
-    if (p < .36) assert.equal(scanCount, 0, 'the field scan waits for the one-position explanation');
+    if(!state.shiftScan) assert.equal(scanCount, 0, 'the field scan waits for the one-position explanation');
     if (scanCount > 0) {
       const i = context.SIMParameterLesson.getPeakDataFor(lesson).sampleIndex;
       const rotated = zOf(get('data-get-peak-ramp-vector'));
@@ -111,47 +121,52 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
   assert.deepEqual(h.errors, []);
 });
 
-test('the opening equation holds and fades with the old overview before the preparation equation enters', () => {
-  let view, lesson;
-  const h = boot({ beforeRenderer(ctx) { const create=ctx.SIMParameterLesson.createView; ctx.SIMParameterLesson.createView=(container,data,options)=>{lesson=data;return(view=create(container,data,options));}; } });
-  const host=h.byId.get('equation'), formula=h.context.SIMParameterLesson.createFormulaView(host,{lesson});
+test('the entry teaches addresses, own OTF and the common relation before preparing the fields', () => {
+  const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
+  const host=h.byId.get('equation');
   const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
-  view.drawScene('refine',1);
-  const previous=L.formulaAt(L.stateForScene('refine',1));
-  const snapshots=new Map(), samples=[0,.001,.014,.025,.04,.055,.06,.069,.07,.08,.10,.119];
-  for (const p of [...samples,...samples.toReversed()]) {
-    const state=L.stateForScene('least-squares-fit',p), target=L.leastSquaresState(lesson,p);
-    view.drawScene('least-squares-fit',p); const result=formula.draw(state), group=host.children[0];
-    if(p<.07) {
-      assert.equal(result.equation,previous.equation);assert.equal(result.note,previous.note);
-      near(group.style.opacity,target.overview);
-    } else {
-      assert.equal(result.equation,L.formulas.finalPrepare);near(group.style.opacity,target.textAlpha);
-    }
-    if(+group.style.opacity>0&&p>=.07) near(visibleAlpha(get('data-frequency-map')),0);
-    const snapshot=[host.attrs['data-formula-mode'],group.innerHTML,group.style.opacity,visibleAlpha(get('data-frequency-map'))];
+  const samples=[[0,'locked'],[3/21,'addresses'],[8/21,'ownOtf'],[10.7/21,'commonAlpha'],[11.6/21,'workingBands']];
+  const snapshots=new Map();
+  for(const [p,substep] of [...samples,...samples.toReversed()]) {
+    const progress=Peak.timeline.progressFor('finalPrepare',p),state=L.stateForScene('least-squares-fit',progress);
+    h.byId.get('progress').value=navPosition(flow,state.id,state.progress);h.byId.get('progress').dispatch('input');
+    const shown=Peak.presentation(progress);
+    assert.equal(shown.substep,substep);assert.equal(host.children[0].attrs['data-get-peak-formula-beat'],shown.formula.mode);
+    near(visibleAlpha(get('data-locked-wavevector')),1);
+    if(p<11.2/21)near(visibleAlpha(get('data-frequency-pair')),1);
+    const snapshot=[shown.formula.equation,host.attrs['data-formula-mode'],get('data-locked-wavevector').attrs.transform];
     if(snapshots.has(p))assert.deepEqual(snapshot,snapshots.get(p));else snapshots.set(p,snapshot);
   }
   assert.deepEqual(h.errors,[]);
 });
 
-test('the adopted matrix receives measured phases before its inverse is revealed', () => {
-  for (let i = 0; i <= 200; i++) {
-    const s = Chapter.adoptedState(i / 200);
-    if (s.process > 0 || s.inverse.some(v => v > 0)) assert.deepEqual(s.rows, [1, 1, 1]);
-    if (s.application > 0) assert.deepEqual(s.inverse, [1, 1, 1]);
+test('parameter cards restore one actual +1 weight before returning it to U and expanding its row', () => {
+  const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
+  assert.deepEqual(h.errors,[]);
+  const get=(key,value)=>h.nodes.find(n=>value===undefined?n.attrs[key]!==undefined:n.attrs[key]===String(value));
+  const sample=[];
+  for(const scene of Chapter.adoptedScenes)for(const p of [0.000001,.12,.36,.50,.68,.84,1])sample.push([scene.id,p]);
+  const saved=new Map();
+  for(const [id,p] of [...sample,...sample.toReversed()]){
+    h.byId.get('progress').value=flow.index(id)-1+p;h.byId.get('progress').dispatch('input');
+    const s=Chapter.adoptedState(p,id);
+    near(get('data-adopted-U').style.opacity,s.matrix);
+    if(s.rows.some(v=>v>0)){assert.equal(s.dock,1);assert.equal(s.cards,0);}
+    if(s.rowFocus>0)assert.deepEqual(s.rows,[1,1,1]);
+    const pose=get('data-adopted-single').attrs.transform;
+    if(id==='assemble-weights'&&p===1)assert.equal(pose,'translate(805 340)');
+    const snapshot=[pose,get('data-adopted-cards').style.opacity,get('data-adopted-U').style.opacity];
+    const key=id+':'+p;
+    if(saved.has(key))assert.deepEqual(snapshot,saved.get(key));else saved.set(key,snapshot);
   }
-  const h = boot(), flow = h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
-  const get = (key, j) => h.nodes.find(n => n.attrs[key] === String(j));
-  for (const p of [.001, .12, .24, .36, .48, .52, .64, .76, .88, 1]) {
-    h.byId.get('progress').value = flow.index('adopted-weights') - 1 + p; h.byId.get('progress').dispatch('input');
-    const s = Chapter.adoptedState(p);
-    for (let j = 0; j < 3; j++) {
-      near(get('data-adopted-matrix-row', j).style.opacity, s.rows[j]);
-      near(get('data-adopted-weight-row', j).style.opacity, s.inverse[j]);
-    }
+  const restored=zOf(get('data-adopted-restored-weight'));
+  const actual=get('data-adopted-inverse','1:1');near(restored.re,actual.attrs['data-re']);near(restored.im,actual.attrs['data-im']);
+  assert.equal(get('data-adopted-matrix'),undefined,'the full M comparison belongs to the theory panel');
+  for(const p of [.000001,.04,.15,.23,.30,.42]){
+    h.byId.get('progress').value=flow.index('separate-bands')-1+p;h.byId.get('progress').dispatch('input');
+    if(p>=.23&&p<.42)for(let j=0;j<3;j++)assert.equal(get('data-adopted-row-term',j).attrs.transform,`translate(${475+360*j} 265)`);
   }
-  assert.deepEqual(h.errors, []);
+  assert.deepEqual(h.errors,[]);
 });
 
 for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${page} keeps candidate shifts distinct from the locked fit on replay`, () => {
@@ -163,6 +178,9 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
     } });
   const status = h.nodes.find(n => n.attrs['data-wavevector-status'] !== undefined);
   const footer = h.nodes.find(n => n.attrs['data-two-stage-footer'] !== undefined);
+  assert.equal(footer.attrs.display,'none');
+  const navigation=h.nodes.find(n=>n.attrs['data-parameter-navigation']!==undefined);
+  assert.equal(navigation.attrs.display,'none');
   const samples = [
     ['shift', .9, false], ['otf', .6, false], ['match', .4, false], ['match', .8, false],
     ['coarse', .01, false], ['refine', .9, false], ['refine', 1, true],
@@ -177,6 +195,19 @@ for (const page of ['sim_motion_demo.html', 'sim_parameter_demo.html']) test(`${
       assert.match(status.textContent, /k′/);
     }
   }
+  for(const scene of L.scenes){
+    view.drawScene(scene.id,.5);
+    for(const node of h.nodes.filter(n=>n.attrs['data-scene-note']!==undefined)){assert.equal(node.attrs.display,'none');near(visibleAlpha(node),0);}
+  }
+  const live=h.nodes.find(n=>n.attrs['data-get-peak-ramp-vector']!==undefined);
+  if(page==='sim_motion_demo.html'){
+    const flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion);
+    h.byId.get('progress').value=navPosition(flow,'get-peak-point',.5);h.byId.get('progress').dispatch('input');
+  }else{
+    const demo=h.context.SIMParameterDemo;
+    demo.player.seek(navPosition(demo.preview,'get-peak-point',.5,false));
+  }
+  assert.ok(visibleAlpha(live)>0,'the actual rotating vector remains visible');
   // Continue the same caption's position into OTF preparation, including reverse.
   view.drawScene('shift', 1); const from = +footer.attrs.y;
   view.drawScene('otf', 0); near(footer.attrs.y, from);

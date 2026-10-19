@@ -1,3 +1,4 @@
+const navPosition=require('./helpers/parameter-navigation.cjs').position;
 /* Scientific/state checks for the production lesson. No browser or visual QA. */
 const test = require('node:test'), assert = require('node:assert/strict');
 const L = require('../web/parameter-demo/sim-parameter-two-stage.js');
@@ -159,16 +160,27 @@ test('direct scan accumulates actual prefixes before depositing scores; FFT keep
   let chapter;
   const h=boot({beforeRenderer(c){const create=c.SIMMotionParameterChapter.create;c.SIMMotionParameterChapter.create=o=>(chapter=create(o));}});
   const {context,byId,nodes}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
-  const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const seek=(id,p)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const get=k=>nodes.find(n=>n.attrs[k]!==undefined),scan=get('data-direct-scan'),stamp=get('data-score-stamp'),fft=get('data-fft-pipeline');
   const cells=nodes.filter(n=>n.attrs['data-score-k']!==undefined),positions=cells.map(n=>[n.attrs.x,n.attrs.y]);
   const tracked=nodes.filter(n=>Object.keys(n.attrs).some(k=>k.startsWith('data-fft-')||k.startsWith('data-score-')||k.startsWith('data-scan-')||k==='data-direct-scan'));
+  const frame=get('data-frequency-frame'),plot=get('data-frequency-plot'),pairPlot=get('data-spectrum-plot');
+  const layoutFrames=new Map();
   const snapshots=new Map();
   for(const id of ['match','coarse'])for(const p of [.001,.05,.119,.17,.22,.237,.31,.45,.52,.59,.64,.72,.79,.82,.87,.91,.97,1]) {
     seek(id,p);
     assert.deepEqual(cells.map(n=>[n.attrs.x,n.attrs.y]),positions,'score coordinates never change between algorithms');
     assert.doesNotMatch(L.formulaAt(L.stateForScene(id,p)).equation,/arg\\,min|J\(|min_\\alpha|1-\\rho/);
     if(id==='match') {
+      assert.equal(plot.attrs.transform,pairPlot.attrs.transform,'images and coordinates share their presentation transform');
+      layoutFrames.set(p,[plot.attrs.transform,{...frame.attrs}]);
+      if(p>=.12){
+        const frameRight=+frame.attrs.x + +frame.attrs.width;
+        const labels=scan.children.filter(n=>n.tagName==='text'&&n.attrs.display!=='none');
+        labels.forEach(n=>near(n.attrs.x,850));
+        assert.ok(frameRight+140<850,'the plotted spectrum leaves a separate readout column');
+        assert.ok(Math.min(...cells.map(n=>+n.attrs.x))>1000,'the score grid occupies the third column');
+      }
       const s=L.scanState(chapter.lesson,p),prefix=s.candidate.points.slice(0,s.count);
       near(scan.attrs['data-count'],s.count);
       near(scan.attrs['data-sum-re'],prefix.reduce((v,t)=>v+t.cross.re,0));
@@ -192,6 +204,9 @@ test('direct scan accumulates actual prefixes before depositing scores; FFT keep
     snapshots.set(id+':'+p,tracked.map(n=>({...n.attrs})));
   }
   for(const [key,snapshot] of [...snapshots].reverse()) {const [id,p]=key.split(':');seek(id,+p);assert.deepEqual(tracked.map(n=>({...n.attrs})),snapshot);}
+  for(const [p,saved] of [...layoutFrames].toReversed()){
+    seek('match',p);assert.deepEqual([plot.attrs.transform,{...frame.attrs}],saved);
+  }
   seek('coarse',1);const colors=cells.map(n=>n.attrs.fill),peak=get('data-fft-peak');
   near(peak.attrs.opacity,1);seek('refine',.001);assert.deepEqual(cells.map(n=>n.attrs.fill),colors);assert.ok(+peak.attrs.opacity>.99);
   assert.deepEqual(h.errors,[]);
@@ -207,7 +222,10 @@ test('FFT sweeps actual complex pixels before docking the normalized result onto
   const cursors=nodes.filter(node=>node.attrs['data-fft-pixel-cursor']!==undefined);
   const scoreCells=nodes.filter(node=>node.attrs['data-score-k']!==undefined),resultCells=nodes.filter(node=>node.attrs['data-fft-score-k']!==undefined);
   assert.equal(nodes.some(node=>node.attrs['data-fft-merge']!==undefined||node.attrs['data-fft-forward']!==undefined),false);
-  seek(.11);assert.ok(+get('data-fft-backdrop').attrs.opacity>.9);near(get('data-fft-pipeline').attrs.opacity,0);
+  seek(.18);
+  assert.equal(get('data-fft-backdrop'),undefined,'old actors fade without a rectangular cover');
+  near(get('data-scan-cost').attrs.opacity,0);near(get('data-candidate-grid').attrs.opacity,0);
+  near(get('data-fft-pipeline').attrs.opacity,0);
   // Every supported frequency is rendered, including the zero-order texture
   // formerly lost under DC. Zero padding remains exactly black in both cards.
   for(const image of nodes.filter(node=>node.attrs['data-fft-spectrum']!==undefined)) {
@@ -251,9 +269,61 @@ test('FFT sweeps actual complex pixels before docking the normalized result onto
     near(scale*Number(cell.attrs.width),Number(target.attrs.width));near(scale*Number(cell.attrs.height),Number(target.attrs.height));
     assert.equal(cell.attrs.fill,target.attrs.fill);
   }
-  seek(.96);near(product.attrs.opacity,0);near(get('data-fft-backdrop').attrs.opacity,0);
+  seek(.96);near(product.attrs.opacity,0);near(get('data-candidate-grid').attrs.opacity,1);
   assert.equal(get('data-candidate-grid').children.filter(c=>c.attrs['data-score-k']!==undefined).length,scoreCells.length);
   assert.equal(h.mathRenders,renders+3,'only the multiply, forward and peak formula modes compile once');
+  assert.deepEqual(h.errors,[]);
+});
+
+for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${page}: repeated-scan cost motivates FFT before the spectra enter, with reversible beat narration`,()=>{
+  const main=page==='sim_motion_demo.html';
+  const h=boot({page,renderer:main?'web/motion/sim-motion.js':'web/parameter-demo/sim-parameter-app.js'});
+  const {context,byId,nodes}=h,Study=context.SIMParameterLesson;
+  const flow=main?context.SIMMotionParameterChapter.plan(context.SIMMotion):context.SIMParameterDemo.preview;
+  const seek=(id,p)=>{
+    const position=navPosition(flow,id,p,main);
+    if(main){byId.get('progress').value=position;byId.get('progress').dispatch('input');}
+    else context.SIMParameterDemo.player.seek(position);
+  };
+  const get=key=>nodes.find(n=>n.attrs[key]!==undefined);
+  const title=byId.get(main?'scene-title':'pe-title'),copy=byId.get(main?'scene-description':'pe-copy');
+  const equation=byId.get(main?'equation':'pe-equation'),note=byId.get(main?'equation-note':'pe-note');
+  const heading=byId.get(main?'scene-copy':'pe-scene-copy').children.find(n=>n.attrs.class==='copy-handoff-previous');
+  const cost=get('data-scan-cost'),grid=get('data-candidate-grid'),fft=get('data-fft-pipeline');
+  const cards=nodes.filter(n=>n.attrs['data-fft-input']!==undefined),cells=nodes.filter(n=>n.attrs['data-score-k']!==undefined);
+  seek('match',1);
+  assert.match(title.textContent,/重扫/);assert.match(copy.textContent,/N².*N².*O\(N⁴\)/);
+  const previousCost=[cost.attrs.opacity,cost.attrs.transform,grid.attrs.opacity,cells.map(n=>n.attrs.fill)];
+  seek('coarse',.000001);
+  assert.deepEqual([cost.attrs.opacity,cost.attrs.transform,grid.attrs.opacity,cells.map(n=>n.attrs.fill)],previousCost,'the completed cost and scoring map survive the scene boundary');
+  const snapshot=()=>({title:title.textContent,copy:copy.textContent,note:note.textContent,
+    heading:[heading.style.opacity,heading.style.transform,heading.children.map(n=>n.textContent),title.style.opacity],
+    actors:[cost,grid,fft,...cards].map(n=>({...n.attrs})),formula:equation.attrs['data-formula-mode']});
+  const saved=new Map();
+  for(const p of [.001,.05,.099,.1001,.14,.1799,.18,.22,.2599,.26,.31,.48,.74,.97,1]){
+    seek('coarse',p);
+    const state=Study.stateForScene('coarse',p),presentation=Study.formulaAt(state),handoff=Study.formulaTransition(state);
+    assert.equal(title.textContent,presentation.title);assert.equal(copy.textContent,presentation.copy);
+    assert.equal(note.textContent,presentation.note);assert.equal(equation.attrs['data-formula-mode'],Study.formulaMode(state));
+    assert.doesNotMatch([title.textContent,copy.textContent,note.textContent].join(' '),/上一幕|淡入|淡出|退场|光标|展开两张/);
+    near(title.style.opacity,handoff.incoming);
+    if(p<.10){
+      assert.match(copy.textContent,/O\(N⁴\).*越慢/);near(cost.attrs.opacity,1);near(grid.attrs.opacity,1);near(fft.attrs.opacity,0);
+      assert.match(presentation.equation,/N\^2.*N\^2.*N\^4/);
+    }
+    if(p===.14){
+      assert.match(title.textContent,/不再逐格重扫/);assert.ok(+cost.attrs.opacity>0&&+cost.attrs.opacity<1);
+      assert.ok(Number(cost.attrs.transform.match(/translate\(([-\d.]+)/)[1])<0);near(fft.attrs.opacity,0);
+    }
+    if(p===.22){
+      assert.match(title.textContent,/预处理一次/);near(cost.attrs.opacity,0);assert.ok(+fft.attrs.opacity>0&&+fft.attrs.opacity<1);
+      cards.forEach(card=>{const y=Number(card.attrs.transform.match(/translate\([\d.]+ ([-\d.]+)/)[1]);assert.ok(y>300&&y<328);});
+    }
+    saved.set(p,snapshot());
+  }
+  for(const [p,expected] of [...saved].reverse()){seek('coarse',p);assert.deepEqual(snapshot(),expected);}
+  seek('coarse',1);const finalHeading=title.textContent;
+  seek('refine',.0001);assert.equal(heading.children[0].textContent,finalHeading,'local refinement receives the completed FFT conclusion');
   assert.deepEqual(h.errors,[]);
 });
 
@@ -314,11 +384,45 @@ test('the geometric pool includes both weak paths, and q / q+k sample the same s
   }
 });
 
+test('14-to-15 text and formula handoffs share the reversible playhead and preserve space beside the spectrum', () => {
+  const h=boot(),{context,byId,nodes}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
+  const seek=p=>{byId.get('progress').value=navPosition(flow,'otf',p);byId.get('progress').dispatch('input');};
+  const get=key=>nodes.find(n=>n.attrs[key]!==undefined);
+  const oldReadout=get('data-readout-outgoing'),correction=get('data-otf-normalization');
+  const previousHeading=byId.get('scene-copy').children.find(n=>n.attrs.class==='copy-handoff-previous');
+  const previousNote=byId.get('equation-note-slot').children.find(n=>n.attrs.class==='copy-handoff-previous');
+  const snapshot=()=>[previousHeading.style.opacity,previousHeading.style.transform,previousNote.style.opacity,
+    byId.get('scene-title').style.opacity,byId.get('equation-note').style.opacity,
+    oldReadout.attrs.opacity,oldReadout.attrs.transform,
+    byId.get('equation').children.map(n=>[n.style.opacity,n.style.transform,n.attrs['aria-hidden']])];
+  const saved=new Map();
+  for(const p of [.0001,.004,.008,.012,.02,.401,.406,.410,.42]) {
+    seek(p);saved.set(p,snapshot());
+    const state=context.SIMParameterLesson.stateForScene('otf',p),handoff=context.SIMParameterLesson.formulaTransition(state);
+    const current=byId.get('equation').children[0];
+    near(current.style.opacity,handoff.amount<1?handoff.incoming:1);
+    assert.ok(handoff.incoming*handoff.outgoing===0,'different formulas leave before the next one enters');
+    near(byId.get('equation-note').style.opacity,handoff.incoming);
+    if(p<.018) {
+      assert.equal(previousHeading.children[0].textContent,context.SIMParameterLesson.scene('shift').title);
+      near(oldReadout.attrs.opacity,handoff.outgoing);
+    }
+  }
+  assert.equal(correction.attrs.transform,'translate(70 0)');
+  const renders=h.mathRenders;
+  for(const p of [...saved.keys()].toReversed()){seek(p);assert.deepEqual(snapshot(),saved.get(p));}
+  assert.equal(h.mathRenders,renders,'replay reuses both formula layers');
+  h.media.matches=true;seek(.004);
+  near(byId.get('scene-title').style.opacity,1);near(byId.get('equation').children[0].style.opacity,1);
+  assert.equal(byId.get('equation').children.length,1,'reduced motion keeps one final formula');
+  assert.deepEqual(h.errors,[]);
+});
+
 test('relocation, threshold exit and own-conjugate normalization remain ordered and reversible', () => {
   let chapter;
   const h=boot({beforeRenderer(c){const create=c.SIMMotionParameterChapter.create;c.SIMMotionParameterChapter.create=o=>(chapter=create(o));}});
   const {nodes,byId,context}=h,flow=context.SIMMotionParameterChapter.plan(context.SIMMotion),d=context.SIMParameterLesson.dataFor(chapter.lesson);
-  const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const seek=(id,p)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const panels=[0,1].map(b=>nodes.find(n=>n.attrs['data-band-panel']===String(b)));
   const markers=nodes.filter(n=>n.attrs['data-corresponding-point']!==undefined);
   const images=[0,1].map(b=>nodes.find(n=>n.attrs['data-shared-band']===String(b)));
@@ -424,6 +528,7 @@ test('one q stays fixed while the formula finds q+k and only the sideband reloca
   const markers=nodes.filter(n=>n.attrs['data-corresponding-point']!==undefined), regions=nodes.filter(n=>n.attrs['data-common-region']!==undefined);
   const position=n=>{const a=n.attrs.transform.match(/-?[\d.]+/g).map(Number),b=n.parent.attrs.transform.match(/-?[\d.]+/g).map(Number);return [b[0]+a[0]*b[2],b[1]+a[1]*b[2]];};
   const zero=markers.find(n=>n.attrs['data-corresponding-point']==='0:0'),side=markers.find(n=>n.attrs['data-corresponding-point']==='0:1');
+  const pair=nodes.find(n=>n.attrs['data-frequency-pair']!==undefined),annotations=nodes.find(n=>n.attrs['data-shared-annotations']!==undefined);
   seek(.12);near(zero.attrs.opacity,1);near(side.attrs.opacity,0);
   const zeroPosition=position(zero), snapshots=new Map();
   seek(.22);
@@ -435,6 +540,9 @@ test('one q stays fixed while the formula finds q+k and only the sideband reloca
   for(const p of [.18,.22,.26,.30,.36,.45,.50,.54,.60,.68,.72,.78,.85,.94,1]) {
     seek(p);
     const state=L.sharedPointState(chapter.lesson,p);
+    assert.equal(pair.attrs.transform,L.sharedFocusPose(1).transform);
+    assert.equal(annotations.attrs.transform,pair.attrs.transform);
+    near(annotations.attrs.opacity,1);
     position(zero).forEach((v,i)=>near(v,zeroPosition[i]));
     for(const [b,marker] of [zero,side].entries())position(marker).forEach((v,i)=>near(v,state.markerPositions[b][i]));
     near(cursor.attrs['data-fx'],state.cursor[0]);near(cursor.attrs['data-fy'],state.cursor[1]);
@@ -462,6 +570,12 @@ test('one q stays fixed while the formula finds q+k and only the sideband reloca
     near(+b.attrs['data-fx']-a.attrs['data-fx'],chapter.lesson.estimate.kx);
     near(+b.attrs['data-fy']-a.attrs['data-fy'],chapter.lesson.estimate.ky);
   }
+  const container=h.doc.createElementNS('http://www.w3.org/2000/svg','g');
+  const inline=context.SIMParameterLesson.createView(container,chapter.lesson);
+  inline.drawScene('shared',0);
+  assert.equal(inline.sharedPair.root.attrs.transform,pair.attrs.transform,'the standalone view uses the same focus');
+  assert.equal(inline.sharedPair.panels[0].group.parent.attrs.transform,'translate(0 0) scale(1)','focus is applied only once');
+  inline.destroy();
   assert.deepEqual(h.errors,[]);
 });
 
@@ -487,7 +601,7 @@ test('the tracked q has equal physical addresses after relocation for all direct
 
 test('the real teaching example returns to the same two-dimensional data before relocation begins', () => {
   const h=boot(), {context,byId,nodes}=h, flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
-  const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const seek=(id,p)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const real=nodes.find(n=>n.attrs['data-line-scene']==='line-shift');
   assert.equal(flow.index('parameters.line-complex'),-1);
   assert.ok(!nodes.some(n=>n.attrs['data-teaching-row']!==undefined || n.attrs['data-line-scene']==='line-complex'));
@@ -529,7 +643,7 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
   const {nodes,byId,context}=h, flow=context.SIMMotionParameterChapter.plan(context.SIMMotion), lesson=chapter.lesson;
   const d=context.SIMParameterLesson.dataFor(lesson), e=lesson.estimate;
   const get=(attr,value)=>nodes.find(n=>value===undefined ? n.attrs[attr]!==undefined : n.attrs[attr]===value);
-  const seek=(id,p=1)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const seek=(id,p=1)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const right=get('data-candidate-panel'), pair=get('data-frequency-pair'), map=get('data-frequency-map');
   const u=()=>['P','Q','R'].map(n=>get('data-vector-u',n)), v=()=>['P','Q','R'].map(n=>get('data-vector-v',n));
   seek('shift');
@@ -604,7 +718,7 @@ test('production graphics use the shifted OTF, actual masks and values, and pres
 
 test('every meaningful intermediate state is reversible and formula terms use the same playhead', () => {
   const h=boot(), {context,byId,nodes}=h, flow=context.SIMMotionParameterChapter.plan(context.SIMMotion);
-  const seek=(id,p)=>{byId.get('progress').value=flow.index('parameters.'+id)-1+p;byId.get('progress').dispatch('input');};
+  const seek=(id,p)=>{byId.get('progress').value=navPosition(flow,id,p);byId.get('progress').dispatch('input');};
   const tracked=nodes.filter(n=>['data-frequency-map','data-frequency-pair','data-candidate-panel','data-vector-u','data-vector-v','data-vector-prediction','data-vector-product','data-fitting','data-study-ratio','data-rejected-q','data-otf-term','data-otf-product-highlight','data-otf-fraction-line','data-otf-cancel','data-otf-normalization'].some(k=>n.attrs[k]!==undefined));
   const snapshots=new Map(), positions=L.scenes.flatMap(s=>[.001,.19,.34,.52,.76,1].map(p=>[s.id,p]));
   for(const [id,p] of [...positions,...positions.toReversed()]) {
@@ -612,8 +726,8 @@ test('every meaningful intermediate state is reversible and formula terms use th
     const state=tracked.map(n=>Object.fromEntries(Object.entries(n.attrs).filter(([k])=>k==='d'||k==='opacity'||k==='transform'||k.startsWith('data-'))));
     if(snapshots.has(key))assert.deepEqual(state,snapshots.get(key));else snapshots.set(key,state);
   }
-  seek('least-squares-fit',.62);const formula=byId.get('equation').children[0], count=h.mathRenders;
-  seek('least-squares-fit',.75);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
+  seek('get-peak-sum',.4);const formula=byId.get('equation').children[0], count=h.mathRenders;
+  seek('get-peak-sum',.7);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
   assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-finalSum');
   h.windowEvents.pagehide.forEach(f=>f());assert.equal(byId.get('parameter-stage').children.length,0);assert.equal(byId.get('frequency-handoff-stage').children.length,0);
 });

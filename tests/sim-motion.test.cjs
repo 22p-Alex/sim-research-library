@@ -500,10 +500,11 @@ test('renderer boots and connects click, scrub, pause, keyboard and dialog event
   for (const t of [0, 1, 2, 2.5, 3, 3.2, 3.45, 3.58, 3.8, 4, 4.5, 5, 6, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5, 13, 13.5, 14, 14.5, 15, 15.4, 16, 16.5, 17, 17.5, 18, 18.5, 19, 19.5, 20, 20.5, 21, 22, 23, 17.3, 13.7, 10.8, 10.5, 10, 9.7, 9.5, 9, 4, 3.8, 3.5, 3.2, 3]) {
     byId.get('progress').value = String(t); byId.get('progress').dispatch('input');
     const index = M.sceneIndex(t), scene = M.scenes[index], paired = !!scene.domainPair;
+    const statusHold=scene.id==='separate-bands'&&scene.present(t-Math.ceil(t-1e-9)+1).mode==='separatedStatus';
     assert.equal(byId.get('scene-number').textContent, String(index + 1).padStart(2, '0'));
     assert.equal(byId.get('equation-domain').textContent, scene.formulaDomain);
-    assert.equal(byId.get('equation').hidden, paired || scene.encodingFormula || scene.detectionFormula || scene.acquisitionFormula || scene.demixFormula);
-    assert.equal(byId.get('demix-equations').hidden, !scene.demixFormula);
+    assert.equal(byId.get('equation').hidden, !statusHold&&(paired || scene.encodingFormula || scene.detectionFormula || scene.acquisitionFormula || scene.demixFormula));
+    assert.equal(byId.get('demix-equations').hidden, !scene.demixFormula||statusHold);
     assert.equal(byId.get('encoding-sum-equations').hidden, !scene.encodingFormula);
     assert.equal(byId.get('detection-equations').hidden, !scene.detectionFormula);
     assert.equal(byId.get('acquisition-equations').hidden, !scene.acquisitionFormula);
@@ -595,7 +596,8 @@ test('renderer boots and connects click, scrub, pause, keyboard and dialog event
     byId.get('progress').value = String(t); byId.get('progress').dispatch('input');
     const state = M.demixState(t), scene = M.sceneIndex(t), group = byId.get('demix-equations');
     assert.equal(Number(byId.get('scene-number').textContent), scene + 1);
-    assert.equal(group.hidden, !M.scenes[scene].demixFormula);
+    const statusHold=M.scenes[scene].id==='separate-bands'&&M.scenes[scene].present(t-Math.ceil(t-1e-9)+1).mode==='separatedStatus';
+    assert.equal(group.hidden, !M.scenes[scene].demixFormula||statusHold);
     assert.equal(Number(doc.querySelectorAll('[data-stop]').find(button => button.attrs['aria-current'] === 'step').dataset.stop), scene);
     if (M.scenes[scene].demixFormula) {
       assert.equal(byId.get('theory-context').hidden, true);
@@ -606,7 +608,7 @@ test('renderer boots and connects click, scrub, pause, keyboard and dialog event
       assert.equal(byId.get('demix-formula-' + name).attrs['aria-hidden'], String(alpha === 0));
     }
     near(byId.get('demix-matrix-view').style.opacity, state.reveal * (1 - state.proof));
-    near(byId.get('demix-source-definitions').style.opacity, state.reveal * state.definitions * (1 - state.bands));
+    near(byId.get('demix-source-definitions').style.opacity, state.reveal * state.definitions * (1 - state.application));
     assert.equal(inverseFormulas.filter(el => el.attrs['aria-hidden'] === 'false').length, 1);
     inverseFormulas.forEach((el, i) => near(el.style.opacity, i === state.inversion.formula ? 1 : 0));
     near(inverseTokens.leftInverse.style.opacity, state.inversion.multiply);
@@ -1424,18 +1426,20 @@ test('the player delivers Euler reading time at every pacing boundary, with spee
   c.player.setSpeed(2); c.player.toggle(); c.finish(); near(c.player.state().position, 3);
 });
 
-test('passing matching story durations alone retains the Euler reading holds', () => {
+test('passing matching story durations retains the short theta hold and later Euler reading holds', () => {
   const c = clock(false, { durations: M.transitionDurations.slice() });
   c.player.seek(2); c.player.go(3); c.advance();
   const start = c.now;
   const advanceTo = elapsed => { while (c.now - start < elapsed) c.advance(Math.min(16, elapsed - (c.now - start))); };
-  // Real elapsed times exercise the host call that used to silently fall back
-  // to a uniform clock: at 12 seconds it had already reached substitution.
+  // Wall-clock checks catch a host falling back to uniform progress. The
+  // completed theta substitution holds for 2.5 s before the next explanation.
+  advanceTo(1500); near(c.player.state().position, 2.02, 1e-8);
   advanceTo(3000); near(c.player.state().position, 2.025, 1e-8);
-  advanceTo(11000); near(c.player.state().position, 2.04, 1e-8);
-  advanceTo(12000); assert.equal(M.encodingDerivationState(c.player.state().position).view.id, 'identity');
-  advanceTo(19000); assert.equal(M.encodingDerivationState(c.player.state().position).view.id, 'identity');
-  advanceTo(19600); near(c.player.state().position, 2.06, 1e-8);
+  advanceTo(5499); assert.equal(M.encodingDerivationState(c.player.state().position).view.id, 'theta');
+  advanceTo(5500); near(c.player.state().position, 2.04, 1e-8);
+  advanceTo(6500); assert.equal(M.encodingDerivationState(c.player.state().position).view.id, 'identity');
+  advanceTo(13500); assert.equal(M.encodingDerivationState(c.player.state().position).view.id, 'identity');
+  advanceTo(14100); near(c.player.state().position, 2.06, 1e-8);
   c.player.pause(); const paused = c.player.state().position; c.advance(1000); near(c.player.state().position, paused);
   c.player.navigate(-1); c.finish(); near(c.player.state().position, 2);
 
@@ -1610,7 +1614,7 @@ test('the PSF / OTF pair gives the same camera pixels by spatial convolution and
 
 test('every fusion stop matches all complex frequency bins from the existing pipeline', () => {
   const p = lesson.pipeline;
-  for (const [time, expected] of [[17, p.bands[2].matched], [18, p.numerator], [19, p.preApoSpectrum], [20, p.spectrum], [21, p.spectrum]]) {
+  for (const [time, expected] of [[17, p.bands[0].matched], [18, p.numerator], [19, p.preApoSpectrum], [20, p.spectrum], [21, p.spectrum]]) {
     const view = M.fusionFrame(lesson, time).views[2];
     for (let i = 0; i < expected.re.length; i++) {
       const actual = M.pixel(view, i); near(actual.re, expected.re[i], 1e-9); near(actual.im, expected.im[i], 1e-9);

@@ -421,21 +421,22 @@ test('an embedded renderer accepts no truth, stays scene-local, and removes only
   view.destroy(); assert.deepEqual(container.children, [sentinel]);
 });
 
-test('standalone production renderer and controls run through all thirteen stops without a browser', () => {
+test('standalone production renderer and controls run through all twenty-one stops without a browser', () => {
   const boot = require('./helpers/motion-dom.cjs');
   const h = boot({ page: 'sim_parameter_demo.html', renderer: 'web/parameter-demo/sim-parameter-app.js' });
   const { nodes, byId, doc, pending, errors, context } = h;
   assert.deepEqual(errors, []);
   const { player, view, lesson: actual, preview: P } = context.SIMParameterDemo;
-  assert.equal(P.scenes.length, 13); assert.equal(byId.get('pe-stops').children.length, 13);
+  assert.equal(P.scenes.length, 21); assert.equal(byId.get('pe-stops').children.length, 21);
   const positions = Array.from({ length: P.scenes.length }, (_, i) => [.001, .15, .4, .8, 1].map(p => i + p)).flat();
   const snapshots = new Map();
   for (const t of [...positions, ...positions.toReversed()]) {
     player.seek(t); const s = P.state(t);
-    const copy=s.id==='refine'||s.id==='least-squares-fit'?context.SIMParameterLesson[s.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.progress):P.scenes[s.step];
-    assert.equal(byId.get('pe-title').textContent, copy.title);
-    assert.equal(byId.get('pe-copy').textContent, copy.copy);
-    assert.equal(byId.get('pe-note').textContent, P.formulaAt(s).note);
+    const copy=s.parameter&&(s.parameter.id==='refine'||s.parameter.id==='least-squares-fit')?context.SIMParameterLesson[s.parameter.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.parameter.progress):P.scenes[s.step];
+    const formula=P.formulaAt(s);
+    assert.equal(byId.get('pe-title').textContent, formula.title||copy.title);
+    assert.equal(byId.get('pe-copy').textContent, formula.copy||copy.copy);
+    assert.equal(byId.get('pe-note').textContent, formula.note);
     const layers = nodes.filter(node => node.attrs['data-connection-scene']);
     const alphas = layers.map(g => Number(g.attrs.opacity)); near(alphas.reduce((sum, v) => sum + v, 0), 1);
     if (snapshots.has(t)) assert.deepEqual(alphas, snapshots.get(t)); else snapshots.set(t, alphas);
@@ -451,10 +452,10 @@ test('standalone production renderer and controls run through all thirteen stops
     near(Number(node.attrs['data-re']), z.re); near(Number(node.attrs['data-im']), z.im);
   }
   const ratio = nodes.find(n => n.attrs['data-study-ratio'] !== undefined);
-  player.seek(P.index('least-squares-fit') + .9); const endpoint = ratio.attrs.d;
-  player.seek(P.index('least-squares-fit') + 1); assert.equal(ratio.attrs.d, endpoint);
-  player.seek(P.index('least-squares-fit') + .62); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
-  player.seek(P.index('least-squares-fit') + .75); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
+  player.seek(P.index('get-peak-read') + .9); const endpoint = ratio.attrs.d;
+  player.seek(P.index('get-peak-read') + 1); assert.equal(ratio.attrs.d, endpoint);
+  player.seek(P.index('get-peak-sum') + .4); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
+  player.seek(P.index('get-peak-sum') + .7); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
   player.seek(P.index('refill') + 1); byId.get('pe-replay').dispatch('click'); assert.equal(player.state().playing, true);
   player.pause(); player.seek(0);
   doc.dispatch('click', { target: byId.get('pe-stage'), clientX: 1100, button: 0 }); assert.equal(player.state().playing, true);

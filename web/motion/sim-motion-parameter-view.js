@@ -116,10 +116,11 @@
     } };
   }
   function create(options) {
-    const { reconstruction, lesson, create, attr, opacity, formulaBox, complex, compact } = options;
+    const { reconstruction, lesson, create, attr, opacity, formulaBox, complex, compact, arrowPath } = options;
     const M = root.SIMMotion, Chapter = root.SIMMotionParameterChapter, document = options.document || root.document;
     const provisional = document.getElementById('provisional-stage'), adopted = document.getElementById('adopted-stage');
     const label = (parent, x, y, text, extra = {}) => create('text', { x, y, class: 'svg-small', 'text-anchor': 'middle', ...extra }, parent, text);
+    const note=(...args)=>{const node=label(...args);attr(node,'display','none');attr(node,'data-scene-note','');return node;};
     const mathAt = (parent, x, y, width, tex, extra = {}) => formulaBox(parent, x - width / 2, y - 40, width, 80, '$$' + tex + '$$', extra);
     // Explicit token anchors let A(f) continue from exactly the same position.
     function operation(parent, temporary = false, mutable = false) {
@@ -163,8 +164,7 @@
     const lessonGroups = Object.fromEntries(['whyEstimate', 'actualWeights', 'coefficientFocus', 'ready'].map(key =>
       [key, create('g', { 'data-provisional-lesson': key }, provisional)]));
     const why = lessonGroups.whyEstimate;
-    // Persistent formula tokens let the actual k, m and phi glyphs jump.
-    // No free-running CSS animation or per-frame MathML recompilation.
+    // The equation stays still; the corresponding observable changes below it.
     const illuminationTokens = [
       ['prefix', 525, 230, String.raw`I_j(\mathbf r)=1+`, ''], ['m', 650, 50, 'm', Chapter.parameterColors.m],
       ['cos', 710, 100, String.raw`\cos\!\Bigl(`, ''], ['frequency', 774, 75, String.raw`\frac{2\pi}{N}`, ''],
@@ -174,10 +174,11 @@
       const group = create('g', { 'data-illumination-token': key, style: color ? 'color:' + color : '', class: 'provisional-illumination-token' }, why);
       mathAt(group, 0, 0, width, tex); return { key, x, group };
     });
-    const kReason = label(why, 720, 365, '光束夹角、光路对准和像素标定可能偏离设定，实际条纹的方向与间距也会改变。',
+    const kReason = note(why, 720, 365, '光束夹角、光路对准和像素标定可能偏离设定，实际条纹的方向与间距也会改变。',
       { 'data-parameter-reason': 'k', class: 'provisional-parameter-reason' });
-    const amplitudeReason = label(why, 720, 365, '光强与偏振失配会改变 m，光程漂移会改变 φⱼ；实际幅相不一定等于控制指令。',
+    const amplitudeReason = note(why, 720, 365, '光强与偏振失配会改变 m，光程漂移会改变 φⱼ；实际幅相不一定等于控制指令。',
       { 'data-parameter-reason': 'amplitude-phase', class: 'provisional-parameter-reason' });
+    const illuminationView=root.SIMIlluminationParameters.create({...options,parent:why});
     const failure = create('g', { 'data-provisional-lesson': 'nominalFailure' }, provisional);
     const failureView = createNominalFailureView({ ...options, parent: failure });
 
@@ -208,7 +209,7 @@
     }
     const rowOperators = create('g', { 'data-weight-row-operators': '' }, actual);
     [620, 950].forEach(x => mathAt(rowOperators, x, 300, 50, '+'));
-    const rowNote = label(actual, 720, 515, '+1 行的三个权重 × 对应的三帧观测，再相加 → A₊₁(f)', { 'data-weight-row-note': '' });
+    const rowNote = note(actual, 720, 515, '+1 行的三个权重 × 对应的三帧观测，再相加 → A₊₁(f)', { 'data-weight-row-note': '' });
     const matrixCells = Chapter.actualWeightCells.map(cell => {
       const group = create('g', { 'data-actual-U-cell': cell.row + ':' + cell.column, class: 'actual-weight-symbol' }, actual);
       const indexed = mathAt(group, 0, 0, 180, cell.tex, { style: 'color:' + M.colors[cell.row] });
@@ -251,10 +252,10 @@
     create('path', { d: 'M 865 335 V 347 H 1170 V 335', fill: 'none', stroke: factorColors.known, 'stroke-width': 1.5 }, factorLabels);
     label(factorLabels, 640, 395, '未知部分', { fill: factorColors.unknown, class: 'weight-factor-label' });
     label(factorLabels, 1017.5, 395, '已知部分', { fill: factorColors.known, class: 'weight-factor-label' });
-    label(factorLabels, 640, 432, 'm、φΔ：三帧共用', { class: 'svg-muted' });
-    label(factorLabels, 1017.5, 432, '2/3、φ′ⱼ：相对相移已知', { class: 'svg-muted' });
+    note(factorLabels, 640, 432, 'm、φΔ：三帧共用', { class: 'svg-muted' });
+    note(factorLabels, 1017.5, 432, '2/3、φ′ⱼ：相对相移已知', { class: 'svg-muted' });
     mathAt(factorLabels, 720, 505, 1050, String.raw`\phi'_j=\frac{2\pi j}{3},\qquad j=0,1,2`);
-    const temporaryMatrixNote = label(actual, 720, 520, '0、+1、−1 三行：每一行都对同一组三帧观测做乘加。', { 'data-temporary-matrix-note': '' });
+    const temporaryMatrixNote = note(actual, 720, 520, '0、+1、−1 三行：每一行都对同一组三帧观测做乘加。', { 'data-temporary-matrix-note': '' });
     function drawActualWeights(state, detailState) {
       const notation = detailState.notation, rowMove = state.rowMove * (1 - notation.returnRow);
       const scaffold = state.matrix + notation.scaffold;
@@ -338,8 +339,8 @@
     const coefficientRelation = mathAt(detail, 720, 420, 1200, Chapter.provisionalFormulas.coefficientScale.slice(2, -2), { 'data-coefficient-relation': '' });
     const propagated = mathAt(detail, 720, 420, 1300, Chapter.provisionalFormulas.outputScale.slice(2, -2), { 'data-coefficient-output': '' });
     const notationKey = create('g', { 'data-provisional-notation': '' }, detail);
-    label(notationKey, 720, 495, Chapter.notation.tilde);
-    label(notationKey, 720, 533, 'ũ：已知权重　·　Ũ：由 ũ 组成　·　Ã：临时输出，零级 Ã₀=A₀', { class: 'svg-muted' });
+    note(notationKey, 720, 495, Chapter.notation.tilde);
+    note(notationKey, 720, 533, 'ũ：已知权重　·　Ũ：由 ũ 组成　·　Ã：临时输出，零级 Ã₀=A₀', { class: 'svg-muted' });
 
     const indexDefinition = mathAt(provisional, 720, 155, 1250, Chapter.temporaryIndexTex, { 'data-temporary-index-definition': '' });
     // Open the existing D token into H M [S0,S+,S-]^T. These same S and
@@ -365,8 +366,8 @@
     create('path', { d: 'M 550 167 H 540 V 403 H 550 M 1000 167 H 1010 V 403 H 1000', class: 'matrix-bracket' }, responseScaffold);
     for (let b = 0; b < 3; b++) for (let j = 0; j < 3; j++) if (b !== j)
       mathAt(responseScaffold, 620 + 155 * j, 205 + 80 * b, 70, '0');
-    const observationNote = label(observationStage, 720, 485, 'H：物镜传递　·　M：原照明混合矩阵　·　右列：三份样品频谱', { 'data-observation-note': '' });
-    const responseNote = label(observationStage, 720, 485, 'ŨM 的非对角项为 0；旁带对角项仍保留未知的 m 与 φΔ。', { 'data-response-note': '' });
+    const observationNote = note(observationStage, 720, 485, 'H：物镜传递　·　M：原照明混合矩阵　·　右列：三份样品频谱', { 'data-observation-note': '' });
+    const responseNote = note(observationStage, 720, 485, 'ŨM 的非对角项为 0；旁带对角项仍保留未知的 m 与 φΔ。', { 'data-response-note': '' });
     function drawObservationExpansion(s) {
       const b = s.observation, pose = s.operationPose;
       const visible = (node, alpha) => { opacity(node, alpha); attr(node, 'aria-hidden', alpha === 0); };
@@ -374,7 +375,7 @@
         attr(node, 'transform', `translate(${x} ${y}) scale(${scale})`); visible(node, alpha);
       };
       attr(equation, 'transform', `translate(${pose.x} ${pose.y}) scale(${pose.scale})`);
-      visible(equation, s.operation * (1 - b.distribute + b.dock));
+      visible(equation, s.operation * (1 - b.distribute + b.dock) * (1-s.whyEstimate));
       const widened = b.widen * (1 - b.dock);
       for (const [key, anchor, target] of [
         ['source', -66, 220], ['temporarySource', -66, 220], ['equals', -5.5, 350],
@@ -411,7 +412,7 @@
       visible(indexDefinition, s.notation.definition * (1 - b.intro + b.dock));
       attr(indexDefinition, 'transform', `translate(0 ${pose.y - 85})`);
     }
-    label(lessonGroups.ready, 720, 520, '级次已分开；接下来展开频谱，寻找 0 级与 +1 级的公共信息。');
+    note(lessonGroups.ready, 720, 520, '级次已分开；接下来展开频谱，寻找 0 级与 +1 级的公共信息。');
 
     // The formula rail keeps its previous equation while the temporary row
     // enters, then collects persistent terms on the same clock as the stage.
@@ -482,7 +483,7 @@
     const entryOperation = create('g', { transform: 'translate(720 85) scale(.72)', 'data-split-operation': '' }, entry);
     const temporary = create('g', {}, entryOperation);
     operation(temporary, true);
-    const entryNote = label(entry, 720, 165, '沿用刚才推出的 Ũ，只用已知相对相移完成粗分离。');
+    const entryNote = note(entry, 720, 165, '沿用刚才推出的 Ũ，只用已知相对相移完成粗分离。');
     const negativePanel = create('g', { 'data-split-negative-panel': '', 'data-frequency-range': pair.range,
       'data-brightness-maximum': pair.maximum }, entry);
     create('rect', { x: -116, y: -116, width: 232, height: 232, rx: 4, class: 'camera-border', stroke: Chapter.temporaryBands[2].color }, negativePanel);
@@ -515,12 +516,13 @@
     }
     function drawEntry(progress) {
       const s = Chapter.sharedEntryState(progress);
+      attr(pair.root, 'transform', s.focus.transform);
       opacity(entry, s.handoff); attr(entry, 'aria-hidden', s.handoff === 0);
       opacity(temporary, s.temporary * s.source);
       opacity(entryNote, s.temporary * (1 - s.split));
       for (const [b, band] of s.bands.entries()) {
         const branch = branches[b];
-        attr(branch.title, 'transform', `translate(${band.titleX} ${band.titleY})`);
+        attr(branch.title, 'transform', `translate(${s.focus.x + band.titleX * s.focus.scale} ${s.focus.y + band.titleY * s.focus.scale}) scale(${s.focus.scale})`);
         opacity(branch.title, band.alpha * s.labels);
         attr(branch.path, 'd', `M 672.48 104 Q ${band.titleX} 158 ${band.titleX} ${band.titleY - 28}`);
         opacity(branch.path, band.alpha * (1 - s.pictures));
@@ -548,50 +550,82 @@
       railBands.forEach(({ group, rhs }, b) => {
         const band = s.bands[b], x = 720 + (Chapter.temporaryBands[b].x - 720) * s.split
           + (Chapter.temporaryBands[b].finalX - Chapter.temporaryBands[b].x) * s.settle;
-        attr(group, 'transform', `translate(${x} 0)`); opacity(group, band.alpha);
+        attr(group, 'transform', `translate(${s.focus.x + x * s.focus.scale} 0)`); opacity(group, band.alpha);
         attr(group, 'aria-hidden', band.alpha === 0); opacity(rhs, s.pictures);
       });
       return Chapter.sharedEntryFormulaAt(progress);
     }
 
-    const directionSummary = create('g', { 'data-adopted-summary': '' }, adopted);
-    label(directionSummary, 720, 35, '仍用这九帧，各方向填入自己的估计参数。');
-    reconstruction.parameters.forEach((p, d) => {
-      const x = 285 + d * 435;
-      label(directionSummary, x, 76, `方向 ${d + 1}：k̂ = (${compact(p.kx)}, ${compact(p.ky)}) · θ̂ = ${p.angle.toFixed(1)}°`);
-      label(directionSummary, x, 106, `m̂ = ${compact(p.m)} · φ̂Δ = ${compact(p.phase)} rad`, { class: 'svg-muted', 'data-adopted-direction': d });
-    });
-    const focusDirection = label(adopted, 720, 149, '方向 1：φ̂ⱼ = 2πj/3 + φ̂Δ；将 m̂、φ̂ⱼ 填入 M。', { fill: M.colors[2] });
     const group = lesson.group;
-    const mixing = create('g', {}, adopted), inverse = create('g', {}, adopted);
-    label(mixing, 390, 195, 'M · 把三个来源混成一帧'); label(inverse, 1090, 195, 'U · 从三帧中取出一个来源');
-    const matrixRows = [], inverseRows = [], symbolicRows = [], phaseLabels = [];
-    for (let j = 0; j < 3; j++) {
-      const mRow = create('g', { 'data-adopted-matrix-row': j }, mixing);
-      const symbolic = create('g', { 'data-adopted-symbolic-row': j }, mixing);
-      symbolicRows.push(symbolic);
-      const uRow = create('g', { 'data-adopted-weight-row': j }, inverse), y = 263 + j * 75;
-      M.orders.forEach((order, b) => {
-        const amplitude = order === 0 ? 1 : group.m / 2, phase = order * group.phases[j];
-        const z = { re: amplitude * Math.cos(phase), im: amplitude * Math.sin(phase) };
-        const tex = order === 0 ? '1' : String.raw`\frac{\widehat m}{2}e^{` + (order > 0 ? 'i' : '-i') + String.raw`\widehat\phi_` + j + '}';
-        formulaBox(symbolic, 127 + b * 185, y - 36, 156, 59, '$$' + tex + '$$');
-        label(mRow, 205 + b * 185, y, complex(z), { class: 'adopted-coefficient', fill: M.colors[b],
-          'data-adopted-matrix': `${j}:${b}`, 'data-re': z.re, 'data-im': z.im });
-        const w = group.weights[j][b];
-        label(uRow, 905 + b * 185, y, complex(w), { class: 'adopted-coefficient', fill: M.colors[j],
-          'data-adopted-inverse': `${j}:${b}`, 'data-re': w.re, 'data-im': w.im });
+    const parameterCards=create('g',{'data-adopted-cards':''},adopted);
+    const cards=[['k',250,M.colors[0],[group.kx,group.ky]],['m',720,M.colors[2],group.m],['phase',1190,M.colors[1],group.phases[0]]].map(([key,x,color,value])=>{
+      const g=create('g',{'data-adopted-parameter':key},parameterCards);
+      create('rect',{x:-198,y:0,width:396,height:73,rx:6,fill:'#0c1b22',stroke:color},g);
+      label(g,0,26,key==='k'?'k̂ → 频带归位':key==='m'?'m̂ → 幅度补偿':'共同相位 φ̂Δ → 相位补偿',{fill:color});
+      label(g,0,55,key==='k'?`(${value.map(compact).join(', ')})`:compact(value)+(key==='phase'?' rad':''),{fill:color,class:'svg-small'});
+      return {g,x,key};
+    });
+    const pending=mathAt(adopted,720,245,1160,String.raw`\widetilde A_{+1}=\alpha A_{+1}\quad\Longrightarrow\quad\frac{\widetilde A_{+1}}{\widehat\alpha}\approx A_{+1}`,
+      {'data-adopted-pending':''});
+    const compensation=create('g',{'data-adopted-compensation':''},adopted);
+    const compensationInput=create('path',{fill:'none',stroke:M.colors[1],'stroke-width':3},compensation);
+    const compensationOutput=create('path',{fill:'none',stroke:M.colors[2],'stroke-width':3,'data-compensated-band-vector':''},compensation);
+    label(compensation,430,475,'临时旁带：αA',{fill:M.colors[1]});
+    label(compensation,1010,475,'补偿后：A',{fill:M.colors[2]});
+    label(compensation,720,365,'÷ α̂',{fill:M.colors[2],class:'svg-title'});
+    const compensationReadout=label(compensation,720,505,'',{class:'svg-small'});
+    const known=group.weights[1][1], delta=group.phases[0], m=group.m;
+    const factor={re:Math.cos(delta)/m,im:-Math.sin(delta)/m};
+    const temporaryWeightValue={re:2/3*Math.cos(-2*Math.PI/3),im:2/3*Math.sin(-2*Math.PI/3)};
+    const numberTex=z=>String.raw`\left(`+compact(z.re)+(z.im<0?'-':'+')+compact(Math.abs(z.im))+'i'+String.raw`\right)`;
+    const substitution=create('g',{'data-adopted-substitution':''},adopted);
+    mathAt(substitution,720,285,1200,String.raw`\frac1{\widehat\alpha}=\frac1{`+compact(m)+String.raw`}e^{-i(`+compact(delta)+String.raw`)}=`+numberTex(factor));
+    mathAt(substitution,720,385,1200,String.raw`u_{+1,1}=`+numberTex(factor)+String.raw`\,\times\,`+numberTex(temporaryWeightValue));
+    const single=create('g',{'data-adopted-single':''},adopted);
+    const singleName=mathAt(single,0,-52,240,String.raw`u_{+1,1}`);
+    const singleNumber=label(single,0,0,complex(known),{class:'adopted-coefficient',fill:M.colors[1],
+      'data-adopted-restored-weight':'1:1','data-re':known.re,'data-im':known.im});
+    const matrix=create('g',{'data-adopted-U':''},adopted);
+    // Same anchors as the actual U inspected before estimation.
+    create('path',{d:'M 525 220 H 515 V 460 H 525 M 1085 220 H 1095 V 460 H 1085',class:'matrix-bracket'},matrix);
+    label(matrix,805,175,'U',{class:'svg-small'});
+    const rowNames=[],inverseRows=[];
+    for(let row=0;row<3;row++){
+      const y=260+80*row;
+      rowNames.push(mathAt(matrix,400,y,180,['A_0','A_{+1}','A_{-1}'][row],{style:'color:'+M.colors[row]}));
+      const g=create('g',{'data-adopted-weight-row':row},matrix);
+      group.weights[row].forEach((w,j)=>{
+        const value=label(g,625+180*j,y,complex(w),{class:'adopted-coefficient',fill:M.colors[row],
+          'data-adopted-inverse':`${row}:${j}`,'data-re':w.re,'data-im':w.im});
+        if(row===1&&j===1)attr(value,'data-adopted-docked-copy','');
       });
-      phaseLabels.push(label(mixing, 390, y + 25, `第 ${j} 帧：φ̂${['₀','₁','₂'][j]} = ${compact(group.phases[j])} rad`, { class: 'svg-muted' }));
-      matrixRows.push(mRow); inverseRows.push(uRow);
+      inverseRows.push(g);
     }
-    create('path', { d: 'M 120 217 H 105 V 436 H 120 M 666 217 H 681 V 436 H 666 M 820 217 H 805 V 436 H 820 M 1366 217 H 1381 V 436 H 1366', class: 'guide-line' }, adopted);
-    const process = create('g', {}, adopted);
-    formulaBox(process, 676, 270, 125, 74, String.raw`$$\longrightarrow$$`);
-    label(process, 740, 353, '求逆', { fill: M.colors[2] });
-    const restoredFactor = formulaBox(adopted, 130, 440, 1180, 53, String.raw`$$u_{\pm1,j}=\underbrace{\frac1{\widehat m}e^{\mp i\widehat\phi_\Delta}}_{\text{补回共同幅相}}\,\widetilde u_{\pm1,j},\qquad\widehat{\mathbf k}\ \longrightarrow\ \text{频带归位}$$`);
-    const application = label(adopted, 720, 524, '同一组三帧观测，分别算出三份正式频带。', { fill: M.colors[0] });
-    return { resetEntry, drawEntry, drawEntryFormula, drawProvisionalFormula, draw(id, progress) {
+    const rowHighlight=create('rect',{x:535,y:304,width:530,height:62,rx:5,fill:M.colors[1]+'10',stroke:M.colors[1],
+      'data-adopted-selected-row':'+1'},matrix);
+    const next=note(adopted,720,510,'沿 +1 这一行，回到同一组三帧完整观测。',{fill:M.colors[1]});
+    // Row actors persist through the next scene's entrance, then yield to the
+    // identical +1 symbolic products in the host calculation view.
+    const applicationRow=create('g',{'data-adopted-application-row':'+1'},adopted);
+    const applicationTerms=group.weights[1].map((w,j)=>{
+      const g=create('g',{'data-adopted-row-term':j},applicationRow);
+      const number=label(g,0,0,complex(w),{class:'adopted-coefficient',fill:M.colors[1]});
+      const product=mathAt(g,0,0,330,'u_{+1,'+j+'}'+String.raw`\cdot D_`+j+String.raw`(\mathbf f)`);
+      return {g,number,product};
+    });
+    function drawApplication(progress){
+      const p=M.clamp(progress),move=M.ramp(p,.04,.23),symbol=M.ramp(p,.25,.30);
+      [parameterCards,pending,substitution,single,compensation].forEach(g=>opacity(g,0));
+      const extract=M.ramp(p,0,.04);
+      opacity(matrix,1-extract);opacity(next,1-extract);opacity(rowHighlight,1);
+      inverseRows.forEach((g,j)=>opacity(g,j===1?1:.3));rowNames.forEach(g=>opacity(g,1));
+      opacity(applicationRow,extract);
+      applicationTerms.forEach(({g,number,product},j)=>{
+        attr(g,'transform',`translate(${M.lerp(625+180*j,475+360*j,move)} ${M.lerp(340,265,move)})`);
+        opacity(number,1-symbol);opacity(product,symbol);
+      });
+    }
+    return { resetEntry, drawEntry, drawEntryFormula, drawProvisionalFormula, drawApplication, draw(id, progress) {
       if (id === 'provisional-split') {
         const s = Chapter.provisionalState(progress);
         attr(provisional, 'data-provisional-mode', s.mode); attr(provisional, 'data-parameter-focus', s.focus || '');
@@ -608,10 +642,12 @@
           opacity(item.group, 1 - M.ramp(s.gather, .45, .65));
         });
         illuminationTokens.forEach(item => {
-          const hop = item.key === 'k' ? s.kHop : item.key === 'm' || item.key === 'phase' ? s.amplitudeHop : 0;
-          attr(item.group, 'transform', `translate(${item.x} ${230 - 14 * hop}) scale(${1 + .16 * hop})`);
-          attr(item.group, 'data-hop', hop);
+          attr(item.group, 'transform', `translate(${item.x-60} ${85+6*(1-s.illumination.formula)})`);
+          opacity(item.group,s.illumination.formula);
+          attr(item.group, 'data-hop', 0);
+          attr(item.group,'data-active',item.key===(s.illumination.kind==='phase'?'phase':s.illumination.kind));
         });
+        illuminationView.draw(s);
         opacity(kReason, s.kReason); opacity(amplitudeReason, s.amplitudeReason);
         attr(kReason, 'aria-hidden', s.kReason === 0); attr(amplitudeReason, 'aria-hidden', s.amplitudeReason === 0);
         opacity(failure, s.nominalFailure); attr(failure, 'aria-hidden', s.nominalFailure === 0); failureView.draw(s.failure);
@@ -630,14 +666,31 @@
           opacity(node, alpha); attr(node, 'aria-hidden', alpha === 0);
         }
       } else {
-        const s = Chapter.adoptedState(progress);
-        attr(adopted, 'data-adopted-progress', s.progress);
-        opacity(directionSummary, s.directions); opacity(focusDirection, s.focus);
-        matrixRows.forEach((g, j) => opacity(g, s.rows[j]));
-        symbolicRows.forEach((g, j) => opacity(g, s.focus * (1 - s.rows[j])));
-        phaseLabels.forEach((g, j) => opacity(g, s.rows[j]));
-        inverseRows.forEach((g, j) => opacity(g, s.inverse[j]));
-        opacity(process, s.process); opacity(restoredFactor, s.factor); opacity(application, s.application);
+        const s = Chapter.adoptedState(progress,id);
+        attr(adopted,'data-adopted-progress',s.progress);attr(adopted,'data-adopted-scene',id);
+        opacity(applicationRow,0);
+        opacity(parameterCards,s.cards);
+        cards.forEach(({g,x})=>attr(g,'transform',`translate(${x} ${M.lerp(425,130,s.cardMove)})`));
+        opacity(compensation,id==='adopted-weights'?M.ramp(progress,.46,.65):0);
+        if(id==='adopted-weights'){
+          const a=lesson.probe.orders[1].value,angle=group.phases[0],m=group.m;
+          const input={re:m*(a.re*Math.cos(angle)-a.im*Math.sin(angle)),im:m*(a.re*Math.sin(angle)+a.im*Math.cos(angle))};
+          const gain=Math.pow(1/m,M.ramp(progress,.65,.92)),rotation=-angle*M.ramp(progress,.65,.92),scale=80/Math.max(Math.hypot(a.re,a.im),1e-30);
+          const out={re:gain*(input.re*Math.cos(rotation)-input.im*Math.sin(rotation)),im:gain*(input.re*Math.sin(rotation)+input.im*Math.cos(rotation))};
+          attr(compensationInput,'d',arrowPath(430,370,430+input.re*scale,370-input.im*scale));
+          attr(compensationOutput,'d',arrowPath(1010,370,1010+out.re*scale,370-out.im*scale));
+          attr(compensationOutput,'data-re',out.re);attr(compensationOutput,'data-im',out.im);
+          compensationReadout.textContent=`幅度乘 ${(1/m).toFixed(4)} · 相位减去 ${compact(angle)} rad · 波矢保留给下一步归位`;
+        }
+        opacity(pending,s.pending);opacity(substitution,s.substituted);opacity(single,s.solved);
+        attr(single,'transform',`translate(${M.lerp(720,805,s.dock)} ${M.lerp(320,340,s.dock)})`);
+        opacity(singleName,1-s.dock);
+        // Hand off the selected number at the same coordinates without doubling it.
+        opacity(singleNumber,1-s.rows[1]);
+        opacity(matrix,s.matrix);opacity(rowHighlight,s.rowFocus);
+        inverseRows.forEach((g,j)=>opacity(g,s.rows[j]*(j===1?1:1-.7*s.rowFocus)));
+        rowNames.forEach((g,j)=>opacity(g,s.rows[j]));
+        opacity(next,s.rowFocus);
 
       }
     } };

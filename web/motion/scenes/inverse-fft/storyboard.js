@@ -18,7 +18,7 @@
     formulaDomain: "频域 → 空域",
     chapterIndex: 7,
     chapter: "08 / 图像与验证",
-    duration: 1700
+    duration: 6000
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = scene;
   else (root.SIMMotionUnits ||= {})[scene.id] = scene;

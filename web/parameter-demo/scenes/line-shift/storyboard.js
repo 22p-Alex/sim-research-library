@@ -20,6 +20,7 @@
     return { equation: M.teachingEquations[lineState(p).real.best === 1 ? 'peak' : 'real'], note: data.note };
   };
   scene.formulaMode = (p,context) => 'line-shift-' + (context.lineState(p).real.best===1?'peak':'sum');
+  scene.formulaCuts = [.97];
   scene.formulas = formulas;
   if(typeof module!=='undefined'&&module.exports)module.exports=scene;
   else(root.SIMParameterUnits ||= {})[scene.id]=scene;

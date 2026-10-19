@@ -20,6 +20,7 @@
       if (color) node.style.fill = color;
       return node;
     };
+    const note=(...args)=>{const node=label(...args);set(node,'display','none');set(node,'data-scene-note','');return node;};
     const line = (parent, x1, y1, x2, y2, color = grey, extra = {}) => el('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': 1, ...extra }, parent);
     const num = (value, digits = 3) => (Math.abs(value) < .5 * 10 ** -digits ? 0 : value).toFixed(digits);
     function stage() {
@@ -29,8 +30,8 @@
     // 1. Every displayed product is computed from zero-extended sequences.
     {
       const g = stage(), example = lesson.teaching, x0 = 305, dx = 91, colors = [cyan, orange, violet];
-      const heading = label(g, 720, 36, '从刚才的逐点比较，转入便于手算的一维例子', 'pe-svg-title');
-      label(g, 720, 63, '另设 1、4、2 · H=1 · m=1 · 相位为 0 · 横轴是频率位置 · 范围外补零', 'pe-svg-muted', 'middle', orange);
+      const heading = note(g, 720, 36, '从刚才的逐点比较，转入便于手算的一维例子', 'pe-svg-title');
+      label(g, 720, 63, '教学例 1、4、2 · H=m=1', 'pe-svg-muted', 'middle', orange);
       ['0 级', '移动后的旁带', '逐点乘积'].forEach((v, i) => label(g, 128, [143, 259, 358][i], v, 'pe-svg-text'));
       const products = [], pairs = [];
       example.frequencies.forEach((f, i) => {
@@ -49,7 +50,7 @@
       });
       line(g, 263, 311, 891, 311, grey);
       const readout = label(g, 573, 422, '', 'pe-svg-value'), moveLabel = label(g, 573, 475, '', 'pe-svg-text');
-      label(g, 1150, 85, '每个位移的相关分数', 'pe-svg-title');
+      label(g, 1150, 85, 'ρ(δ)', 'pe-svg-title');
       line(g, 974, 333, 1340, 333, grey); line(g, 974, 124, 974, 333, grey);
       const bars = example.real.map(({ delta, score }) => {
         const x = 1006 + delta * 65;
@@ -57,10 +58,10 @@
         const value = label(g, x + 19, 323 - score * 8, String(score), 'pe-svg-text');
         label(g, x + 19, 357, String(delta), 'pe-svg-text'); return { rect, value };
       });
-      label(g, 1160, 390, '横轴：左移格数 δ', 'pe-svg-muted');
+      label(g, 1160, 390, 'δ', 'pe-svg-muted');
       const peak = el('g', {}, g);
-      label(peak, 1160, 443, '高度 21：分数', 'pe-svg-text', 'middle', cyan);
-      label(peak, 1160, 479, '位置 2：教学例的位移', 'pe-svg-title', 'middle', orange);
+      label(peak, 1160, 443, '分数 21', 'pe-svg-text', 'middle', cyan);
+      label(peak, 1160, 479, 'δ = 2', 'pe-svg-title', 'middle', orange);
       draws.push(s => {
         const r = s.real, candidate = example.real[r.candidate], count = r.best === 1 ? 7 : r.products;
         text(heading, r.best === 1 ? '一维例子算完：带着逐点比较的方法回到原图' : '从刚才的逐点比较，转入便于手算的一维例子');

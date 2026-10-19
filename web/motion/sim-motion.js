@@ -17,6 +17,7 @@
   let excitationPhase = 0, fourierLesson = null;
   let timeline = null, scrubbing = false;
   let parameterChapter, parameterView, parameterFormulaView, bridgeView, reconstruction;
+  let headingHandoff,noteHandoff;
   const stopButtons = [];
   const motionFormulaNodes = new Map();
   const create = (tag, attrs = {}, parent, text) => {
@@ -221,6 +222,10 @@
     if (index !== currentScene) showScene(index, animateCopy);
     const beat = frame.owner === 'motion' ? M.scenePresentation(frame.id, frame.progress) : null;
     if (beat) {
+      if(frame.id==='separate-bands'){
+        $('equation').hidden=beat.mode!=='separatedStatus';
+        $('demix-equations').hidden=beat.mode==='separatedStatus';
+      }
       setText($('scene-title'), beat.title); setText($('scene-description'), beat.copy);
       setText($('scene-svg-description'), beat.copy + ' ' + beat.note);
       setText($('equation-note'), beat.note); $('equation-note').hidden = !beat.note;
@@ -279,8 +284,8 @@
         setText($('stage-caption'), { knownHighlight: '第一行 · 高亮系数', knownMessage: '第一行 · 已知常数，直接可算',
           knownRestore: '第一行 · 文字退去，系数恢复', sideHighlight: '第二、三行 · 高亮系数', sideMessage: '旁带 · 需要知道 φⱼ 和 m',
           sideRestore: '旁带 · 文字退去，系数恢复', gather: '来源列 → A(f) · 权重 → U · 观测列 → D(f)',
-          whyEstimate: '回到照明公式', wavevectorReason: 'k 跳动 → 波矢为什么可能偏离预设',
-          amplitudePhaseReason: 'm、φⱼ 跳动 → 实际幅相为什么可能偏离预设', nominalPlug: '直接代回硬件标称值',
+          whyEstimate: '同一照明公式 → 三种可观察差异', wavevectorReason: 'k → 方向与间距',
+          modulationReason: 'm → 固定标尺下的条纹反差', phaseReason: 'φΔ → 三帧条纹共同平移', nominalPlug: '直接代回硬件标称值',
           vectorFailure: '结果一 · 亚像素错位', phaseFailure: '结果二 · 反相抵消与黑边下冲',
           nominalResidual: '实际误差 · 周期性残余条纹', actualWeights: '重新显示逆矩阵 U',
           extractWeight: '从矩阵取出旁带权重 → 左侧放大', showWeight: '等号 → 原有系数',
@@ -295,13 +300,17 @@
           ready: 'Ã = ŨD → 公共区参数估计' }[state.mode]);
       }
       else {
-        motionAlpha = 0; parameterAlpha = 1 - enter; adoptedAlpha = enter;
-        parameterView.drawScene('least-squares-fit', 1); pairAlpha = 1 - enter;
+        motionAlpha=0; adoptedAlpha=1;
+        if(frame.id==='adopted-weights'){
+          parameterAlpha=1-enter;adoptedAlpha=enter;
+          parameterView.drawScene('least-squares-fit',1);pairAlpha=1-enter;
+        }
       }
     } else if (frame.owner === 'parameters') {
       motionAlpha = 0;
       const split = frame.sceneId === 'shared' ? Chapter.sharedEntryState(frame.progress) : null;
-      const state = parameterView.drawScene(frame.sceneId, split ? split.lessonProgress : frame.progress);
+      const parameterState=parameterChapter.state(frame.sceneId,frame.progress);
+      const state = parameterView.drawScene(parameterState.id,parameterState.progress);
       parameterAlpha = 1; pairAlpha = 1;
       if (frame.sceneId === 'shared') {
         provisionalAlpha = 1 - split.handoff;
@@ -314,24 +323,47 @@
         setText($('scene-title'), copy.title); setText($('scene-description'), copy.copy);
         setText($('scene-svg-description'), copy.copy + ' ' + copy.note);
         setText($('stage-caption'), split.progress < 1 ? 'Ã → 0、+1、−1 → 0、+1' : '0 级 + +1 级 / 相机数据估计');
-      } else if(frame.sceneId==='refine'||frame.sceneId==='least-squares-fit') {
-        const copy=window.SIMParameterLesson[frame.sceneId==='refine'?'refinementNarrative':'leastSquaresNarrative'](frame.progress);
+      } else if(frame.sceneId==='refine'||frame.getPeakBeat) {
+        const copy=window.SIMParameterLesson[frame.sceneId==='refine'?'refinementNarrative':'leastSquaresNarrative'](state.progress);
         setText($('scene-title'),copy.title);setText($('scene-description'),copy.copy);
         setText($('scene-svg-description'),copy.copy+' '+(copy.note||window.SIMParameterLesson.formulaAt(state).note));
-        setText($('stage-caption'),frame.sceneId==='least-squares-fit'?`${copy.beat+1}/${copy.beatCount} · ${copy.action}`:copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
+        setText($('stage-caption'),frame.getPeakBeat?copy.action:copy.mode==='returnSpectrum'?'位置锁定 → 完整频谱 → 共同幅相':'空域相位斜坡 → 小数频移 → 三轮 5×5');
       }
       const useEntryFormula = split && split.progress < 1;
       const formula = useEntryFormula ? bridgeView.drawEntryFormula(frame.progress) : parameterFormulaView.draw(state);
-      if(frame.sceneId==='least-squares-fit') setText($('equation-domain'),window.SIMGetPeak.presentation(frame.progress).domain);
+      if(formula.title) {
+        setText($('scene-title'),formula.title);setText($('scene-description'),formula.copy);
+        setText($('scene-svg-description'),formula.copy+' '+formula.note);
+      }
+      if(frame.getPeakBeat) setText($('equation-domain'),window.SIMGetPeak.presentation(state.progress).domain);
       setText($('equation-note'), formula.note); $('equation-note').hidden = !formula.note;
-    } else if (frame.id === 'separate-bands' && frame.progress < .12) {
-      adoptedAlpha = 1 - enter; motionAlpha = enter; bridgeView.draw('adopted-weights', 1);
+    } else if (frame.id === 'separate-bands' && M.scenes.find(s=>s.id==='separate-bands').applicationProgress(frame.progress) < .42) {
+      const p=M.scenes.find(s=>s.id==='separate-bands').applicationProgress(frame.progress),reveal=M.ramp(p,.30,.42);
+      adoptedAlpha=1-reveal;motionAlpha=reveal;bridgeView.drawApplication(p);
     }
     for (const [id, alpha] of [['motion-content', motionAlpha], ['provisional-stage', provisionalAlpha], ['parameter-stage', parameterAlpha], ['adopted-stage', adoptedAlpha], ['frequency-handoff-stage', pairAlpha]]) {
       opacity($(id), alpha); attr($(id), 'aria-hidden', alpha === 0);
     }
     attr($('scene'), 'data-flow-scene', Flow.scenes[index].id);
     attr($('scene'), 'data-parameter-source', 'estimated-from-observations');
+    if(frame.owner==='parameters'&&frame.sceneId!=='shared') {
+      const previous=Flow.scenes[index-1],Study=window.SIMParameterLesson;
+      let copy=previous;
+      if(previous.owner==='parameters') {
+        const end=parameterChapter.state(previous.sceneId,1);
+        const narrative=end.id==='refine'?Study.refinementNarrative(1):end.id==='least-squares-fit'?Study.leastSquaresNarrative(end.progress):{};
+        copy={...previous,...narrative,...Study.formulaAt(end)};
+      }
+      const state=parameterChapter.state(frame.sceneId,frame.progress);
+      if(Study.formulaAt(state).title) {
+        const handoff=Study.formulaTransition(state,reduced.matches),from=handoff.previous;
+        headingHandoff.draw(from?{...Study.scene(from.id),...Study.formulaAt(from)}:null,handoff);
+      } else headingHandoff.draw(copy,window.SIMTextTransition.state(frame.progress,Flow.durations[index-1],0,reduced.matches));
+    } else headingHandoff.reset();
+    if(frame.owner==='parameters') {
+      const Study=window.SIMParameterLesson,state=parameterChapter.state(frame.sceneId,frame.progress),handoff=Study.formulaTransition(state,reduced.matches);
+      if(handoff.previous)noteHandoff.draw(Study.formulaAt(handoff.previous),handoff);else noteHandoff.reset();
+    } else noteHandoff.reset();
   }
   function showScene(index, animateCopy = true) {
     const data = Flow.scenes[index]; currentScene = index;
@@ -379,7 +411,7 @@
     for (const el of [$('scene-copy'), $('equation'), $('domain-equations')]) {
       if (typeof el.getAnimations === 'function') el.getAnimations().forEach(animation => animation.cancel());
     }
-    if (animateCopy && !reduced.matches) {
+    if (animateCopy && !reduced.matches && data.owner!=='parameters') {
       for (const el of [$('scene-copy'), pair ? $('domain-equations') : $('equation')]) {
         if (typeof el.animate !== 'function') continue;
         el.animate([{ opacity: .2, transform: 'translateY(5px)' }, { opacity: 1, transform: 'translateY(0)' }], { duration: 320, easing: 'ease-out' });
@@ -455,6 +487,11 @@
   function populateTheory() {
     document.querySelectorAll('[data-equation]').forEach(el => math(el, el.dataset.equation));
     const row = (parent, cells) => { const tr = document.createElement('tr'); cells.forEach(value => { const td = document.createElement('td'); td.textContent = value; tr.appendChild(td); }); parent.appendChild(tr); };
+    lesson.group.phases.forEach((phase,j)=>row($('adopted-mixing-values'),['D'+['₀','₁','₂'][j],...M.orders.map(order=>{
+      const a=order===0?1:lesson.group.m/2;
+      return complex({re:a*Math.cos(order*phase),im:a*Math.sin(order*phase)});
+    })]));
+    lesson.group.weights.forEach((weights,b)=>row($('adopted-inverse-values'),[['A₀','A₊₁','A₋₁'][b],...weights.map(complex)]));
     lesson.probe.observed.forEach((value, j) => row($('observed-values'), [`D${'₀₁₂'[j]}`, complex(value), complex(lesson.probe.weights[2][j])]));
     lesson.probe.orders.forEach(order => row($('component-values'), [String(order.order), `(${order.specimenFrequency.join(', ')})`, complex(order.value)]));
     $('closure-note').textContent = `代回三帧观测的最大复数误差：${lesson.probe.closureError.toExponential(2)}。H(f) = ${lesson.probe.orders[2].h.toFixed(6)}。`;
@@ -603,12 +640,15 @@
     ({ buildDemixMatrix, buildDemixProof, drawDemix } = window.SIMMotionHostViews.matrix({ ...sceneContext, matrixView, inverseView, proofView, calculationView }));
     buildFrames(); buildSources(); buildDemixMatrix(); buildDemixProof(); buildEncodingAlgebra(); populateTheory();
     parameterView = window.SIMParameterLesson.createView($('parameter-stage'), parameterChapter.lesson,
-      { sharedPairContainer: $('frequency-handoff-stage') });
-    parameterFormulaView = window.SIMParameterLesson.createFormulaView($('equation'), { lesson:parameterChapter.lesson,formulaAt: s =>
+      { sharedPairContainer: $('frequency-handoff-stage'),reducedMotion:()=>reduced.matches });
+    headingHandoff=window.SIMTextTransition.create({document,host:$('scene-copy'),fields:[
+      {node:$('scene-title'),tag:'h1',key:'title'},{node:$('scene-description'),tag:'p',key:'copy'}]});
+    noteHandoff=window.SIMTextTransition.create({document,host:$('equation-note-slot'),fields:[{node:$('equation-note'),tag:'p',key:'note'}]});
+    parameterFormulaView = window.SIMParameterLesson.createFormulaView($('equation'), { lesson:parameterChapter.lesson,reducedMotion:()=>reduced.matches,formulaAt: s =>
       s.id === 'provisional-split' ? Chapter.provisionalFormulaAt(s) : window.SIMParameterLesson.formulaAt(s),
       formulaMode: s => s.id === 'provisional-split' ? 'provisional-' + Chapter.provisionalState(s.progress).formulaKey : window.SIMParameterLesson.formulaMode(s) });
     bridgeView = window.SIMMotionParameterView.create({ reconstruction, lesson,
-      create, attr, opacity, math, formulaBox, spectrumURL, imageURL, maximum, complex, compact, sharedPair: parameterView.sharedPair,
+      create, attr, opacity, math, formulaBox, spectrumURL, imageURL, maximum, complex, compact, arrowPath, sharedPair: parameterView.sharedPair,
       inverseHandoff: matrixView.inverseHandoff, inverseMatrix: matrixView.backward });
     fullStages = window.SIMMotionStages.create({ lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact });
     player = M.createPlayer({ render: update, reducedMotion: reduced.matches, durations: Flow.durations, pacing: Flow.pacing }); bind();

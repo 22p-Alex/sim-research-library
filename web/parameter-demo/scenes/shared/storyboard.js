@@ -32,6 +32,7 @@
         : p < .94 ? '此处示意 k′=k。虚线轮廓是两边 OTF 非零的几何交集；边缘虽有传递，仍可能太弱，比较时仍需筛掉弱传递点。' : data.note };
   };
   scene.formulaMode = (p,context) => p < .78 ? 'shared-derive' : p < .94 ? 'shared-common' : 'shared-reliable';
+  scene.formulaCuts = [.78,.94];
   scene.formulas = formulas;
   if(typeof module!=='undefined'&&module.exports)module.exports=scene;
   else(root.SIMParameterUnits ||= {})[scene.id]=scene;

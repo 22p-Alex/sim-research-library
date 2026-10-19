@@ -17,11 +17,11 @@
     const negative = 1 - .75 * r(p, .66, .74) - .25 * r(p, .74, .82);
     return { progress: p, lessonProgress: Story.clamp((elapsed - sharedEntryDuration) / Study.scene('shared').duration),
       handoff: r(p, 0, .06), temporary: 1, split, reveal,
-      source: 1 - r(p, .30, .40), pictures: r(p, .50, .62), negative, settle,
+      source: 1 - r(p, .30, .40), pictures: r(p, .50, .62), negative, settle, focus: Study.sharedFocusPose(settle),
       labels: 1 - r(p, .94, 1), context: r(p, .94, 1),
       bands: temporaryBands.map(b => ({ order: b.order, x: b.x + (b.finalX - b.x) * settle,
         titleX: 672.48 + (b.x - 672.48) * split + (b.finalX - b.x) * settle,
-        titleY: 85 + 164 * split, alpha: reveal * (b.order === -1 ? negative : 1) })) };
+        titleY: 85 + 154 * split, alpha: reveal * (b.order === -1 ? negative : 1) })) };
   }
   function sharedEntryFormulaAt(progress) {
     const s = sharedEntryState(progress), p = s.progress;
@@ -31,7 +31,7 @@
       : p < .66 ? '三份临时频带都来自同一组三帧；旁带仍保留未知的 m 与共同相位偏移。'
       : '−1 级只退出当前比较画面；其数据保留，后面的正式重建仍使用三个级次。';
     return { title, copy: p < .66 ? '沿用同一批观测：青色 0 级、紫色 +1 级、橙色 −1 级，图像与下方公式一一对应。'
-      : '−1 级图像与公式一起淡出；留下的两份频谱继续用于说明公共区与参数估计。', note,
+      : '−1 级淡出后，0 级与 +1 级一起移到中央并放大，接着寻找公共区。', note,
       equation: '$$' + temporaryBands.map(b => '{\\color{' + b.color + '}' + b.symbol + '=' + b.rhs + '}').join('\\qquad') + '$$' };
   }
     return { sharedEntryDuration, sharedDuration, sharedEntryState, sharedEntryFormulaAt, temporaryBands };

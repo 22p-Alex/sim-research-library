@@ -7,18 +7,18 @@ const Study = require('../web/parameter-demo/sim-parameter-two-stage.js');
 const boot = require('./helpers/motion-dom.cjs');
 const near = (a, b, eps = 1e-9) => assert.ok(Number.isFinite(+a) && Math.abs(+a - b) < eps, `${a} != ${b}`);
 
-test('33 stops preserve every complete scene interval and the existing reconstruction transitions', () => {
+test('43 stops preserve every complete scene interval and the existing reconstruction transitions', () => {
   const flow = Chapter.plan(Motion);
-  assert.equal(flow.scenes.length, 33); assert.equal(flow.durations.length, 32);
+  assert.equal(flow.scenes.length, 43); assert.equal(flow.durations.length, 42);
   assert.equal(flow.index('inverse-demix'), 9);
   assert.equal(flow.index('provisional-split'), 10);
   assert.equal(flow.index('parameters.shared'), 11);
   assert.equal(flow.index('parameters.line-shift'), 12);
   assert.equal(flow.index('parameters.shift'), 13);
-  assert.equal(flow.index('adopted-weights'), 19);
+  assert.equal(flow.index('adopted-weights'), 27);
   assert.equal(flow.index('verify-demix'), -1);
-  assert.equal(flow.index('separate-bands'), 20);
-  assert.equal(flow.index('relocate-bands'), 21);
+  assert.equal(flow.index('separate-bands'), 30);
+  assert.equal(flow.index('relocate-bands'), 31);
   for (const id of Chapter.sceneIds) {
     const end = flow.index('parameters.' + id);
     for (const p of [.000001, .02, .16, .5, .99, 1]) {
@@ -27,16 +27,16 @@ test('33 stops preserve every complete scene interval and the existing reconstru
       near(frame.progress, p); assert.equal(frame.index, end);
       assert.equal(frame.baseTime, 9);
     }
-    assert.equal(flow.durations[end - 1], Study.scene(id).duration + (id === 'shared' ? Chapter.sharedEntryDuration : 0));
+    assert.equal(flow.durations[end - 1], Study.navigationScene(id).duration + (id === 'shared' ? Chapter.sharedEntryDuration : 0));
   }
   for (const p of [.01, .12, .43, .99, 1]) {
-    const frame = flow.frame(19 + p);
+    const frame = flow.frame(29 + p);
     assert.ok(frame.baseTime >= 10.28 && frame.baseTime <= 11);
     assert.equal(Motion.demixState(frame.baseTime).panels.proof, 0, 'the skipped proof cannot flash during the handoff');
   }
-  assert.equal(flow.sceneIndex(19.05), 19, 'keep adopted weights during the entry fade');
-  assert.equal(flow.sceneIndex(19.2), 20);
-  for (let old = 11; old <= 23; old++) near(flow.frame(old + 9).baseTime, old);
+  assert.equal(flow.sceneIndex(29.05), 30, 'the extracted +1 row enters formal demixing');
+  assert.equal(flow.sceneIndex(29.2), 30);
+  for (let old = 11; old <= 23; old++) near(flow.frame(old + 19).baseTime, old);
 
 });
 
@@ -60,7 +60,7 @@ test('production host estimates the same nine frames and drives the chapter and 
   assert.deepEqual(errors, []); assert.equal(byId.get('fatal-error').hidden, true);
   const flow = context.SIMMotionParameterChapter.plan(context.SIMMotion);
   assert.equal(captures, 1); assert.equal(players, 1);
-  assert.equal(playerOptions.pacing[2].at(-1)[1], 111900);
+  assert.equal(playerOptions.pacing[2].at(-1)[1], 106400);
   assert.equal(playerOptions.durations[2], playerOptions.pacing[2].at(-1)[1]);
   assert.equal(supplied.raw, lesson.capture.raw); assert.equal(supplied.truth, undefined);
   assert.equal(lesson.pipeline, adopted.pipeline);
@@ -72,8 +72,8 @@ test('production host estimates the same nine frames and drives the chapter and 
     g.phases.forEach((phi, j) => near(phi, p.phases[j]));
     lesson.pipeline.raw.groups[d].frames.forEach((frame, j) => assert.equal(frame.pixels, supplied.raw.groups[d].frames[j].pixels));
   });
-  assert.equal(byId.get('scene-stops').children.length, 33);
-  assert.equal(byId.get('progress').max, '32');
+  assert.equal(byId.get('scene-stops').children.length, 43);
+  assert.equal(byId.get('progress').max, '42');
   const seek = t => { byId.get('progress').value = String(t); byId.get('progress').dispatch('input'); };
   // The production 03→04 interval teaches Euler and Fourier before showing
   // spectral copies, transporting persistent MathML tokens on one playhead.
@@ -196,7 +196,7 @@ test('production host estimates the same nine frames and drives the chapter and 
   assert.equal(fLabels.length, 3); fLabels.forEach(label => assert.equal(label.textContent, 'f'));
   const snapshot = () => Object.fromEntries(['motion-content', 'provisional-stage', 'split-handoff-stage', 'parameter-stage', 'adopted-stage'].map(id => [id, byId.get(id).style.opacity]));
   const saved = new Map();
-  const positions = Array.from({ length: 33 }, (_, i) => i).flatMap(i => i ? [i - .99, i - .8, i - .5, i - .01, i] : [0]);
+  const positions = Array.from({ length: 43 }, (_, i) => i).flatMap(i => i ? [i - .99, i - .8, i - .5, i - .01, i] : [0]);
   for (const t of [...positions, ...positions.toReversed()]) {
     seek(t);
     const frame = flow.frame(t), index = flow.sceneIndex(t);
@@ -204,7 +204,7 @@ test('production host estimates the same nine frames and drives the chapter and 
     assert.equal(byId.get('scene-number').textContent, String(index + 1).padStart(2, '0'));
     assert.equal(byId.get('scene-stops').children.filter(el => el.attrs['aria-current'] === 'step').length, 1);
     if (frame.owner === 'parameters') {
-      assert.equal(byId.get('parameter-stage').attrs['data-scene-id'], frame.sceneId);
+      assert.equal(byId.get('parameter-stage').attrs['data-scene-id'], chapter.state(frame.sceneId,frame.progress).id);
       const state = chapter.state(frame.sceneId, frame.progress), split = frame.sceneId === 'shared' ? Chapter.sharedEntryState(frame.progress) : null;
       const formula = split && split.progress < 1 ? Chapter.sharedEntryFormulaAt(frame.progress) : context.SIMParameterLesson.formulaAt(state);
       assert.equal(byId.get('equation-note').textContent, formula.note);
@@ -249,8 +249,8 @@ test('production host estimates the same nine frames and drives the chapter and 
     else samePositions.set(t, transforms);
   }
   const ratio = nodes.find(el => el.attrs['data-study-ratio'] !== undefined);
-  seek(flow.index('parameters.least-squares-fit') - .12); const endpoint = ratio.attrs.d;
-  seek(flow.index('parameters.least-squares-fit'));  assert.equal(ratio.attrs.d, endpoint);
+  seek(flow.index('parameters.get-peak-read') - .12); const endpoint = ratio.attrs.d;
+  seek(flow.index('parameters.get-peak-read'));  assert.equal(ratio.attrs.d, endpoint);
   seek(flow.index('parameters.coarse') - .5);
   const candidateGroup = nodes.find(el => el.attrs['data-candidate-panel'] !== undefined);
   const kx = Number(candidateGroup.attrs['data-kx']), ky = Number(candidateGroup.attrs['data-ky']);
@@ -275,7 +275,7 @@ test('production host estimates the same nine frames and drives the chapter and 
     near(byId.get('progress').value, i); assert.equal(pending.size, 0);
     assert.equal(byId.get('chapter-replay').hidden, true);
   }
-  doc.dispatch('keydown', { key: 'End', target: byId.get('stage') }); near(byId.get('progress').value, 32);
+  doc.dispatch('keydown', { key: 'End', target: byId.get('stage') }); near(byId.get('progress').value, 42);
   assert.equal(players, 1); assert.equal(captures, 1, 'replay never acquires new observations');
   windowEvents.pagehide.forEach(callback => callback());
   assert.equal(pending.size, 0); assert.equal(byId.get('parameter-stage').children.length, 0);
@@ -367,10 +367,22 @@ test('scene 11 keeps matrix-to-formula flight and changes coefficients inside th
   const startPose = moving[0].attrs.transform;
   seek(17.3); assert.notEqual(moving[0].attrs.transform, startPose);
   seek(19); near(byId.get('motion-content').style.opacity, 0); near(operation.style.opacity, 1); near(transfer.style.opacity, 0);
-  seek(20.7); near(groups.whyEstimate.style.opacity, 1); near(kToken.attrs['data-hop'], 1);
+  seek(20.7); near(groups.whyEstimate.style.opacity, 1); near(kToken.attrs['data-hop'], 0);
+  const illuminationBody=nodes.find(el=>el.attrs['data-illumination-body']!==undefined);
+  const stripes=nodes.find(el=>el.attrs['data-parameter-stripes']!==undefined);
+  const phaseRelation=nodes.find(el=>el.attrs['data-parameter-phase-relation']!==undefined);
+  near(kToken.style.opacity,1);near(illuminationBody.style.opacity,0);
+  assert.equal(illuminationBody.attrs['aria-hidden'],'true');
+  assert.equal(stripes.attrs.preserveAspectRatio,'none');
+  assert.ok(+phaseRelation.attrs.y + +phaseRelation.attrs.height <= 550);
+  assert.match(phaseRelation.children[0].innerHTML,/已知/);assert.match(phaseRelation.children[0].innerHTML,/未知，三帧共用/);
   near(mToken.attrs['data-hop'], 0); near(phiToken.attrs['data-hop'], 0); reasons.forEach(el => near(el.style.opacity, 0));
   seek(23); near(kToken.attrs['data-hop'], 0); near(reasons[0].style.opacity, 1); near(reasons[1].style.opacity, 0);
-  seek(25.7); reasons.forEach(el => near(el.style.opacity, 0)); near(mToken.attrs['data-hop'], 1); near(phiToken.attrs['data-hop'], 1);
+  near(illuminationBody.style.opacity,1);
+  assert.equal(illuminationBody.attrs['aria-hidden'],'false');
+  seek(25.7); reasons.forEach(el => near(el.style.opacity, 0)); near(mToken.attrs['data-hop'], 0); near(phiToken.attrs['data-hop'], 0);
+  assert.equal(groups.whyEstimate.attrs['data-parameter-focus'],'m');
+  assert.equal(mToken.attrs['data-active'],'true');
   seek(29); near(reasons[0].style.opacity, 0); near(reasons[1].style.opacity, 1);
   seek(34); near(failure.style.opacity, 1); near(groups.whyEstimate.style.opacity, 0); near(groups.actualWeights.style.opacity, 0);
   seek(40); near(failure.attrs['data-frequency-error'], .3); near(badImages[1].style.opacity, 1); near(badImages[2].style.opacity, 0);
@@ -599,6 +611,7 @@ test('the 11-to-12 split carries the same spectra, colored formulas and synchron
   } });
   assert.deepEqual(h.errors, []);
   const { byId, nodes } = h, entryFraction = Chapter.sharedEntryDuration / Chapter.sharedDuration;
+  const annotations = nodes.find(el => el.attrs['data-shared-annotations'] !== undefined);
   const seek = p => { byId.get('progress').value = String(10 + p * entryFraction); byId.get('progress').dispatch('input'); };
   const negative = nodes.find(el => el.attrs['data-split-negative-panel'] !== undefined);
   const negativeImage = nodes.find(el => el.attrs['data-split-band'] === '-1');
@@ -616,6 +629,8 @@ test('the 11-to-12 split carries the same spectra, colored formulas and synchron
   for (const p of points) {
     seek(p);
     const entry = Chapter.sharedEntryState(p * entryFraction);
+    const renderedPose = pair.root.attrs.transform.match(/-?\d*\.?\d+(?:e[+-]?\d+)?/gi).map(Number);
+    [entry.focus.x, entry.focus.y, entry.focus.scale].forEach((v, i) => near(renderedPose[i], v));
     if (p < 1) {
       formulas.forEach((el, b) => near(el.style.opacity, entry.bands[b].alpha));
       near(negative.style.opacity, entry.pictures * entry.negative);
@@ -625,18 +640,27 @@ test('the 11-to-12 split carries the same spectra, colored formulas and synchron
     if (p >= .82) near(formulas[2].style.opacity, 0);
     if (p >= 1) near(byId.get('split-handoff-stage').style.opacity, 0);
     pair.panels.forEach((panel, b) => assert.equal(panel.picture.attrs.href, pair.bandURLs[b]));
-    const actors = [...formulas, ...titles, negative, ...pair.panels.map(panel => panel.group)];
+    const actors = [...formulas, ...titles, negative, pair.root, annotations, ...pair.panels.map(panel => panel.group)];
     snapshots.set(p, actors.map(el => [el.attrs.transform, el.style.opacity]));
   }
   const renders = h.mathRenders;
   for (const p of points.toReversed()) {
     seek(p);
-    const actors = [...formulas, ...titles, negative, ...pair.panels.map(panel => panel.group)];
+    const actors = [...formulas, ...titles, negative, pair.root, annotations, ...pair.panels.map(panel => panel.group)];
     // Hidden entry-only actors are reset deterministically as well.
     assert.deepEqual(actors.map(el => [el.attrs.transform, el.style.opacity]), snapshots.get(p));
   }
   assert.equal(h.mathRenders, renders, 'all formula actors are cached across replay');
   assert.deepEqual(pair.bands.map(z => ({ re: [...z.re], im: [...z.im] })), storedData);
-  seek(.999999); const before = pair.panels.map(panel => Number(panel.group.attrs['data-center-x']));
-  seek(1.000001); pair.panels.forEach((panel, b) => near(panel.group.attrs['data-center-x'], before[b]));
+  seek(.999999);
+  const before = pair.panels.map(panel => Number(panel.group.attrs['data-center-x'])), focus = pair.root.attrs.transform;
+  const values = focus.match(/-?[\d.]+/g).map(Number), [dx, dy, scale] = values;
+  const centers = before.map(x => dx + x * scale);
+  near((centers[0] + centers[1]) / 2, 720); near(dy + 375 * scale, 280); near(scale, 1.2);
+  near(+formulas[0].attrs.transform.match(/-?[\d.]+/g)[0], centers[0]);
+  near(+formulas[1].attrs.transform.match(/-?[\d.]+/g)[0], centers[1]);
+  seek(1.000001);
+  pair.panels.forEach((panel, b) => near(panel.group.attrs['data-center-x'], before[b]));
+  assert.equal(pair.root.attrs.transform, focus);
+  assert.equal(annotations.attrs.transform, focus, 'address arrows share the spectrum presentation pose');
 });

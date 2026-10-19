@@ -178,7 +178,8 @@
   const provisionalSteps = Object.freeze([
     [0, 'knownHighlight', 'knownWeights'], [3.1, 'knownMessage', 'knownWeights'], [5.9, 'knownRestore', 'knownWeights'],
     [7.8, 'sideHighlight', 'unknownWeights'], [11.1, 'sideMessage', 'unknownWeights'], [14.4, 'sideRestore', 'unknownWeights'],
-    [16, 'gather'], [19.5, 'whyEstimate'], [20.3, 'wavevectorReason', 'whyEstimate'], [25.3, 'amplitudePhaseReason', 'whyEstimate'],
+    [16, 'gather'], [19.5, 'whyEstimate'], [22, 'wavevectorReason', 'whyEstimate'],
+    [25.5, 'modulationReason', 'whyEstimate'], [28.8, 'phaseReason', 'whyEstimate'],
     [32.5, 'nominalPlug'], [35.5, 'vectorFailure'], [42.5, 'phaseFailure'], [49.5, 'nominalResidual'],
     [54.5, 'actualWeights'], [57, 'extractWeight'], [60.6, 'showWeight'], [63, 'expandWeight'],
     [67, 'splitWeight'], [74, 'returnWeight', 'splitWeight'], [78, 'matrixApply', 'gather'],
@@ -194,7 +195,6 @@
     const sideCoefficients = 1 - r(t, 10.2, 10.9) + r(t, 14.6, 15.3);
     const knownMessage = r(t, 3.1, 3.7) * (1 - r(t, 5.3, 5.9));
     const sideMessage = r(t, 11.1, 11.7) * (1 - r(t, 13.8, 14.4));
-    const hop = start => t <= start || t >= start + .8 ? 0 : Math.sin(Math.PI * (t - start) / .8);
     const failure = nominalFailureState((t - nominalFailureStart) / nominalFailureDuration);
     const actual = actualWeightState(t), notation = temporaryNotationState(t), observation = observationExpansionState(t);
     const centered = notation.center * (1 - observation.dock);
@@ -220,7 +220,8 @@
         { coefficients: sideCoefficients, message: sideMessage, highlight: r(t, 8.1, 8.8) * (1 - r(t, 15.3, 15.9)) },
       ],
       operation: r(t, 17.6, 18.3) * (1 - r(t, 32, 32.5) + r(t, 78.5, 79.3)) * (1 - notation.intro + notation.arrive),
-      whyEstimate: window(19.5, 32), kHop: hop(20.3), amplitudeHop: hop(25.3),
+      whyEstimate: window(19.5, 32), kHop: 0, amplitudeHop: 0,
+      illumination: illuminationCueState(t),
       kReason: r(t, 21.3, 21.9) * (1 - r(t, 24.1, 24.7)),
       amplitudeReason: r(t, 26.3, 26.9) * (1 - r(t, 30.2, 30.8)),
       nominalFailure: r(t, 32.5, 33) * (1 - r(t, 54, 54.5)),
@@ -229,6 +230,17 @@
       selectedCoefficient: r(t, 88, 88.8), coefficientScale: r(t, 90.5, 91.3),
       outputScale: r(t, 94, 94.8), temporaryOperation: r(t, 94, 94.8),
       ready: r(t, 127, 127.7) };
+  }
+
+  // A controlled illustration of the same illumination law, not another
+  // acquisition or an early disclosure of the estimated parameters. Each
+  // interval changes only its named quantity and preserves the last endpoint.
+  function illuminationCueState(t) {
+    const r=Story.ramp, k=r(t,22,25), m=r(t,25.5,28.3), phase=r(t,28.8,31.5);
+    return { kind:t<25.5?'k':t<28.8?'m':'phase', kx:6+2*k, ky:3*k,
+      m:.8-.45*m, phase:Math.PI/2*phase, relativePhases:[0,2*Math.PI/3,4*Math.PI/3],
+      formula:r(t,19.5,20.3), body:r(t,21,21.8),
+      direction:k, contrast:m, translation:phase };
   }
 
   function provisionalFormulaAt(state) {
@@ -241,9 +253,10 @@
       sideMessage: ['旁带权重：需要知道 φⱼ 和 m。', '两行系数退去，在对应行说明需要确定的量。', '这里只指出缺少什么，参数来源接下来再讲。'],
       sideRestore: ['先恢复系数，再收起矩阵。', '说明文字消失，两行权重回到原位；接下来把它们收成紧凑的分离式。', 'A 是三个来源组成的向量；D 是同一组三帧观测组成的向量。'],
       gather: ['将两列向量与权重，收成一个分离式。', '来源列缩为 A(f)，九个权重收为 U，三帧观测列缩为 D(f)。', '仍然是刚才的 A = U·D；现在看 U 中的参数来自哪里。'],
-      whyEstimate: ['照明公式中的参数，能直接用预设值吗？', '先回到样品处实际形成的条纹，依次看波矢、调制度与相位。', '此处先看参数为什么可能偏离预设，暂不介绍估计方法。'],
-      wavevectorReason: ['先看波矢 k：方向与间距未必等于预设。', '光束夹角、光路对准和像素标定可能有偏差，实际条纹的方向与间距也会随之偏离设定。', 'k 用于频带归位；硬件标称值不能保证实际位置逐频点对齐。'],
-      amplitudePhaseReason: ['再看 m 与 φⱼ：实际反差与位置也会改变。', '两束光强或偏振失配会改变条纹反差；光程漂移会改变条纹位置，因此实际幅相可能偏离控制指令。', '这里讨论三帧共用的幅相偏差；帧间相对相移仍按已知、准确的等间隔值处理。'],
+      whyEstimate: ['先看照明公式，再把三个量对应到条纹。', '先让照明公式浮现，随后展开同一张条纹与剖面。方向与间距由 k 决定，反差由 m 决定，整体平移由共同相位决定。', '画面是按同一照明公式生成的参数作用示意，不替换主线采集数据。'],
+      wavevectorReason: ['改变 k，条纹转向，间距也改变。', '保持调制度与共同相位不变，只改变波矢。箭头垂直于条纹，箭头方向决定条纹法线，模长决定间距。', '同一张条纹图与剖面继续保留，下一拍只改变反差。'],
+      modulationReason: ['保持位置不动，只改变条纹反差。', '方向、间距和峰的位置保持不变；m 减小时亮峰降低、暗谷抬高。调制度描述相对于平均光强的反差。', 'Imax=1+m，Imin=1−m，因此 m=(Imax−Imin)/(Imax+Imin)。固定强度标尺，不逐图拉伸亮度。'],
+      phaseReason: ['共同相位改变，三帧条纹一起平移。', '方向、间距与反差保持不变，只增加共同相位 φΔ。三帧的峰一起移动，彼此之间已知的相对相移保持不变。', 'φⱼ=φ′ⱼ+φΔ；φ′ⱼ=2πj/3 已知，φΔ 未知。共同相位是三帧共有的偏差，不能替代任意逐帧相位误差。'],
       nominalPlug: ['直接代回硬件标称值，会发生什么？', '先用标称波矢、m=1 与预设相移完成解混、归位和融合，逐项查看结果。', '受控教学对照：由同批频带重混三帧，实际 m=1、共同相位 π，标称波矢偏差 0.3 格；不改动主线观测。'],
       vectorFailure: ['结果一：亚像素错位，频带无法准确对齐。', '只改变归位波矢，先正确处理幅相。即使仅偏 0.3 个 DFT 格，公共区纹理也不再逐点对应，重建出现位置误差与重影。', '放大镜读取同一组复数频谱的局部幅度；右侧两图使用同一强度标尺。'],
       phaseFailure: ['结果二：反相抵消，出现黑边下冲。', '再漏掉共同相位校正。同一频点的复数方向逐渐转向相反，右侧切换到标称值重建，并用剖面保留实际负值。', '左侧相位特写取已对齐、OTF 校正后的同一 q；π 是特意选取的反相例子，一般相位误差不一定完全抵消。'],
@@ -251,7 +264,7 @@
       actualWeights: ['那么实际的权重应该是什么呢？', '重新看实际照明参数对应的逆矩阵 U，先从旁带两行中选取一个权重。', 'm 与相位仍待确定；这里先整理权重的符号结构。'],
       extractWeight: ['从 U 中取出旁带权重。', '选中的权重从矩阵中移到左侧并放大；矩阵退去后，把它写成 ±1 级的通式。', 'u±₁,ⱼ 表示正、负旁带在第 j 帧使用的权重。'],
       showWeight: ['右侧写出刚才求得的系数。', '在 u±₁,ⱼ 右侧出现等号与 2/(3m) exp(∓iφⱼ)。', 'm、φⱼ 表示拍摄时的实际调制度与相位，尚未代入数值。'],
-      expandWeight: ['把实际相位展开为两部分。', '保持左侧权重不动，将右侧 φⱼ 扩展成 φ′ⱼ+φΔ：已知的相对相移，加上未知的共同起点。', '本例假设 φ′ⱼ=2πj/3 已知且准确，三帧共用 m 与 φΔ，且 m ≠ 0。'],
+      expandWeight: ['把实际相位展开为两部分。', '保持左侧权重不动，将右侧 φⱼ 扩展成 φ′ⱼ+φΔ：已知的相对相移，加上未知的共同相位。', '本例假设 φ′ⱼ=2πj/3 已知且准确，三帧共用 m 与 φΔ，且 m ≠ 0。'],
       splitWeight: ['拆开系数，用颜色区分已知和未知。', '指数拆成两个相位因子，2/(3m) 拆成 1/m 与 2/3；未知因子移到左侧，已知因子移到右侧。', '青色：已知的 2/3 与 φ′ⱼ；橙色：未知的 m 与 φΔ，且三帧共用。'],
       returnWeight: ['把刚才拆开的 u，放回 U 的原位。', '展开式收回权重符号，恢复具体下标 u₊₁,₁；同一个权重缩小，回到矩阵的第二行、第二列。', '拆开的两部分仍共同构成这个 u；回到矩阵并不表示未知参数已经求出。'],
       matrixApply: ['U 的一行，决定 A 的一个级次。', '权重归位后，补回左侧的来源向量 A 与右侧的三帧观测 D；框出 +1 级对应的权重行、观测列和输出。', '行依次对应 0、+1、−1 级，列依次对应第 0、1、2 帧；仍在同一个检测频率 f 上运算。'],

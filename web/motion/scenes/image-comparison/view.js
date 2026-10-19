@@ -3,12 +3,19 @@
   'use strict';
   const M=root.SIMMotion,A=root.SIMAtlas;
   (root.SIMMotionViewFactories ||= {}).comparison = function(context) {
-    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
+    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
     // Final image and frequency validation; truth never enters reconstruction.
     const results = [sampleURL, wfURL, simURL].map((url, i) => panel(comparison, 360 + i * 360, 207, ['样品真值', '宽场参考', 'SIM 重建'][i], url, 210));
-    results[0].caption.textContent = '仅用于评价'; results[1].caption.textContent = `全图 RMSE ${lesson.audit.widefieldRMSE.toFixed(4)}`; results[2].caption.textContent = `全图 RMSE ${lesson.audit.simRMSE.toFixed(4)}`;
+    const detail=create('g',{'data-comparison-structure':''},comparison),roi={x:82,y:72,w:24,h:18};
+    const roiBoxes=results.map(result=>create('rect',{x:(roi.x/128-.5)*210,y:(roi.y/128-.5)*210,width:roi.w/128*210,height:roi.h/128*210,fill:'none',stroke:'#efb879','stroke-width':2,'data-structure-roi':''},result.group));
+    [truth.sample,truth.widefield,p.pixels].forEach((pixels,j)=>{
+      const url=imageURL((x,y,size)=>{const value=pixels[(roi.y+Math.min(roi.h-1,Math.floor(y*roi.h/size)))*128+roi.x+Math.min(roi.w-1,Math.floor(x*roi.w/size))],v=Math.round(M.clamp(value)*255);return [v*.87,v*.97,v];},96);
+      create('image',{x:270+j*360,y:355,width:180,height:135,href:url,'data-structure-detail':j},detail);
+      create('rect',{x:270+j*360,y:355,width:180,height:135,fill:'none',stroke:'#efb87966'},detail);
+    });
+    label(detail,720,527,'同一框选区域 · 固定强度标尺 · 先观察结构，再看剖面','svg-small');
     const profiles = create('g', {}, comparison);
-    const transferNote = label(profiles,720,345,`直流最终传递 ${(100*lesson.audit.dcTransfer).toFixed(2)}% · 幅度抑制会进入全图 RMSE；高频非零不保证误差更小。`,'svg-small');
+    const transferNote = note(profiles,720,345,`直流最终传递 ${(100*lesson.audit.dcTransfer).toFixed(2)}% · 幅度抑制会进入全图 RMSE；高频非零不保证误差更小。`,'svg-small');
     attr(transferNote,'data-postlock-dc',lesson.audit.dcTransfer);
     const profileData = [truth.sample, truth.widefield, p.pixels];
     const profileColors = ['#b6c5cc', '#7ad5cd', '#efb879'];
@@ -30,10 +37,11 @@
     });
     label(profiles, 218, 525, '同一行 y = 80', 'svg-muted', 'start');
     const validation = create('g', {}, comparison);
+    attr(validation,'data-comparison-high-frequency','');
     label(validation, 250, 351, 'q = (14, 0)', 'svg-title', 'start');
     label(validation, 250, 392, `幅度保留 ${(lesson.audit.ratio * 100).toFixed(2)}%`, 'validation-big', 'start');
     label(validation, 250, 428, `${(100*lesson.audit.preApoTransfer).toFixed(2)}% × ${lesson.audit.window.toFixed(4)} = ${(100*lesson.audit.finalTransfer).toFixed(2)}%`, 'svg-small', 'start');
-    label(validation, 250, 465, `最终相位误差 ${lesson.audit.phaseError.toFixed(4)}° · 相对于同一真值`, 'svg-muted', 'start');
+    label(validation, 250, 465, `Δφ = ${lesson.audit.phaseError.toFixed(4)}°`, 'svg-muted', 'start');
     [0, lesson.audit.preApoTransfer, lesson.audit.window, lesson.audit.ratio].forEach((ratio, i) => {
       const y = 350 + i * 44;
       label(validation, 775, y + 6, ['宽场保留', 'Wiener 保留', '切趾窗值 ×', '最终保留'][i], 'svg-small', 'end');
@@ -42,12 +50,29 @@
       attr(bar,'data-transfer-step',['widefield','wiener','window','final'][i]);attr(bar,'data-transfer-value',ratio);
       label(validation, 1170, y + 6, i===2?ratio.toFixed(4):`${(ratio * 100).toFixed(2)}%`, 'svg-small', 'start');
     });
-    label(validation, 720, 526, '完整复数与公式计算可在“原理与数值”中核对。', 'svg-muted');
+    note(validation, 720, 526, '完整复数与公式计算可在“原理与数值”中核对。', 'svg-muted');
+    const errors=create('g',{'data-comparison-global-error':''},comparison);
+    [lesson.audit.widefieldRMSE,lesson.audit.simRMSE].forEach((value,j)=>{
+      const x=480+j*480;
+      label(errors,x,365,j?'SIM 全图 RMSE':'宽场全图 RMSE','svg-title');
+      label(errors,x,425,value.toFixed(4),'validation-big');
+    });
+    label(errors,720,485,'高频从零到非零 ≠ 全图误差更小','svg-small');
+    label(errors,720,525,'同一强度标尺 · 未截断数据 · 真值只用于评价','svg-muted');
 
     function drawComparison(t) {
-      const validating = r(t, 21, 22);
+      const imageUnit=M.scenes.find(s=>s.id==='image-comparison'),auditUnit=M.scenes.find(s=>s.id==='frequency-audit');
+      const imageProgress=M.clamp(t-20),auditProgress=M.clamp(t-21);
+      const imageState=imageUnit.timeline.at(imageProgress),auditState=auditUnit.timeline.at(auditProgress);
+      const profileStart=imageUnit.beats[1].start,errorStart=auditUnit.beats[1].start;
+      const validating = r(t,21,21.2),errorAlpha=t>21?r(auditProgress,errorStart,errorStart+.1):0;
+      const profileAlpha=r(imageProgress,profileStart,profileStart+.1)*(1-validating);
+      const detailAlpha=(1-r(imageProgress,profileStart,profileStart+.1))*(1-validating);
       results.forEach((result, i) => attr(result.group, 'transform', `translate(${360 + i * 360} ${mix(207, 173, validating)}) scale(${mix(1, .8, validating)})`));
-      opacity(profiles, 1 - validating); opacity(validation, validating);
+      results.forEach((result,i)=>result.caption.textContent=i===0?'仅用于评价':errorAlpha>0?`全图 RMSE ${(i===1?lesson.audit.widefieldRMSE:lesson.audit.simRMSE).toFixed(4)}`:'同一视野 · 固定强度标尺');
+      opacity(detail,detailAlpha);roiBoxes.forEach(box=>opacity(box,detailAlpha));
+      opacity(profiles,profileAlpha);opacity(validation,validating*(1-errorAlpha));opacity(errors,errorAlpha);
+      attr(comparison,'data-comparison-mode',t>21?auditState.mode:imageState.mode);
     }
     return { draw: drawComparison };
   };

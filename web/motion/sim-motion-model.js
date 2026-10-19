@@ -139,7 +139,7 @@
     return { t: time, stageTime: t, demixTime: clamp(legacyTime(time) - DEMIX_START, 0, 6), encodingSum, detection,
       intro: Math.max(0, 1 - acquisition.handoff - encodingSum - detection), demix: acquisition.handoff * (1 - ramp(t, 12, 13)),
       coverage: ramp(t, 12, 13) * (1 - ramp(t, 15, 16)),
-      fusion: ramp(t, 15, 16) * (1 - ramp(t, 20, 21)), comparison: ramp(t, 20, 21),
+      fusion: ramp(t, 15, 16) * (1 - ramp(t, 20, 20.12)), comparison: ramp(t, 20, 20.12),
       support: ramp(t, 13, 14), extraDirections: ramp(t, 14, 15),
     };
   }

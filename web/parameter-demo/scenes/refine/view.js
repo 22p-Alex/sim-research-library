@@ -6,6 +6,7 @@
   L.createRefinementView=function(options) {
     const {parent,defs,lesson,el,label,line,path,arrow,raster,fieldURL,set,text,opacity,heat,uid}=options;
     const e=lesson.estimate,n=e.context.config.n,colors=L.bandColors;
+    const note=(...args)=>{const node=label(...args);set(node,'display','none');set(node,'data-scene-note','');return node;};
     function maskedFrequencyURL(z,kx,ky,color) {
       const side=27,rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16)),values=new Float64Array(side*side),keep=new Uint8Array(side*side);
       let maximum=1e-30;
@@ -34,14 +35,14 @@
       line(peak,q,126,q,131);label(peak,q,148,fmt(v),'pe-two-small');
       line(peak,-131,q,-126,q);const t=label(peak,-137,q+4,fmt(v),'pe-two-small');set(t,'text-anchor','end');
     }
-    label(peak,0,-151,'放大一个整数格 · 每轴 ±0.5 DFT 格','pe-two-text');
+    label(peak,0,-151,'±0.5 格','pe-two-text');
     el('circle',{cx:0,cy:0,r:4,fill:colors[0],'data-refine-integer-origin':''},peak);
     const fitted=el('g',{'data-refine-fitted-offset':''},peak);
     el('circle',{r:10,fill:'none',stroke:colors[2],'stroke-width':2},fitted);
     line(fitted,-15,0,15,0,colors[2]);line(fitted,0,-15,0,15,colors[2]);
-    const peakNote=label(g,720,482,'','pe-two-small');
+    const peakNote=note(g,720,482,'','pe-two-small');
     const work=el('g',{'data-refine-phase-work':''},g),left=el('g',{transform:'translate(360 300)'},work);
-    label(left,0,-151,'旁带逆 FFT → 空域相位斜坡','pe-two-text',colors[1]);
+    label(left,0,-151,'Ã₊₁ → a(r)','pe-two-text',colors[1]);
     const imageAttrs={x:-100,y:-100,width:200,height:200,style:'image-rendering:pixelated'};
     el('rect',{x:-113,y:-113,width:226,height:226,rx:5,class:'pe-two-panel'},left);
     const raw=el('image',{...imageAttrs,href:fieldURL(e.context.separated.bands[1],colors[1],true),'data-refine-raw-sideband':''},left);
@@ -50,12 +51,12 @@
     const samplePoint=el('g',{'data-refine-sample-point':''},left);
     el('circle',{r:5,fill:'#091115',stroke:colors[2],'stroke-width':2},samplePoint);
     label(samplePoint,12,-10,'r₀','pe-two-small',colors[2]);
-    const inverseLabel=label(left,0,140,'','pe-two-small');
+    const inverseLabel=note(left,0,140,'','pe-two-small');
     const phaseValue=label(left,0,165,'','pe-two-small');
     const fftArrow=path(work,colors[2],{'data-refine-fft-arrow':'',d:arrow(493,300,577,300)});
     label(work,535,278,'正 FFT','pe-two-small',colors[2]);
     const middle=el('g',{transform:'translate(720 300)'},work),freq=el('g',{'data-refine-frequency':''},middle);
-    label(middle,0,-151,'频域 · 小数频移与可靠公共区','pe-two-text',colors[1]);
+    label(middle,0,-151,'Bₖ′(q)','pe-two-text',colors[1]);
     const clip=el('clipPath',{id:uid+'-refine-frequency',clipPathUnits:'userSpaceOnUse'},defs);
     el('rect',{x:-110,y:-110,width:220,height:220},clip);
     set(freq,'clip-path','url(#'+uid+'-refine-frequency)');
@@ -74,7 +75,7 @@
     el('circle',{cx:0,cy:0,r:e.context.config.cutoff*unit,fill:'none',stroke:colors[0],'stroke-width':1.2},freq);
     const otf=el('circle',{r:e.context.config.cutoff*unit,fill:'none',stroke:colors[1],'stroke-width':1.8,'data-refine-shifted-otf':''},freq);
     line(freq,-110,0,110,0,'#bdd0d455');line(freq,0,-110,0,110,'#bdd0d455');
-    label(middle,0,140,'仅显各自可靠通带 · 橙格参与评分','pe-two-small');
+    note(middle,0,140,'仅显各自可靠通带 · 橙格参与评分','pe-two-small');
     const displacement=label(middle,0,165,'','pe-two-small');
     const scoreArrow=path(work,colors[2],{'data-refine-score-arrow':'',d:arrow(863,300,924,300)});
     label(work,891,278,'ρ(k′)','pe-two-small',colors[2]);
@@ -94,7 +95,7 @@
     const nextWindow=el('rect',{width:40,height:40,fill:'none','stroke-dasharray':'4 3','stroke-width':2,'data-refine-next-window':''},search);
     const finalTarget=el('g',{'data-refine-final-target':''},search);
     line(finalTarget,-19,0,19,0,colors[2],{'stroke-width':2});line(finalTarget,0,-19,0,19,colors[2],{'stroke-width':2});
-    const fineDetail=label(search,0,164,'','pe-two-small');set(fineDetail,'data-refine-round-detail','');
+    const fineDetail=note(search,0,164,'','pe-two-small');set(fineDetail,'data-refine-round-detail','');
     const roundNotes=el('g',{'data-refine-round-summary':''},g);
     const notes=e.rounds.map((r,i)=>label(roundNotes,320+i*400,116,`第 ${i+1} 轮：±${fmt(2*r.step)} · 步长 ${fmt(r.step)}`,'pe-two-small',colors[i]));
     const values=label(g,720,116,'','pe-two-text');set(values,'data-refine-candidate-readout','');
@@ -174,7 +175,7 @@
       set(reliable,'data-count',c.count);set(shifted,'data-kx',c.kx);set(shifted,'data-ky',c.ky);
       text(displacement,`Δk′ = (${fmt(c.kx-e.coarseBest.kx)}, ${fmt(c.ky-e.coarseBest.ky)}) 格`);
       text(values,s.mode==='gridLimit'?`整数初值 k̂int = (${fmt(e.coarseBest.kx,0)}, ${fmt(e.coarseBest.ky,0)})`
-        :`k′ = (${fmt(c.kx)}, ${fmt(c.ky)}) · ρ = ${fmt(c.score,6)} · 可靠公共区 ${c.count} 点`);
+        :`k′ = (${fmt(c.kx)}, ${fmt(c.ky)}) · ρ = ${fmt(c.score,6)}`);
       // The candidate line leaves before the round summary enters its rail.
       // It must not sit behind the title of the enlarging central grid.
       opacity(values,1-M.ramp(p,.56,.59));
@@ -183,7 +184,8 @@
       const previous=s.round?e.rounds[s.round-1]:null;
       const offset=previous?[(s.center.kx-previous.center.kx)/(2*previous.step)*100,(s.center.ky-previous.center.ky)/(2*previous.step)*100]:[0,0];
       const collapse=s.returnView.collapse,searchX=1080-360*s.cascade+offset[0]*(1-s.roundZoom)*focusScale,searchY=300+offset[1]*(1-s.roundZoom)*focusScale;
-      set(search,'transform',`translate(${searchX+(1110-searchX)*collapse} ${searchY+(151-searchY)*collapse}) scale(${zoomScale*focusScale*(1-.8*collapse)})`);
+      const wx=(s.best.kx-s.center.kx)/s.halfWidth*100,wy=(s.best.ky-s.center.ky)/s.halfWidth*100;
+      set(search,'transform',`translate(${searchX+wx*zoomScale*focusScale*.8*collapse} ${searchY+wy*zoomScale*focusScale*.8*collapse}) scale(${zoomScale*focusScale*(1-.8*collapse)})`);
       set(search,'data-half-width',s.halfWidth);set(search,'data-step',s.step);set(search,'data-score-min',lo);set(search,'data-score-max',hi);
       opacity(searchBackdrop,s.cascade);
       set(searchFrame,'stroke',roundColor);set(cursor,'stroke',roundColor);set(winner,'stroke',roundColor);set(nextWindow,'stroke',colors[Math.min(2,s.round+1)]);
@@ -192,17 +194,19 @@
         const value=s.candidates[i],written=i<s.count;
         set(node,'fill',written&&value.valid?heat((value.score-lo)/Math.max(1e-12,hi-lo)):'#13262e');
         set(node,'data-kx',value.kx);set(node,'data-ky',value.ky);set(node,'data-score',value.score);set(node,'data-written',written);set(node,'data-round',s.round+1);
+        const selected=Math.abs(value.kx-s.best.kx)<1e-9&&Math.abs(value.ky-s.best.ky)<1e-9;
+        opacity(node,selected?1:1-.78*s.lock);
       });
       for(let j=0;j<5;j++){text(xTicks[j],fmt(s.center.kx+(j-2)*s.step));text(yTicks[j],fmt(s.center.ky+(j-2)*s.step));}
       const index=s.candidates.findIndex(v=>Math.abs(v.kx-c.kx)<1e-8&&Math.abs(v.ky-c.ky)<1e-8);
       set(cursor,'x',-123+Math.max(0,index)%5*50);set(cursor,'y',-123+Math.floor(Math.max(0,index)/5)*50);opacity(cursor,s.count>0&&s.count<25?1:0);
-      const wx=(s.best.kx-s.center.kx)/s.halfWidth*100,wy=(s.best.ky-s.center.ky)/s.halfWidth*100;
       set(winner,'cx',wx);set(winner,'cy',wy);opacity(winner,s.winner);
       set(nextWindow,'x',wx-20);set(nextWindow,'y',wy-20);opacity(nextWindow,s.nextWindow);
       set(finalTarget,'transform',`translate(${wx} ${wy})`);opacity(finalTarget,s.lock);
       text(fineDetail,s.done?`锁定 k̂ = (${fmt(e.kx)}, ${fmt(e.ky)}) · ρ = ${fmt(e.fit.score,6)}`
         :s.count===25?`最高分成为下一轮中心 · 局部色标 ${fmt(lo,6)}—${fmt(hi,6)}`:`已计算 ${s.count}/25 点 · 局部色标 ${fmt(lo,6)}—${fmt(hi,6)}`);
-      opacity(roundNotes,M.ramp(p,.62,.66)*(1-M.ramp(p,.935,.95)));notes.forEach((node,i)=>opacity(node,i<=s.round?1:.3));
+      opacity(roundNotes,M.ramp(p,.62,.66)*(1-s.returnView.collapse));notes.forEach((node,i)=>opacity(node,i<=s.round?1:.3));
+      return {x:searchX+wx*zoomScale*focusScale,y:searchY+wy*zoomScale*focusScale};
     }
     return {root:g,draw};
   };

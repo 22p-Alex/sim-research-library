@@ -3,7 +3,7 @@
   'use strict';
   const M=root.SIMMotion,A=root.SIMAtlas;
   (root.SIMMotionViewFactories ||= {}).intro = function(context) {
-    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
+    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
     let displayedExcitationPhase = -1;
     // Samples / widefield / multiplication: the specimen stays on the left.
     const specimen = panel(intro, 360, 250, '样品 s(r)', sampleURL);
@@ -25,10 +25,10 @@
       return group;
     });
     const operator = label(intro, 720, 250, 'ℱ', 'large-operator');
-    const operatorName = label(intro, 720, 300, '二维傅里叶变换', 'svg-small');
-    const operatorEnglish = label(intro, 720, 328, 'Fourier Transform · 2D FFT', 'svg-muted');
+    const operatorName = note(intro, 720, 300, '二维傅里叶变换', 'svg-small');
+    const operatorEnglish = note(intro, 720, 328, 'Fourier Transform · 2D FFT', 'svg-muted');
     const multiply = label(intro, 540, 258, '×', 'operation-sign'), equals = label(intro, 900, 258, '=', 'operation-sign');
-    const introFoot = label(intro, 720, 491, '同一份样品 · 左为空域，右为频域', 'svg-muted');
+    const introFoot = note(intro, 720, 491, '同一份样品 · 左为空域，右为频域', 'svg-muted');
     const encoded = create('g', { 'data-encoding-domain': 'frequency' }, intro), copies = [];
     const encodedMax = sourceMax;
     for (let b = 0; b < 3; b++) {
@@ -79,15 +79,15 @@
       excitationMarkers.forEach(marker => opacity(marker, product));
       opacity(specimen.group, early + product);
       opacity(specimenWF, r(t, 0, 1) * (1 - r(t, 1, 2)));
-      specimen.title.textContent = t >= .5 && t < 1.5 ? '宽场图像' : t >= 1.5 ? '荧光样品 s(r)' : '样品 Sample · s(r)';
-      specimen.caption.textContent = t < .5 ? 'r = (x, y)：像素位置 · 128 × 128' : t < 1.5 ? '128 × 128 · 固定 0—1 标尺' : `P(100, 80)：s = ${excitation.sample.toFixed(3)}（固定）`;
+      specimen.title.textContent = t >= .5 && t < 1.5 ? '宽场图像' : t >= 1.5 ? '荧光样品 s(r)' : '样品 s(r)';
+      specimen.caption.textContent = t < .5 ? '128 × 128' : t < 1.5 ? '128 × 128 · 固定 0—1 标尺' : `P(100, 80)：s = ${excitation.sample.toFixed(3)}（固定）`;
       opacity(spectrum.group, early); opacity(wfSpectrum, r(t, 0, 1) * early);
       const q = 14;
       attr(spectrumPoint, 'transform', `translate(${q * spectrumUnit} 0)`); attr(spectrumPointText, 'x', q * spectrumUnit);
       spectrumPointText.textContent = 'q = (14, 0)';
       opacity(spectrumPoint, 1 - .6 * r(t, 0, 1) * early);
-      spectrum.title.textContent = t > .5 ? '宽场频谱 H(q)S(q)' : '样品频谱 Spectrum · S(q)';
-      spectrum.caption.textContent = t > .5 ? '圈外：H = 0' : 'q = (qₓ, qᵧ)：样品频率坐标';
+      spectrum.title.textContent = t > .5 ? '宽场频谱 H(q)S(q)' : '样品频谱 S(q)';
+      spectrum.caption.textContent = t > .5 ? '圈外：H = 0' : 'q = (qₓ, qᵧ)';
       opacity(light.group, product); opacity(emitted.group, product); opacity(multiply, product); opacity(equals, product);
       opacity(operator, early);
       opacity(operatorName, early); opacity(operatorEnglish, early);

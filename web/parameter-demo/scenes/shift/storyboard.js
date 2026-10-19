@@ -24,6 +24,7 @@
     return {equation:data.equation,note:data.note};
   };
   scene.formulaMode = (p,context) => 'shift' + (p < .15 ? '-line-end' : p < .40 ? '-coordinates' : p < .68 ? '-detector' : '');
+  scene.formulaCuts = [.15,.40,.68];
   scene.formulas = formulas;
   if(typeof module!=='undefined'&&module.exports)module.exports=scene;
   else(root.SIMParameterUnits ||= {})[scene.id]=scene;

@@ -3,7 +3,7 @@
   'use strict';
   const M=root.SIMMotion,A=root.SIMAtlas;
   (root.SIMMotionViewFactories ||= {}).encodingSum = function(context) {
-    const { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
+    const { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
     const sumPanels = [];
     for (const b of [1, 2, 0]) {
       const pane = panel(sumStage, 360 + b * 360, 250, ['0 级', '+1 级', '−1 级'][b], null);
@@ -21,7 +21,7 @@
       sumPanels[b] = { ...pane, canvas, ctx, data, probe };
     }
     const sumOperators = [label(sumStage, 540, 258, '+', 'operation-sign'), label(sumStage, 900, 258, '+', 'operation-sign')];
-    const sumCaption = label(sumStage, 720, 485, '同一个 f：三个来源合成一个值，接下来需要把它们解开', 'svg-small');
+    const sumCaption = note(sumStage, 720, 485, '同一个 f：三个来源合成一个值，接下来需要把它们解开', 'svg-small');
     let lastSumSignature = '';
     function drawEncodingSum(time) {
       const state = M.encodingSumState(time), signature = `${state.factor}:${state.merge}`;

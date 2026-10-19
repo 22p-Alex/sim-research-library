@@ -26,7 +26,9 @@
   scene.present = (p, context) => {
     p=Math.round(p*1e12)/1e12;
     const b=scene.beats.find(b=>p<b.end)||scene.beats.at(-1);
-    return {equation:context.formulas[b.formula],note:scene.id==='refine'&&b.key==='phaseRamp'?context.refinementPhaseState(p).note:b.note};
+    return {title:b.key==='cost'?'算完一格，换个位移，又要重扫全部频点。':scene.title,
+      copy:b.key==='cost'?'逐格填满评分图可以找到峰，但每个候选都要重复公共区的乘加。完整二维搜索需要 N² 个位移 × 每次最多 N² 个频点，计算量达到 O(N⁴)。':scene.copy,
+      equation:context.formulas[b.formula],note:b.note};
   };
   scene.formulaMode = p => scene.id+'-'+(scene.beats.find(b=>Math.round(p*1e12)/1e12<b.end)||scene.beats.at(-1)).key;
   scene.formulas = formulas;

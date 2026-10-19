@@ -9,9 +9,12 @@
     const capture = root.SIMParameterEstimation.capture();
     const chapter = root.SIMMotionParameterChapter.create({ raw: capture.raw, config: capture.config,
       direction: 0 });
-    const lesson = chapter.lesson, view = P.createView($('pe-art'), lesson);
-    const formulaView = P.createFormulaView($('pe-equation'),lesson);
     const reduced = root.matchMedia('(prefers-reduced-motion: reduce)');
+    const lesson = chapter.lesson, view = P.createView($('pe-art'), lesson,{reducedMotion:()=>reduced.matches});
+    const formulaView = P.createFormulaView($('pe-equation'),lesson,{reducedMotion:()=>reduced.matches});
+    const headingHandoff=root.SIMTextTransition.create({document,host:$('pe-scene-copy'),fields:[
+      {node:$('pe-title'),tag:'h1',key:'title'},{node:$('pe-copy'),tag:'p',key:'copy'}]});
+    const noteHandoff=root.SIMTextTransition.create({document,host:$('pe-note-slot'),fields:[{node:$('pe-note'),tag:'p',key:'note'}]});
     let scene = -1, note = '', player, rehearsal, scrubbing = false;
     const shortLabels = { read: '估计结果', fit: '估计幅相', coarse: '相关峰' };
     $('pe-step-total').textContent = '/ ' + P.scenes.length;
@@ -37,13 +40,28 @@
         stops.forEach((button, index) => index === scene ? button.setAttribute('aria-current', 'step') : button.removeAttribute('aria-current'));
         if (!scrubbing) stops[scene].scrollIntoView?.({ block: 'nearest', inline: 'nearest', behavior: 'instant' });
       }
-      if(s.id==='refine'||s.id==='least-squares-fit') {
-        const copy=root.SIMParameterLesson[s.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.progress);
+      if(s.parameter && (s.parameter.id==='refine'||s.parameter.id==='least-squares-fit')) {
+        const copy=root.SIMParameterLesson[s.parameter.id==='refine'?'refinementNarrative':'leastSquaresNarrative'](s.parameter.progress);
         $('pe-title').textContent=copy.title;$('pe-copy').textContent=copy.copy;
         $('pe-svg-title').textContent=copy.title;$('pe-svg-description').textContent=copy.copy+' '+(copy.note||P.formulaAt(s).note);
       }
       const formula = formulaView.draw(s);
+      if(formula.title) {
+        $('pe-title').textContent=formula.title;$('pe-copy').textContent=formula.copy;
+        $('pe-svg-title').textContent=formula.title;$('pe-svg-description').textContent=formula.copy+' '+formula.note;
+      }
       if (note !== formula.note) { note = formula.note; $('pe-note').textContent = note; }
+      if(s.parameter&&s.step>0) {
+        const previous=P.scenes[s.step-1],end=P.state(s.step);
+        const narrative=end.parameter?.id==='refine'?root.SIMParameterLesson.refinementNarrative(1)
+          :end.parameter?.id==='least-squares-fit'?root.SIMParameterLesson.leastSquaresNarrative(end.parameter.progress):{};
+        const handoff=root.SIMParameterLesson.formulaTransition(s.parameter,reduced.matches);
+        if(formula.title) {
+          const from=handoff.previous;
+          headingHandoff.draw(from?{...root.SIMParameterLesson.scene(from.id),...root.SIMParameterLesson.formulaAt(from)}:null,handoff);
+        } else headingHandoff.draw({...previous,...narrative,...(end.parameter?root.SIMParameterLesson.formulaAt(end.parameter):{})},root.SIMTextTransition.state(s.progress,data.duration,0,reduced.matches));
+        if(handoff.previous)noteHandoff.draw(root.SIMParameterLesson.formulaAt(handoff.previous),handoff);else noteHandoff.reset();
+      } else {headingHandoff.reset();noteHandoff.reset();}
       $('pe-progress').value = String(playback.position);
       $('pe-progress').setAttribute('aria-valuetext', '第 ' + (scene + 1) + ' 步：' + data.label);
       const done = playback.position === P.scenes.length;

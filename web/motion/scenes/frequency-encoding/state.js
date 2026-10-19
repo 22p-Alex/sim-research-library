@@ -104,8 +104,13 @@
       const to = b.poses[token.id] || { ...(b.poses[token.exit] || a.poses[token.exit] || a.poses[token.id] || from), opacity: 0 };
       const changes = from.x !== to.x || from.y !== to.y;
       const arc = changes ? Math.sin(Math.PI * progress) * (token.band === 2 ? 20 : -20) : 0;
+      // Distribution copies a factor while its source remains in the formula.
+      // Keep that flight visible; only replacements need separate fade phases.
+      const branching=from.opacity===0&&to.opacity===1&&a.poses[token.birth]&&b.poses[token.birth];
       return { id: token.id, x: lerp(from.x, to.x, progress), y: lerp(from.y, to.y, progress) + arc,
-        scale: lerp(from.scale, to.scale, progress), opacity: lerp(from.opacity, to.opacity, progress) };
+        scale: lerp(from.scale, to.scale, progress),
+        // Replacing a symbol must not superimpose two different MathML glyphs.
+        opacity: branching?progress:from.opacity===to.opacity?from.opacity:from.opacity>to.opacity?1-ramp(progress,0,.45):ramp(progress,.55,1) };
     });
     const park = ramp(time, 2.46, 2.52);
     return { tokens, progress, from: a.layout, to: b.layout,

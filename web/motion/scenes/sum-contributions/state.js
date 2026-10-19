@@ -7,7 +7,7 @@
     const complex=(from,to=from,mix=0)=>({kind:'complex',from,to,mix:clamp(mix)});
     return function frame(lesson, progress, timeline = scene.timeline) {
       const s=scene.present(progress,timeline),c=s.cues,total=lesson.records.length;
-      let index=0,part=0,weight=c.firstWeight,add=c.firstAdd;
+      let index=0,part=0,weight=1,add=c.firstAdd;
       if(s.mode==='remainingBands'||s.mode==='basicResponse') {
         const position=c.remaining*(total-1);
         index=Math.min(total-1,1+Math.floor(position));
@@ -16,7 +16,7 @@
       }
       const record=lesson.records[index];
       const completed=index+Number(add===1);
-      return {...s,phase:'sum',index,local:part,completed,inverseProgress:0,
+      return {...s,phase:'sum',focus:[6,0],index,local:part,completed,inverseProgress:0,
         views:[complex(record.band.shifted),complex(record.band.shifted,record.band.matched,weight),complex(record.before,record.after,add)],
         titles:['当前归位频带 C','加权贡献 H*C','累计频谱 F_sum'],
         detail:`${s.action} · 第 ${index+1} / ${total} 项 · 方向 ${record.band.direction+1} · ${record.band.order} 级`,

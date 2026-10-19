@@ -3,7 +3,7 @@
   'use strict';
   const M=root.SIMMotion,A=root.SIMAtlas;
   (root.SIMMotionViewFactories ||= {}).detection = function(context) {
-    const { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
+    const { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
     // A fixed before row and a duplicated after row. Both evolving images use
     // the same H_t and retain the reference row's brightness scale.
     const detectionSize = 184, spatialMaximum = lesson.detection.spatialMaximum;
@@ -29,6 +29,7 @@
       canvas.style.width = canvas.style.height = '100%'; canvas.style.display = 'block'; foreign.appendChild(canvas);
       const ctx = canvas.getContext('2d'), data = ctx.createImageData(128, 128);
       attr(pane.title, 'y', 116); pane.title.style.fontSize = '20px'; attr(pane.caption, 'y', 138); pane.caption.style.fontSize = '13px';
+      attr(pane.caption,'display','none');attr(pane.caption,'data-scene-note','');
       pane.caption.textContent = i ? '上下共用 log(1 + 幅度) 标尺' : `上下共用 0—${spatialMaximum.toFixed(1)} 强度标尺`;
       return { ...pane, ctx, data };
     });
@@ -51,13 +52,13 @@
     }
     const pairs = [147, 397].map(y => {
       const group = create('g', {}, detectionStage);
-      label(group, 720, y + 9, 'ℱ', 'operation-sign'); label(group, 720, y + 34, '傅里叶对应', 'svg-muted');
+      label(group, 720, y + 9, 'ℱ', 'operation-sign'); note(group, 720, y + 34, '傅里叶对应', 'svg-muted');
       return group;
     });
     const otfNote = create('g', {}, detectionStage);
-    label(otfNote, 1090, 367, '检测通带 · 截止 10 格', 'svg-small', 'start').style.fill = '#7ad5cd';
-    label(otfNote, 1090, 395, '乘 H(f) · 频率位置不变', 'svg-small', 'start');
-    label(otfNote, 1090, 420, '圈内有衰减 · 圈外为零', 'svg-muted', 'start');
+    label(otfNote, 1090, 367, 'H(f) · 截止 10', 'svg-small', 'start').style.fill = '#7ad5cd';
+    note(otfNote, 1090, 395, '乘 H(f) · 频率位置不变', 'svg-small', 'start');
+    note(otfNote, 1090, 420, '圈内有衰减 · 圈外为零', 'svg-muted', 'start');
     let lastDetectionFilter = -1;
     function drawDetection(time) {
       const state = M.detectionState(time), pose = state.spectrumPose, acquisition = M.acquisitionState(time);

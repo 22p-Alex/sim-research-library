@@ -18,9 +18,9 @@ test('row explanations hide and restore coefficients before the vector handoff, 
     assert.ok(equation.startsWith('$$') && equation.endsWith('$$'));
     assert.doesNotThrow(() => katex.renderToString(equation.slice(2, -2), { output: 'mathml', throwOnError: true, strict: 'error' }));
   }
-  assert.deepEqual([1, 4, 6.5, 9, 12, 15, 17, 19.8, 23, 29, 34, 39, 46, 52, 55.5, 58, 62, 66, 72, 76, 80, 85, 87, 91, 98, 102, 106, 114, 117, 121, 124, 132].map(t => at(t).mode),
+  assert.deepEqual([1, 4, 6.5, 9, 12, 15, 17, 19.8, 23, 26, 29, 34, 39, 46, 52, 55.5, 58, 62, 66, 72, 76, 80, 85, 87, 91, 98, 102, 106, 114, 117, 121, 124, 132].map(t => at(t).mode),
     ['knownHighlight', 'knownMessage', 'knownRestore', 'sideHighlight', 'sideMessage', 'sideRestore',
-      'gather', 'whyEstimate', 'wavevectorReason', 'amplitudePhaseReason', 'nominalPlug', 'vectorFailure', 'phaseFailure', 'nominalResidual', 'actualWeights', 'extractWeight', 'showWeight', 'expandWeight', 'splitWeight', 'returnWeight', 'matrixApply', 'rowProduct', 'nameKnown', 'coefficientScale', 'outputScale', 'matrixNotation', 'vectorNotation', 'observationModel', 'substituteObservation', 'temporaryResponse', 'expandBands', 'ready']);
+      'gather', 'whyEstimate', 'wavevectorReason', 'modulationReason', 'phaseReason', 'nominalPlug', 'vectorFailure', 'phaseFailure', 'nominalResidual', 'actualWeights', 'extractWeight', 'showWeight', 'expandWeight', 'splitWeight', 'returnWeight', 'matrixApply', 'rowProduct', 'nameKnown', 'coefficientScale', 'outputScale', 'matrixNotation', 'vectorNotation', 'observationModel', 'substituteObservation', 'temporaryResponse', 'expandBands', 'ready']);
   assert.equal(Chapter.bridges[0].duration, 132000);
   assert.equal(at(1.8).rows[0].highlight, 1); assert.equal(at(1.8).rows[1].highlight, 0);
   assert.deepEqual(at(4.4).rows[0], { coefficients: 0, message: 1, highlight: 1 });
@@ -42,7 +42,7 @@ test('row explanations hide and restore coefficients before the vector handoff, 
   for (const s of states) {
     const formula = Chapter.provisionalFormulaAt(s);
     assert.equal(formula.equation, Chapter.provisionalFormulas[s.formulaKey]);
-    if (s.seconds < 63) assert.doesNotMatch(formula.equation + formula.copy + formula.note, /phi_\\Delta|φΔ/);
+    if (s.seconds < 28) assert.doesNotMatch(formula.equation + formula.copy + formula.note, /phi_\\Delta|φΔ/);
     for (const alpha of [s.matrix, s.context, s.gather, s.transfer, s.operation, s.whyEstimate, s.actualWeights,
       s.phaseFactor, s.coefficientFocus, s.nameKnown, s.selectedCoefficient, s.coefficientScale, s.outputScale, s.temporaryOperation, s.ready, s.kHop, s.amplitudeHop, s.kReason, s.amplitudeReason, s.nominalFailure, ...Object.values(s.notation), ...Object.values(s.observation), ...s.rows.flatMap(Object.values)])
       assert.ok(alpha >= 0 && alpha <= 1);
@@ -260,28 +260,28 @@ test('Euler factorization and three-phase orthogonality justify the displayed no
   assert.ok(leakage.some((z, b) => Math.hypot(z.re - components[b].re, z.im - components[b].im) > .01), 'wrong relative phases cannot be absorbed into one common coefficient');
 });
 
-test('the active chapter inserts two handoffs and all eight estimation scenes before direct formal separation', () => {
+test('the active chapter inserts four handoffs and sixteen estimation scenes before direct formal separation', () => {
   const plan = Chapter.plan(Motion), ids = plan.stops.map(stop => stop.id);
   assert.equal(plan.active, true); assert.equal(Motion.parameterSlot.active, true);
   assert.equal(Motion.parameterSlot.after, 'inverse-demix');
   assert.equal(Motion.parameterSlot.before, 'verify-demix');
   assert.equal(Motion.parameterSlot.requiresProvisionalSplit, true);
   assert.equal(new Set(ids).size, ids.length);
-  assert.deepEqual(Chapter.sceneIds, Story.scenes.map(scene => scene.id), 'standalone and embedded views expose the same eight scenes');
+  assert.deepEqual(Chapter.sceneIds, Story.navigationScenes.map(scene => scene.id), 'standalone and embedded views expose the same navigation scenes');
   const after = ids.indexOf(Motion.parameterSlot.after), before = ids.indexOf('separate-bands');
   assert.equal(ids.includes('verify-demix'), false, 'production omits the repeated coefficient proof');
   assert.deepEqual(Motion.sceneIds.slice(8, 12), ['mixed-sources', 'inverse-demix', 'verify-demix', 'separate-bands']);
   assert.equal(Motion.scenes.findIndex(scene => scene.id === Motion.parameterSlot.before), Motion.scenes.findIndex(scene => scene.id === Motion.parameterSlot.after) + 1);
-  assert.deepEqual(ids.slice(after + 1, before), ['provisional-split', ...Chapter.sceneIds.map(id => 'parameters.' + id), 'adopted-weights']);
+  assert.deepEqual(ids.slice(after + 1, before), ['provisional-split', ...Chapter.sceneIds.map(id => 'parameters.' + id), ...Chapter.adoptedScenes.map(s=>s.id)]);
   assert.deepEqual(plan.stops.filter(stop => stop.owner === 'motion').map(stop => stop.legacyPosition), Motion.scenes.map((s, i) => s.id === 'verify-demix' ? null : i).filter(i => i !== null));
   for (const stop of plan.stops.filter(stop => stop.owner === 'parameters')) {
     assert.ok(stop.duration > 0);
-    assert.equal(stop.duration, Study.scene(stop.sceneId).duration + (stop.sceneId === 'shared' ? Chapter.sharedEntryDuration : 0));
+    assert.equal(stop.duration, Study.navigationScene(stop.sceneId).duration + (stop.sceneId === 'shared' ? Chapter.sharedEntryDuration : 0));
   }
   for (const id of ['observations', 'split', 'demix', 'relocate', 'audit']) assert.ok(!Chapter.sceneIds.includes(id));
 });
 
-test('the three-order entry preserves the old lesson duration and fades the negative order before settling the pair', () => {
+test('the three-order entry fades the negative order before centering and enlarging the retained pair', () => {
   const boundary = Chapter.sharedEntryDuration / Chapter.sharedDuration;
   const at = p => Chapter.sharedEntryState(p * boundary);
   near(Chapter.sharedDuration - Chapter.sharedEntryDuration, Study.scene('shared').duration);
@@ -293,6 +293,11 @@ test('the three-order entry preserves the old lesson duration and fades the nega
   assert.deepEqual(three.bands.map(b => b.x), [720, 360, 1080]);
   near(at(.74).negative, .25); near(at(.82).negative, 0);
   near(at(.82).settle, 0); near(at(1).settle, 1);
+  near(at(.82).focus.amount, 0); near(at(.96).focus.amount, 1);
+  const focused = at(1), pose = focused.focus;
+  near(pose.scale, 1.2);
+  near(pose.x + focused.bands.slice(0, 2).reduce((sum, b) => sum + b.x, 0) / 2 * pose.scale, 720);
+  near(pose.y + 375 * pose.scale, 280);
   assert.deepEqual(at(1).bands.slice(0, 2).map(b => b.x), [900, 480]);
   for (const p of [0, .1, .5, .99, 1]) {
     const elapsed = Chapter.sharedEntryDuration + p * Study.scene('shared').duration;
@@ -306,6 +311,8 @@ test('the three-order entry preserves the old lesson duration and fades the nega
     if (s.reveal > 0) assert.equal(s.temporary, 1);
     if (s.negative < 1) assert.equal(s.pictures, 1);
     if (s.settle > 0) assert.equal(s.negative, 0);
+    if (s.focus.amount > 0) assert.equal(s.negative, 0);
+    assert.ok(s.focus.scale >= 1 && s.focus.scale <= 1.2);
   }
   for (const b of Chapter.temporaryBands) {
     assert.doesNotThrow(() => katex.renderToString(b.symbol + '=' + b.rhs, { output: 'mathml', throwOnError: true, strict: 'error' }));
@@ -338,10 +345,13 @@ test('the same nine Motion frames enter estimation and return as a full three-di
 test('a host can address each estimation scene at zero and one without starting a second player', () => {
   for (const id of Chapter.sceneIds) {
     const start = chapter.state(id, 0), end = chapter.state(id, 1);
-    assert.equal(start.id, id); assert.equal(start.progress, 0);
-    assert.equal(end.id, id); assert.equal(end.progress, 1);
-    assert.deepEqual(start, Story.stateForScene(id, 0));
-    near(start.position, Story.index(id)); near(end.position, Story.index(id) + 1);
+    assert.deepEqual(start,Story.navigationState(id,0));
+    assert.deepEqual(end,Story.navigationState(id,1));
+    assert.ok(end.progress>start.progress);
+    if(!Story.navigationScene(id).getPeakBeat){
+      assert.equal(start.id,id);assert.equal(start.progress,0);assert.equal(end.progress,1);
+      near(start.position,Story.index(id));near(end.position,Story.index(id)+1);
+    }
     assert.deepEqual(chapter.state(id, .37), chapter.state(id, .37));
   }
   assert.equal(chapter.state('shared', 0).progress, 0, 'embedding must preserve the first scene animation');

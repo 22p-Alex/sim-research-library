@@ -16,6 +16,12 @@
   function createView(container, lesson, options = {}) {
     const doc = container.ownerDocument || root.document, data = L.dataFor(lesson), e = lesson.estimate, n = lesson.capture.config.n;
     const uid = 'pe-two-' + (++instance), owned = [], range = 27, localUnit = 218 / range, unit = 13, cx = 480, cy = 283;
+    const desktop = Object.freeze({
+      scan: { x:390, y:280, scale:.86, frame:{x:58,y:44,width:650,height:470},
+        clip:{x:70,y:48,width:626,height:464}, readoutX:850,
+        kY:130, supportY:164, countY:240, sumY:298, scoreY:356, totalY:414 },
+      grid: { x:1050, y:150, size:280 }
+    });
     const set = (el, key, value) => { if (el.getAttribute(key) !== String(value)) el.setAttribute(key, value); };
     const text = (el, value) => { if (el.textContent !== String(value)) el.textContent = value; };
     const opacity = (el, value) => { set(el, 'opacity', value); set(el, 'aria-hidden', value === 0); };
@@ -26,6 +32,10 @@
       parent.appendChild(item); if (parent === container) owned.push(item); return item;
     };
     const label = (parent, x, y, value, cls = 'pe-two-text', color) => el('text', { x, y, class: cls, 'text-anchor': 'middle', ...(color ? { style: 'fill:' + color } : {}) }, parent, value);
+    // Explanatory prose belongs to the page heading / formula note. Retain
+    // these descriptions for the scene unit without drawing another text rail.
+    const quiet = node => { set(node,'display','none');set(node,'data-scene-note','');return node; };
+    const note = (...args) => quiet(label(...args));
     const line = (parent, x1, y1, x2, y2, color = '#55737c', extra = {}) => el('line', { x1, y1, x2, y2, stroke: color, 'stroke-width': 1, ...extra }, parent);
     const arrow = (x1, y1, x2, y2) => {
       if (Math.hypot(x2 - x1, y2 - y1) < 1e-9) return `M ${x1} ${y1} L ${x2} ${y2}`;
@@ -49,21 +59,29 @@
       return raster(range, range, (x, y) => {
         const fx = x - 13, fy = y - 13, i = A.idx(fx, fy, n), h = A.otf(fx, fy, lesson.capture.config.cutoff);
         const v = Math.log1p(Math.hypot(z.re[i], z.im[i])) / Math.log1p(maximum);
-        return [...rgb.map(c => Math.round(c * v)), h > 0 ? 220 : 0];
+        // Encode density with transparency: low-energy samples reveal the
+        // stage instead of laying a black pixel grid over the other band.
+        // All three bands retain the same logarithmic amplitude scale.
+        return [...rgb, h > 0 ? Math.round(220 * v) : 0];
       });
     });
-    const defs = el('defs'), otfGradient = el('radialGradient', { id: uid + '-otf' }, defs);
+    const defs = el('defs');
     // A moving spectrum belongs to the fixed q viewport. Clip the pair at
     // their shared parent, before each band's physical −k′ transform.
     const spectrumClip = el('clipPath', { id: uid + '-spectrum-clip', clipPathUnits: 'userSpaceOnUse' }, defs);
-    el('rect', { x: 82, y: 136, width: 681, height: 278, 'data-spectrum-viewport': '' }, spectrumClip);
+    const spectrumViewport=el('rect', { x:82,y:136,width:681,height:278,'data-spectrum-viewport':'' },spectrumClip);
     // Profile samples come from the same OTF, rather than a hard-edged disk.
-    for (let i = 0; i <= 20; i++) el('stop', { offset: i / 20, 'stop-color': '#b7a5eb', 'stop-opacity': .28 * A.otf(i / 20 * lesson.capture.config.cutoff, 0, lesson.capture.config.cutoff) }, otfGradient);
-    const stage = el('g', { 'data-two-stage': '' }), header = el('g', {}, stage);
+    const otfGradients = colors.slice(0,2).map((color,b) => {
+      const gradient=el('radialGradient',{id:uid+'-otf-'+b},defs);
+      for(let i=0;i<=20;i++)el('stop',{offset:i/20,'stop-color':color,
+        'stop-opacity':.10*A.otf(i/20*lesson.capture.config.cutoff,0,lesson.capture.config.cutoff)},gradient);
+      return uid+'-otf-'+b;
+    });
+    const stage = el('g', { 'data-two-stage': '' }), header = quiet(el('g', { 'data-parameter-navigation': '' }, stage));
     const pills = [label(header, 510, 26, '① 找位置 · 频率坐标', 'pe-two-step'), label(header, 980, 26, '② 求幅相 · 复数值', 'pe-two-step')];
     line(header, 720, 22, 765, 22, '#66828a');
-    const cue = label(stage, 720, 66, '', 'pe-two-cue');
-    const footer = label(stage, 720, 518, '', 'pe-two-text');
+    const cue = note(stage, 720, 66, '', 'pe-two-cue');
+    const footer = note(stage, 720, 518, '', 'pe-two-text');
     set(footer, 'data-two-stage-footer', '');
     const sharedRoot = el('g', { 'data-frequency-pair': '', 'data-frequency-range': range, 'data-brightness-maximum': maximum }, options.sharedPairContainer || stage);
     if (options.sharedPairContainer) owned.push(sharedRoot);
@@ -71,13 +89,14 @@
     // Presentation order is +1, 0. Array order stays 0, +1 throughout the math.
     const pair = [900, 480].map((x, b) => {
       const group = el('g', { 'data-band-panel': b }, sharedRoot), decoration = el('g', {}, group), centerY = 375;
-      el('rect', { x: x - 116, y: centerY - 116, width: 232, height: 232, rx: 4, class: 'pe-border' }, decoration);
+      el('rect', { x: x - 116, y: centerY - 116, width: 232, height: 232, rx: 4, class: 'pe-frequency-card' }, decoration);
       line(decoration, x - 109, centerY, x + 109, centerY); line(decoration, x, centerY - 109, x, centerY + 109);
       const heading = label(decoration, x, 239, b ? '临时 +1 级 Ã₊₁(f)' : '临时 0 级 Ã₀(f)', 'pe-two-text', colors[b]);
       const foot = label(decoration, x, 511, '检测频率 f · DFT 格', 'pe-two-small');
       const picture = el('image', { x: x - 109, y: centerY - 109, width: 218, height: 218, href: bandURLs[b], 'data-shared-band': b, style: 'image-rendering:pixelated' }, group);
       const otf = el('g', { 'data-otf-band': b }, group);
-      el('circle', { cx: x, cy: centerY, r: lesson.capture.config.cutoff * localUnit, fill: 'url(#' + uid + '-otf)', stroke: colors[b], 'stroke-width': 1.2 }, otf);
+      el('circle', { cx: x, cy: centerY, r: lesson.capture.config.cutoff * localUnit,
+        fill: 'url(#' + otfGradients[b] + ')', stroke: colors[b], 'stroke-width': 1.2 }, otf);
       // The intersection is drawn in each detector's own coordinates. When
       // At k'=k these outlines coincide. The dashed contour is only the
       // geometric intersection; the cells below use the estimator's threshold.
@@ -109,30 +128,33 @@
     });
     const sharedPair = { root: sharedRoot, panels: pair, markers, bandURLs, bands: e.context.separated.bands, range, maximum, provisionalCenters: [720, 360],
       reset() {
-        set(sharedRoot, 'transform', '');
+        set(sharedRoot, 'transform', '');set(sharedPlot,'transform','');set(sharedAnnotations,'transform','');
         set(sharedRoot, 'clip-path', 'none');
         opacity(sharedRoot, 1);
         pair.forEach(panel => { opacity(panel.decoration, 1); opacity(panel.picture, 1); opacity(panel.otf, 0); opacity(panel.common, 0); opacity(panel.reliable, 0); });
       } };
-    const address = label(stage, 720, 151, '', 'pe-two-text');
-    const commonCaption = label(stage, 720, 205, '', 'pe-two-small', colors[2]);
-    const addressLine = path(stage, colors[1], { 'data-q-address-arrow': '' });
-    const addressCursor = el('g', { 'data-q-address-cursor': '' }, stage);
+    // Shared annotations and spectra use the same presentation pose, even
+    // when the host keeps the spectra in its own persistent handoff layer.
+    const sharedAnnotations = el('g', { 'data-shared-annotations': '' }, stage);
+    const address = note(sharedAnnotations, 720, 151, '', 'pe-two-text');
+    const commonCaption = note(sharedAnnotations, 720, 205, '', 'pe-two-small', colors[2]);
+    const addressLine = path(sharedAnnotations, colors[1], { 'data-q-address-arrow': '' });
+    const addressCursor = el('g', { 'data-q-address-cursor': '' }, sharedAnnotations);
     el('circle', { r: 7, fill: 'none', stroke: colors[1], 'stroke-width': 1.5, 'stroke-dasharray': '3 2' }, addressCursor);
     const cursorLabel = label(addressCursor, 0, -15, '沿 +k 找地址', 'pe-two-small', colors[1]);
-    const relocationTrack = path(stage, colors[2], { 'data-q-relocation-track': '', 'stroke-dasharray': '4 3' });
-    const relocationLabel = label(stage, 720, 246, '−k′ · 候选位移', 'pe-two-small', colors[2]);
-    const residualTrack = path(stage, colors[2], { 'data-q-residual': '', 'stroke-width': 1.5 });
-    const residualLabel = label(stage, 1180, 347, '还差 k−k′', 'pe-two-text', colors[2]);
-    const residualNote = label(stage, 1180, 377, 'k：真实未知 · k′：候选', 'pe-two-small');
-    const qReadout = label(stage, 900, 535, '', 'pe-two-small', colors[0]);
+    const relocationTrack = path(sharedAnnotations, colors[2], { 'data-q-relocation-track': '', 'stroke-dasharray': '4 3' });
+    const relocationLabel = label(sharedAnnotations, 720, 246, '−k′ · 候选位移', 'pe-two-small', colors[2]);
+    const residualTrack = path(sharedAnnotations, colors[2], { 'data-q-residual': '', 'stroke-width': 1.5 });
+    const residualLabel = label(sharedAnnotations, 1180, 347, '还差 k−k′', 'pe-two-text', colors[2]);
+    const residualNote = note(sharedAnnotations, 1180, 377, 'k：真实未知 · k′：候选', 'pe-two-small');
+    const qReadout = note(sharedAnnotations, 900, 535, '', 'pe-two-small', colors[0]);
     const frequency = el('g', { 'data-frequency-map': '' }, stage);
-    el('rect', { x: 80, y: 116, width: 685, height: 344, rx: 8, class: 'pe-two-panel' }, frequency);
+    const frequencyFrame=el('rect',{x:80,y:116,width:685,height:344,rx:10,class:'pe-frequency-surface','data-frequency-frame':''},frequency);
     const axis = el('g', {}, frequency);
     line(axis, 100, cy, 742, cy); line(axis, cx, 135, cx, 436);
     const axisX = label(axis, 729, cy - 10, 'qₓ', 'pe-two-small'), axisY = label(axis, cx + 16, 143, 'qᵧ', 'pe-two-small');
     for (const q of [-20, -10, 0, 10]) { line(axis, cx + q * unit, cy - 4, cx + q * unit, cy + 4); label(axis, cx + q * unit, cy + 19, String(q), 'pe-two-small'); }
-    const mapTitle = label(frequency, 420, 105, '样品频率坐标 q · 每格是一个复数', 'pe-two-small');
+    const mapTitle = note(frequency, 420, 105, '样品频率坐标 q · 每格是一个复数', 'pe-two-small');
     const moveArrow = path(frequency, colors[2], { 'data-frequency-displacement': '', 'clip-path': 'url(#' + uid + '-spectrum-clip)' });
     const moveLabel = label(frequency, 390, 429, '', 'pe-two-small', colors[2]);
     set(moveLabel, 'data-wavevector-status', '');
@@ -150,10 +172,23 @@
       el('circle', { cx: cx + p.q[0] * unit, cy: cy + p.q[1] * unit, r: 6, fill: '#091115', stroke: colors[2], 'stroke-width': 2 }, g);
       label(g, cx + p.q[0] * unit + 13, cy + p.q[1] * unit - 10, names[i], 'pe-two-text', colors[2]); return g;
     });
+    const lockedVector=el('g',{'data-locked-wavevector':''},stage);
+    el('circle',{r:4,fill:colors[2]},lockedVector);
+    label(lockedVector,0,-16,`已锁定波矢 k̂ = (${num(e.kx,2)}, ${num(e.ky,2)})`,'pe-two-text',colors[2]);
+    label(lockedVector,0,21,'DFT 格 · 后续固定使用','pe-two-small');
+    function drawLocked(alpha,travel,origin) {
+      const end=GetPeak.layout.locked;
+      set(lockedVector,'transform',`translate(${origin.x+(end.x-origin.x)*travel} ${origin.y+(end.y-origin.y)*travel})`);
+      for(const [key,value] of Object.entries({kx:e.kx,ky:e.ky,transfer:travel}))set(lockedVector,'data-'+key,value);
+      opacity(lockedVector,alpha);
+    }
     const right = el('g', { 'data-candidate-panel': '' }, stage);
     const kValue = label(right, 1110, 111, '', 'pe-two-value', colors[2]);
     const countValue = label(right, 1110, 146, '', 'pe-two-small');
-    const purpose = label(right, 1110, 171, '', 'pe-two-small');
+    const priorReadout=el('g',{'data-readout-outgoing':'shift-to-otf'},right);
+    label(priorReadout,1110,111,'归位示意 · 条件 k′=k','pe-two-value',colors[2]);
+    label(priorReadout,1110,146,`n = ${data.support.all.length}`,'pe-two-small');
+    const purpose = note(right, 1110, 171, '', 'pe-two-small');
     const scoreValue = label(right, 1110, 460, '', 'pe-two-value', colors[2]);
     const stats = data.selected.map((p, i) => ({
       ratio: label(right, 922 + i * 185, 369, '', 'pe-two-small'),
@@ -161,8 +196,8 @@
     }));
     // Keep the original rows intact while each receives its own H*.
     // H*H merges to |H|²; only the subsequent normalization cancels that factor.
-    const otfCorrection = el('g', { 'data-otf-normalization': '' }, stage);
-    label(otfCorrection, 1110, 210, '同一频点 q · 以下省略自变量 · 示意 k′=k', 'pe-two-small');
+    const otfCorrection = el('g', { 'data-otf-normalization': '', transform:'translate(70 0)' }, stage);
+    note(otfCorrection, 1110, 210, '同一频点 q · 以下省略自变量 · 示意 k′=k', 'pe-two-small');
     function otfTerm(parent, tag, tex, width = 80, color = '#dce8e6') {
       const group = el('g', { 'data-otf-term': tag, 'data-tex': tex }, parent);
       const box = el('foreignObject', { x: -width / 2, y: -28, width, height: 56 }, group);
@@ -198,13 +233,13 @@
       return { y, group, productHighlight, band, equals, own, sample, alpha, conjugate, lhsConjugate,
         power, lhsDenominator, rhsDenominator, lhsLine, rhsLine, cancel, one, name, reference };
     });
-    const operationNote = label(otfCorrection, 1110, 464, '', 'pe-two-text', colors[2]);
-    const normalizationNote = label(otfCorrection, 1110, 491, '', 'pe-two-small');
+    const operationNote = note(otfCorrection, 1110, 464, '', 'pe-two-text', colors[2]);
+    const normalizationNote = note(otfCorrection, 1110, 491, '', 'pe-two-small');
     const filterGuide = el('g', { 'data-otf-filter-guide': '' }, stage);
-    label(filterGuide, 1110, 245, '① 暖红格：任一边 H 太弱，剔除', 'pe-two-text', '#e29a90');
-    label(filterGuide, 1110, 292, '② 橙色格：两边 H ≥ τ，保留', 'pe-two-text', colors[2]);
-    label(filterGuide, 1110, 356, '③ 每行先乘自己的 H*，再除以 |H|²', 'pe-two-text');
-    label(filterGuide, 1110, 409, '下一步：改变 k′，比较整片公共区', 'pe-two-small');
+    label(filterGuide, 1110, 245, 'H < τ · 剔除', 'pe-two-text', '#e29a90');
+    label(filterGuide, 1110, 292, 'H ≥ τ · 保留', 'pe-two-text', colors[2]);
+    label(filterGuide, 1110, 356, '× H* / |H|²', 'pe-two-text');
+    note(filterGuide, 1110, 409, '下一步：改变 k′，比较整片公共区', 'pe-two-small');
     function plane(parent, title, tag) {
       const g = el('g', { 'data-complex-plane': tag }, parent);
       const frame = el('g', {}, g);
@@ -219,10 +254,10 @@
       return { group: g, frame, u, v, prediction, product, scaleLabel };
     }
     const planes = data.selected.map((_, i) => plane(stage, names[i], names[i]));
-    const legend = label(stage, 1100, 422, '青： 0 级 U   紫：旁带 V   虚线：同一系数预测', 'pe-two-small');
+    const legend = note(stage, 1100, 422, '青： 0 级 U   紫：旁带 V   虚线：同一系数预测', 'pe-two-small');
     const grid = el('g', { 'data-candidate-grid': '' }, stage);
-    const gridTitle=label(grid, 1110, 200, '整数候选评分 · 0—1 固定色标', 'pe-two-small');
-    const width = 2 * e.extent + 1, gridSize = 210, cell = gridSize / width, gx = 1005, gy = 224;
+    const gridTitle=note(grid, 1110, 200, '整数候选评分 · 0—1 固定色标', 'pe-two-small');
+    const width=2*e.extent+1,gridSize=desktop.grid.size,cell=gridSize/width,gx=desktop.grid.x,gy=desktop.grid.y;
     const heat = score => `rgb(${[19, 38, 46].map((v, i) => Math.round(v + ([239, 184, 121][i] - v) * score)).join(',')})`;
     const gridCells = e.coarse.map(c => el('rect', { x: gx + (c.kx + e.extent) * cell, y: gy + (c.ky + e.extent) * cell, width: cell - .5, height: cell - .5, fill: c.valid ? '#13262e' : '#091115', 'data-score-k': [c.kx, c.ky].join(','), 'data-score': c.score, 'data-valid': c.valid }, grid));
     for (const k of [-e.extent, 0, e.extent]) {
@@ -234,16 +269,16 @@
     label(grid, gx - 23, gy - 8, 'k′ᵧ', 'pe-two-small');
     const gridCursor = el('rect', { width: cell, height: cell, fill: 'none', stroke: colors[0], 'stroke-width': 2 }, grid);
     // One score grid persists through direct accumulation, cost and FFT.
-    const scanPanel=el('g',{'data-direct-scan':''},stage);
-    const scanCount=label(scanPanel,862,241,'','pe-two-text',colors[0]);
-    label(scanPanel,862,275,'共轭相乘 → 累计','pe-two-small');
-    const scanSum=label(scanPanel,862,307,'','pe-two-small');
-    const scanScore=label(scanPanel,862,345,'','pe-two-value');
-    const scanTotal=label(scanPanel,862,390,'','pe-two-small');
+    const scanPanel=el('g',{'data-direct-scan':'','data-scan-column':'readout'},stage);
+    const scanCount=label(scanPanel,desktop.scan.readoutX,desktop.scan.countY,'','pe-two-text pe-scan-count',colors[0]);
+    note(scanPanel,862,275,'共轭相乘 → 累计','pe-two-small');
+    const scanSum=label(scanPanel,desktop.scan.readoutX,desktop.scan.sumY,'','pe-two-small pe-scan-sum');
+    const scanScore=label(scanPanel,desktop.scan.readoutX,desktop.scan.scoreY,'','pe-two-value pe-scan-score');
+    const scanTotal=label(scanPanel,desktop.scan.readoutX,desktop.scan.totalY,'','pe-two-small');
     const scanPoint=el('circle',{r:7,fill:'none',stroke:colors[0],'stroke-width':2,'data-scan-point':''},frequency);
-    const stamp=label(stage,862,345,'','pe-two-value',colors[2]);set(stamp,'data-score-stamp','');
+    const stamp=label(stage,desktop.scan.readoutX,desktop.scan.scoreY,'','pe-two-value',colors[2]);set(stamp,'data-score-stamp','');
     const costPanel=el('g',{'data-scan-cost':''},stage);
-    label(costPanel,450,174,'每换一个候选，都要再扫一次公共区。','pe-two-value');
+    note(costPanel,450,174,'每换一个候选，都要再扫一次公共区。','pe-two-value');
     for(let b=0;b<2;b++) {
       const g=el('g',{},costPanel),x=205+b*330;
       for(let j=0;j<8;j++)for(let i=0;i<8;i++)el('rect',{x:x+i*14,y:222+j*14,width:11,height:11,fill:colors[b],'fill-opacity':.25},g);
@@ -251,10 +286,9 @@
     }
     label(costPanel,450,287,'×','pe-two-value');
     label(costPanel,450,415,'二维完整直接扫描：O(N⁴)','pe-two-value');
-    label(costPanel,450,447,'每轴格数翻倍，直接乘加量约变为 16 倍','pe-two-small');
-    // Darken the previous scene before introducing the foreground calculation.
-    // Keep the original score cells and their color scale for the final handoff.
-    const fftBackdrop=el('rect',{x:70,y:140,width:1290,height:335,rx:8,fill:'#091115','data-fft-backdrop':''},stage);
+    note(costPanel,450,447,'每轴格数翻倍，直接乘加量约变为 16 倍','pe-two-small');
+    // Fade the old actors themselves; an opaque rectangle leaves a visible
+    // dark slab on the stage's dotted / gradient background.
     const fftRoot=el('g',{'data-fft-pipeline':''},stage),fftData=e.fft,fftSize=200,fftCenters=[280,630,980];
     const fieldURL=(z,color,frequencyDomain,side=frequencyDomain?range:n)=>{
       const rgb=[1,3,5].map(i=>parseInt(color.slice(i,i+2),16));
@@ -276,7 +310,7 @@
       const spectral=el('image',{...fftImageAttrs,href:fieldURL(fftData.inputs[b],colors[b],true),'data-fft-spectrum':b},g);
       const spatial=el('image',{...fftImageAttrs,href:fieldURL(fftData.spatial[b],colors[b],false),'data-fft-spatial':b},g);
       const title=label(g,0,-144,'','pe-two-text',colors[b]);set(title,'data-fft-input-title',b);
-      const step=label(g,0,148,'','pe-two-small');set(step,'data-fft-input-caption',b);
+      const step=note(g,0,148,'','pe-two-small');set(step,'data-fft-input-caption',b);
       return {g,spectral,spatial,title,step};
     });
     const fftProduct=el('g',{'data-fft-product':''},fftRoot);
@@ -291,20 +325,24 @@
       width:(cell-.5)*fftSize/gridSize,height:(cell-.5)*fftSize/gridSize,
       fill:c.valid?heat(c.score):'#091115','data-fft-score-k':[c.kx,c.ky].join(',')},resultScores));
     const productTitle=label(fftProduct,0,-144,'','pe-two-text',colors[2]);
-    const productCaption=label(fftProduct,0,148,'','pe-two-small');
+    const productCaption=note(fftProduct,0,148,'','pe-two-small');
     const fftOperators=[label(fftRoot,(fftCenters[0]+fftCenters[1])/2,307,'×','pe-two-value'),label(fftRoot,(fftCenters[1]+fftCenters[2])/2,307,'=','pe-two-value')];
     const fftCursors=[...fftCards.map(card=>card.g),fftProduct].map((parent,b)=>{
       const row=el('rect',{x:-100,width:fftSize,height:fftSize/n,fill:colors[b],'fill-opacity':.18,'data-fft-scan-row':b},parent);
       const point=el('circle',{r:5,fill:colors[b],'fill-opacity':.3,stroke:colors[b],'stroke-width':2,'data-fft-pixel-cursor':b},parent);
       return {row,point};
     });
-    const fftInfo=label(fftRoot,720,122,'','pe-two-text');
-    label(fftRoot,720,485,'各图独立对数色阶 · 仅显示模长，计算保留完整复数值','pe-two-small');
+    const fftInfo=note(fftRoot,720,122,'','pe-two-text');
+    note(fftRoot,720,485,'各图独立对数色阶 · 仅显示模长，计算保留完整复数值','pe-two-small');
     const fftPeak=el('rect',{x:0,y:0,width:cell+6,height:cell+6,fill:'none',stroke:colors[2],'stroke-width':2,'data-fft-peak':''},grid);
     const refineView=L.createRefinementView({parent:stage,defs,lesson,el,label,line,path,arrow,raster,fieldURL,set,text,opacity,heat,uid});
     let lastMask = '';
     const maxInput = Math.max(1e-12, ...data.examples.flatMap(c => c.points.filter(p => data.selected.some(t => t.q.join(',') === p.q.join(','))).flatMap(p => [magnitude(p.x), magnitude(p.y)])));
-    const chrome = new Set([header, cue, footer]);
+    const frequencyPlot=el('g',{'data-frequency-plot':''},frequency);
+    for(const child of Array.from(frequency.children))if(child!==frequencyFrame&&child!==frequencyPlot){child.remove();frequencyPlot.appendChild(child);}
+    const sharedPlot=el('g',{'data-spectrum-plot':''},sharedRoot);
+    pair.forEach(panel=>{panel.group.remove();sharedPlot.appendChild(panel.group);});
+    const chrome = new Set([header, cue, footer, lockedVector, sharedRoot]);
     const legacyBody = el('g', { 'data-scene-body': 'position-search' }, stage);
     for (const child of Array.from(stage.children)) if (child !== legacyBody && !chrome.has(child)) {
       child.remove(); legacyBody.appendChild(child);
@@ -321,7 +359,25 @@
       drawLegacyScene(GetPeak.entry.from, 1);
       const peak = fitView.draw(progress), state = L.stateForScene(id, progress);
       opacity(legacyBody, peak.overview);
-      if (options.sharedPairContainer) opacity(sharedRoot, peak.overview);
+      // Keep the original spectra alive while their detector axes unfold.
+      // Only the final prepared rasters replace them, at the same coordinates.
+      const c=peak.cues,pose=GetPeak.layout.pair;
+      opacity(sharedRoot,1-c.workSpectra);
+      if(c.nativeLayout>0) {
+        set(sharedRoot,'clip-path','none');
+        pair.forEach((panel,b)=>{
+          const startX=cx-(b?e.kx*unit:0),startY=cy-(b?e.ky*unit:0);
+          const x=startX+(pose.x[b]-startX)*c.nativeLayout,y=startY+(pose.y-startY)*c.nativeLayout;
+          const scale=unit/localUnit+(pose.size/panel.size-unit/localUnit)*c.nativeLayout;
+          set(panel.group,'transform',`translate(${x-panel.cx*scale} ${y-panel.cy*scale}) scale(${scale})`);
+          set(panel.group,'data-center-x',x);set(panel.group,'data-center-y',y);
+          opacity(panel.decoration,c.nativeLayout);opacity(panel.picture,.42+.58*c.nativeLayout);
+          // The dedicated address/OTF/value rails below own these labels now.
+          opacity(panel.foot,0);
+          text(panel.foot,b?'检测地址 f₁ = q + k̂':'检测地址 f₀ = q');
+        });
+      }
+      opacity(lockedVector,peak.lockedAlpha);
       pills.forEach((pill, i) => set(pill, 'data-active', i === 1));
       text(cue, peak.cue); text(footer, peak.footer);
       opacity(cue, peak.chromeAlpha); opacity(footer, peak.chromeAlpha);
@@ -341,7 +397,7 @@
         set(container, 'data-scene-id', id); set(container, 'data-position', s.position); set(container, 'data-step', s.step);
         return s;
       }
-      opacity(stage, 1); lineView.hide();
+      opacity(stage, 1); opacity(lockedVector,0); lineView.hide();
       const shared = L.sharedState(id === 'shared' ? p : 1);
       const pointMotion = L.sharedPointState(lesson, id === 'shared' ? p : 1);
       const handoff = L.returnTo2DState(p);
@@ -355,9 +411,29 @@
       // Both spectra share this presentation offset, independently of −k′.
       const centerOffset = id === 'shift' ? (720 - (80 + 685 / 2)) * spatial * (1 - comparisonReveal) : 0;
       const mini = `translate(${15 * reduce + centerOffset} ${60 * reduce}) scale(${1 - .32 * reduce})`;
-      set(frequency, 'transform', mini); set(sharedRoot, 'transform', mini);
+      const focus = L.sharedFocusPose(id === 'shared' ? 1 : id === 'shift' ? 1 - spatial : 0);
+      set(frequency, 'transform', mini);
+      set(sharedRoot, 'transform', `translate(${focus.x + centerOffset} ${focus.y}) scale(${focus.scale})`);
+      set(sharedAnnotations, 'transform', focus.transform);
+      opacity(sharedAnnotations, id === 'shared' ? 1 : 0);
       set(sharedRoot, 'clip-path', spatial === 1 ? 'url(#' + uid + '-spectrum-clip)' : 'none');
       set(frequency, 'data-presentation-offset-x', centerOffset);
+      const spread=id==='match'?M.ramp(p,0,.12):0;
+      const scanScale=1+(desktop.scan.scale-1)*spread;
+      const scanX=(desktop.scan.x-cx*desktop.scan.scale)*spread;
+      const scanY=(desktop.scan.y-cy*desktop.scan.scale)*spread;
+      const scanPose=`translate(${scanX} ${scanY}) scale(${scanScale})`;
+      set(frequencyPlot,'transform',scanPose);set(sharedPlot,'transform',scanPose);
+      set(frequency,'data-scan-spread',spread);
+      for(const [key,value] of Object.entries({x:80,y:116,width:685,height:344}))set(frequencyFrame,key,value+(desktop.scan.frame[key]-value)*spread);
+      for(const [key,value] of Object.entries({x:82,y:136,width:681,height:278}))set(spectrumViewport,key,value+(desktop.scan.clip[key]-value)*spread);
+      set(moveArrow,'clip-path',spread>0?'none':'url(#'+uid+'-spectrum-clip)');
+      set(moveLabel,'x',390+(cx-390)*spread);set(moveLabel,'y',429+(520-429)*spread);
+      set(kValue,'x',1110+(desktop.scan.readoutX-1110)*spread);
+      set(kValue,'y',111+(desktop.scan.kY-111)*spread);
+      set(countValue,'x',1110+(desktop.scan.readoutX-1110)*spread);
+      set(countValue,'y',146+(desktop.scan.supportY-146)*spread);
+
       pills.forEach((pill, i) => { set(pill, 'fill', i === (early ? 0 : 1) ? colors[2] : '#69828a'); set(pill, 'data-active', i === (early ? 0 : 1)); });
       text(cue, L.scene(id).title); text(footer, '');
       set(footer, 'y', id === 'shift' ? 542 : id === 'otf' ? 542 - 24 * M.ramp(p, 0, .12) : 518);
@@ -373,7 +449,14 @@
       const searching = ['match', 'coarse', 'refine'].includes(id);
       text(kValue, id === 'shift' ? '归位示意 · 条件 k′=k' : id === 'otf' || id === 'match' && p < .12 ? '先做准备：共轭与模平方归一'
         : (early ? '候选 k′ = ' : '已锁定 k̂ = ') + '(' + num(candidate.kx, 2) + ', ' + num(candidate.ky, 2) + ')');
-      text(countValue, `可靠公共区 ${candidate.count} 点 · 两边 |H| ≥ ${e.context.config.minH}`);
+      text(countValue, `n = ${candidate.count} · τ = ${e.context.config.minH}`);
+      const intro=root.SIMTextTransition.state(p,L.scene('otf').duration,0,options.reducedMotion?.()||false);
+      opacity(priorReadout,id==='otf'?intro.outgoing:0);
+      set(priorReadout,'transform',`translate(0 ${id==='otf'?intro.outgoingY:0})`);
+      for(const node of [kValue,countValue]) {
+        opacity(node,id==='otf'?intro.incoming:1);
+        set(node,'transform',`translate(0 ${id==='otf'?intro.incomingY:0})`);
+      }
       text(purpose, id === 'otf' ? p < .4 ? '先筛掉任一边 H 太弱的频点'
         : p < .48 ? '上行用 H₀，下行用 H₁；各自校正'
         : p < .60 ? '① 等式两边乘上自身 H 的共轭'
@@ -385,7 +468,7 @@
         : id === 'coarse' ? `粗搜：${num(e.context.config.minRadius, 1)} ≤ |k′| ≤ ${num(e.context.config.maxRadius, 1)} · 整数格`
         : id === 'refine' ? '从整数峰出发 · 每轮只搜上一轮峰附近' : '');
       opacity(purpose, ['otf', 'refine'].includes(id) ? 1 : 0);
-      text(scoreValue, `匹配分数 ρ = ${num(candidate.score, 4)}`);
+      text(scoreValue, `ρ = ${num(candidate.score, 4)}`);
       opacity(address, id === 'shared' ? 1 : 0);
       text(address, p < .18 ? '先固定青色 q：0 级在这里记录 S(q)。旁带要到哪里找？'
         : p < .39 ? '跟着下方的 k：f−k=q → f=q+k，紫色光标沿 +k 找到对应地址。'
@@ -444,6 +527,7 @@
         opacity(panel.reliable, id === 'shared' ? shared.reliable : 0);
         opacity(panel.picture, id === 'shared' ? 1 - .42 * shared.overlap : 1 - .58 * spatial);
         text(panel.foot, b ? searching ? '候选地址 f = q + k′' : '对应地址 f = q + k' : '参考地址 f = q');
+        opacity(panel.foot,1);
         panel.points.forEach((g, j) => {
           const q = data.selected[j].q, fx = q[0] + (b ? candidate.kx : 0), fy = q[1] + (b ? candidate.ky : 0);
           set(g, 'transform', `translate(${panel.cx + fx * localUnit} ${panel.cy + fy * localUnit})`);
@@ -457,9 +541,9 @@
       set(moveArrow, 'data-dx', -candidate.kx); set(moveArrow, 'data-dy', -candidate.ky);
       const positionLocked=s.phase==='coefficient'||refinement?.returnView.overview>0;
       set(moveLabel, 'data-locked', !!positionLocked);
-      text(moveLabel, id === 'shift' && p < .68 ? '相同 f 仍对应不同来源；两幅图尚未归位'
-        :positionLocked?'旁带与 OTF 已按 −k̂ 归位 · 位置锁定'
-        : searching ? '0 级固定 · 旁带与 OTF 同移 −k′ = (' + num(-candidate.kx, 2) + ', ' + num(-candidate.ky, 2) + ')' : '0 级固定 · 旁带与 OTF 同移 −k′ · 示意 k′=k');
+      text(moveLabel, id === 'shift' && p < .68 ? '检测坐标 f'
+        :positionLocked?'−k̂ · 位置锁定'
+        : searching ? '−k′ = (' + num(-candidate.kx, 2) + ', ' + num(-candidate.ky, 2) + ')' : '−k′ · k′=k');
       const maskAlpha = id === 'shift' ? M.ramp(relocate, .8, 1) : s.step >= L.index('otf') ? 1 : 0;
       opacity(mask, maskAlpha);
       if (lastMask !== key) {
@@ -477,16 +561,16 @@
         set(square, 'fill-opacity', .23 + .3 * filtering.warning); set(square, 'stroke-opacity', filtering.warning);
       });
       set(rejected, 'data-total', data.support.rejected.length); set(rejected, 'data-remaining', exiting);
-      if (id === 'shift') text(countValue, `公共区 ${data.support.all.length} 点 · 尚未按 OTF 阈值筛选`);
-      if (id === 'otf') text(countValue, `比较集合 ${data.support.reliable.length + exiting} 点 · 阈值 τ = ${lesson.capture.config.minH ?? .15}`);
-      mapMarkers.forEach(g => opacity(g, id === 'shift' ? M.ramp(relocate, .82, 1) : s.step >= L.index('otf') ? 1 : 0));
+      if (id === 'shift') text(countValue, `n = ${data.support.all.length}`);
+      if (id === 'otf') text(countValue, `n = ${data.support.reliable.length + exiting} · τ = ${lesson.capture.config.minH ?? .15}`);
+      mapMarkers.forEach(g => opacity(g, id === 'shift' ? M.ramp(relocate,.82,1) : id==='otf' ? 1 : 0));
       const detector = id === 'shift' && p < .68;
       text(mapTitle, detector ? '同一检测坐标 f · 来源仍相差 k' : early ? '样品频率坐标 q · 频点位置与复数值分开读' : '同一批公共频点 · 位置锁定');
       text(axisX, detector ? 'fₓ' : 'qₓ'); text(axisY, detector ? 'fᵧ' : 'qᵧ');
       opacity(right, id === 'shift' ? comparisonReveal : ['otf', 'match', 'coarse', 'refine'].includes(id) ? 1 : 0);
       const correctionAlpha = id === 'otf' ? filtering.detail : id === 'match' ? 1 - M.ramp(p, 0, .12) : 0;
       opacity(otfCorrection, correctionAlpha);
-      opacity(filterGuide, id === 'otf' ? 1 - M.ramp(p, .37, .40) : 0);
+      opacity(filterGuide, id === 'otf' ? M.ramp(p,.018,.04)*(1 - M.ramp(p, .37, .40)) : 0);
       for (const key of ['multiply', 'power', 'divide', 'cancel', 'name', 'relation'])
         set(otfCorrection, 'data-' + key + '-progress', filtering[key]);
       const place = (node, x, y, scale = 1) => set(node, 'transform', `translate(${x} ${y}) scale(${scale})`);
@@ -560,7 +644,7 @@
         shift: p < .40 ? '二维频率有横纵两个分量；候选写作 k′，真实 k 仍待估计。' : p < .68 ? '面板共用坐标原点后，0 级保持固定；随后用候选 −k′ 搬回旁带。' : '旁带与 OTF 一起移动 −k′；仅在 k′=k 时，同名频点重合。',
         otf: p < .4 ? '先筛选可比较的频点：暖红格退出，橙色格保留；此步还不搜索位移。' : filtering.cancel < 1 ? '乘自身 H* → 保留 |H|² → 再除以 |H|²；两步齐全才等价于除以 H。' : '已得到 U、V：下一步换不同 k′，寻找能解释整片公共区的位移。',
         match: p < .12 ? '接住上一幕的 U、V，再开始尝试候选位移。' : p < .72 ? '公共区逐点共轭相乘、累计；算完后把分数送到对应的 k′ 格。' : '完整二维扫描要重复 N² 遍乘加；能否一次算出所有位移？',
-        coarse: p < .12 ? '原有元素先变暗，保留刚才的评分图。' : p < .26 ? '展开两张完整固定频谱：可靠区除自身 H，圈外置零。' : p < .46 ? '两张频谱在原位分别逆 FFT，成为空域复数场 u、v。' : p < .71 ? '三个光标取同一像素：u 取共轭后乘 v，逐点扫出乘积图。' : p < .86 ? '整张乘积图原位做正 FFT，再按两边能量归一化。' : p < .96 ? '整张结果移回原评分图，坐标、色标和候选分数都保持一致。' : '同一评分图、同一整数峰；接下来只在峰附近做小数细化。',
+        coarse: L.formulaAt(L.stateForScene('coarse',p)).note,
         refine: p < .30 ? '空间相位斜坡随像素位置变化 → 小数频移；下一幕的共同相位则处处相同。' : p < .9 ? '本页半宽 0.5→0.1→0.02；fairSIM 半宽 2.5→0.5→0.1，均为频率格。' : '波矢已锁定。接下来从 V=m·exp(iφΔ)U 解释复数值的旋转与伸缩。',
         'least-squares-fit': L.leastSquaresNarrative(p).note,
 
@@ -568,9 +652,11 @@
       text(footer, footers[id] || ''); opacity(footer, footers[id] ? 1 : 0);
       const scanning=id==='match',fftScene=id==='coarse',fft=L.fftState(fftScene?p:0);
       const scan=L.scanState(lesson,scanning?p:1),scanVisible=scanning?M.ramp(p,.12,.18)*(1-scan.cost):0;
-      const costVisible=scanning?scan.cost:fftScene?1-fft.dock:0;
+      const costVisible=scanning?scan.cost:fftScene?1-fft.dim:0;
       opacity(scanPanel,scanVisible);opacity(costPanel,costVisible);opacity(fftRoot,fftScene?fft.gather:0);
-      opacity(fftBackdrop,fftScene ? .92*fft.dim*(1-fft.reveal) : 0);
+      // Retain the completed direct-scan cost first, then move it out before
+      // the fixed spectra enter. Both motions use this scene's reversible clock.
+      set(costPanel,'transform',`translate(${-64*fft.dim} ${-12*fft.dim})`);
       opacity(scanPoint,scanVisible*(scan.count>0&&scan.count<scan.candidate.count?1:0));
       opacity(stamp,scanVisible*(scan.transfer>0&&!scan.done?Math.sin(Math.PI*scan.transfer):0));
       set(scanPanel,'data-count',scan.count);set(scanPanel,'data-total',scan.candidate.count);
@@ -578,7 +664,7 @@
       set(scanPanel,'data-operations',scan.operations);set(scanPanel,'data-committed',scan.committed.length);
       text(scanCount,`累计 ${scan.count} / ${scan.candidate.count} 点`);
       text(scanSum,`C = ${num(scan.sum.re,0)} ${scan.sum.im<0?'−':'+'} ${num(Math.abs(scan.sum.im),0)}i`);
-      text(scanScore,scan.count===scan.candidate.count?'分数 '+num(scan.candidate.score,3):'继续累计…');
+      text(scanScore,scan.count===scan.candidate.count?'ρ = '+num(scan.candidate.score,3):'…');
       text(scanTotal,`已填 ${scan.committed.length} / ${scan.total} 格`);
       const activePoint=scan.candidate.points[Math.max(0,scan.count-1)];
       if(activePoint){set(scanPoint,'cx',cx+activePoint.q[0]*unit);set(scanPoint,'cy',cy+activePoint.q[1]*unit);set(scanPoint,'data-q',activePoint.q.join(','));}
@@ -588,12 +674,12 @@
         set(node,'fill',accumulated?colors[0]:colors[2]);set(node,'data-scan-accumulated',accumulated);
       });
       const stampX=gx+(scan.candidate.kx+e.extent+.5)*cell,stampY=gy+(scan.candidate.ky+e.extent+.5)*cell;
-      set(stamp,'x',862+(stampX-862)*scan.transfer);set(stamp,'y',345+(stampY-345)*scan.transfer-30*Math.sin(Math.PI*scan.transfer));
+      set(stamp,'x',desktop.scan.readoutX+(stampX-desktop.scan.readoutX)*scan.transfer);set(stamp,'y',desktop.scan.scoreY+(stampY-desktop.scan.scoreY)*scan.transfer-30*Math.sin(Math.PI*scan.transfer));
       set(stamp,'data-transfer',scan.transfer);text(stamp,num(scan.candidate.score,3));
       if(scanning||fftScene) {
         const spatialVisible=scanning?1-scan.cost:0;
         opacity(frequency,spatialVisible);opacity(sharedRoot,spatialVisible);opacity(right,scanning?p<.82?1:0:0);
-        opacity(grid,scanning?M.ramp(p,.12,.18):1);
+        opacity(grid,scanning?M.ramp(p,.12,.18):1-fft.dim+fft.reveal);
         const written=new Set(scan.committed.map(c=>c.kx+','+c.ky));
         gridCells.forEach((g,i)=>{
           const c=e.coarse[i],done=fftScene?true:written.has(c.kx+','+c.ky);
@@ -601,17 +687,17 @@
           set(g,'data-written',c.valid&&done&&(fftScene?fft.reveal===1||fft.gather===0:true));
           set(g,'data-score-method',fftScene?'fft':'direct');
         });
-        text(gridTitle,fftScene?fft.dock>0?'同一评分图 · FFT 批量结果':'同一评分图 · 暂时变暗':'每个格 = 一个候选的分数 · 0—1');
+        text(gridTitle,fftScene?fft.dock>0?'同一评分图 · FFT 批量结果':'同一评分图 · 暂时收起':'每个格 = 一个候选的分数 · 0—1');
         opacity(gridCursor,scanning&&!scan.done?1:0);
         set(gridCursor,'x',gx+(scan.candidate.kx+e.extent)*cell);set(gridCursor,'y',gy+(scan.candidate.ky+e.extent)*cell);
         opacity(scoreValue,0);opacity(legend,0);
-        text(kValue,`候选 k′ = (${num(candidate.kx,0)}, ${num(candidate.ky,0)})`);
+        text(kValue,`k′ = (${num(candidate.kx,0)}, ${num(candidate.ky,0)})`);
       } else opacity(grid,0);
       opacity(fftPeak,fftScene?fft.peak:0);
       set(fftPeak,'x',gx+(e.coarseBest.kx+e.extent)*cell-3);set(fftPeak,'y',gy+(e.coarseBest.ky+e.extent)*cell-3);
       for(const [key,value] of Object.entries(fft))set(fftRoot,'data-'+key,value);
       fftCards.forEach((card,b)=>{
-        set(card.g,'transform',`translate(${fftCenters[b]} 300)`);
+        set(card.g,'transform',`translate(${fftCenters[b]} ${300+28*(1-fft.gather)})`);
         opacity(card.g,1-fft.forward);opacity(card.spectral,1-fft.inverse);opacity(card.spatial,fft.inverse);
         text(card.title,fft.inverse===1?b?'v(r) · 空域复数场':p>=.46?'u*(r) · 同点取共轭':'u(r) · 空域复数场'
           :b?'Vₚ(f) · +1 级固定频谱':'Uₚ(f) · 0 级固定频谱');
@@ -662,7 +748,8 @@
           :refinement.mode==='returnSpectrum'?'k̂ 已锁定 · 对应地址已确定 · 原始临时频带 → 最终幅相工作副本。'
           :'每轮最高分作为下一轮中心 · 范围缩小 5 倍 · 0.01 格是最终搜索步长。');
         opacity(footer,1);
-        refineView.draw(p,refinement,{x:gx+(e.coarseBest.kx+e.extent+.5)*cell,y:gy+(e.coarseBest.ky+e.extent+.5)*cell,cell});
+        const lockOrigin=refineView.draw(p,refinement,{x:gx+(e.coarseBest.kx+e.extent+.5)*cell,y:gy+(e.coarseBest.ky+e.extent+.5)*cell,cell});
+        drawLocked(refinement.lock,refinement.lockTransfer,lockOrigin);
         const returning=refinement.returnView;
         if(returning.overview>0) {
           // Restore the original actors, not raster copies of the overview.
@@ -672,8 +759,12 @@
           set(frequency,'transform',overviewPose);set(sharedRoot,'transform',overviewPose);
           opacity(frequency,returning.overview);opacity(sharedRoot,returning.overview);
           text(mapTitle,'同一批公共频点 · 位置锁定');
-          planes.forEach((plane,i)=>opacity(plane.group,candidate.points.some(t=>t.q.join(',')===data.selected[i].q.join(','))?returning.values:0));
-          opacity(legend,returning.values);
+          // The locked result feeds a new full-field calculation. The earlier
+          // selected-point examples have no role in this handoff.
+          planes.forEach(plane=>opacity(plane.group,0));
+          mapMarkers.forEach(node=>opacity(node,0));
+          pair.forEach(panel=>panel.points.forEach(node=>opacity(node,0)));
+          opacity(mask,0);opacity(right,0);opacity(legend,0);
         }
       }
       if (id === 'shift') {
@@ -697,7 +788,7 @@
       const span = doc.createElement('span'); span.setAttribute('class', 'pe-study-formula-part'); span.setAttribute('data-formula-part', name);
       parent.appendChild(span); renderMath(span, '$$' + tex + '$$'); return span;
     }
-    function draw(s) {
+    function drawSingle(s,mount=true) {
       const formula = resolve(s), mode = resolveMode(s);
       if (!cache.has(mode)) {
         const group = doc.createElement('div'); group.setAttribute('class', 'pe-study-formula pe-two-formula');
@@ -723,7 +814,7 @@
           parts.minusK = compile(parts.substitution, 'k-cancel-minus', String.raw`-\mathbf k'`);
           parts.residual = compile(parts.substitution, 'q-residual', String.raw`=\mathbf q+(\mathbf k-\mathbf k')`);
           parts.same = compile(parts.substitution, 'same-sample', String.raw`\xrightarrow{\ \mathbf k'=\mathbf k\ }\mathbf q`);
-        } else if (s.id === GetPeak.scene.legacyId && !GetPeak.presentation(s.progress).handoff) {
+        } else if (s.id === GetPeak.scene.legacyId) {
           Object.assign(parts, GetPeak.formulaView.build({ group, compile, progress: s.progress }));
         } else if(mode==='refine-phaseRamp'&&options.lesson) {
           group.setAttribute('class','pe-study-formula pe-refine-formula');
@@ -732,11 +823,13 @@
         cache.set(mode, { group, parts });
       }
       const { group, parts } = cache.get(mode);
-      if (active !== mode || !Array.from(container.children).includes(group)) { clear(); container.appendChild(group); active = mode; }
-      container.setAttribute('data-formula-mode', mode);
+      if (mount) {
+        if (active !== mode || !Array.from(container.children).includes(group)) { clear(); container.appendChild(group); active = mode; }
+        container.setAttribute('data-formula-mode', mode);
+      }
       const p = s.progress;
       group.style.opacity = '1';
-      if (s.id === GetPeak.scene.legacyId) GetPeak.formulaView.draw(group, parts, p);
+      if (s.id === GetPeak.scene.legacyId) GetPeak.formulaView.draw(group, parts, p,options.reducedMotion?.()||false);
       if(parts.refinement){parts.refinement.draw(p);return formula;}
       if (mode === 'shared-derive') {
         const state = L.sharedState(p);
@@ -763,7 +856,23 @@
       }
       return formula;
     }
-    return { draw, reset() { active = ''; }, destroy() { clear(); cache.clear(); } };
+    function draw(s) {
+      const formula=drawSingle(s),mode=resolveMode(s),current=cache.get(mode).group;
+      const transition=L.formulaTransition(s,options.reducedMotion?.()||false),previous=transition.previous;
+      const fading=previous&&transition.amount<1&&resolveMode(previous)!==mode&&resolve(previous).equation!==formula.equation;
+      container.classList.toggle('pe-formula-transition',!!fading);
+      for(const child of Array.from(container.children))if(child!==current)child.remove();
+      current.style.transform='translateY(0px)';current.setAttribute('aria-hidden','false');
+      if(fading) {
+        drawSingle(previous,false);
+        const old=cache.get(resolveMode(previous)).group;
+        container.appendChild(old);old.setAttribute('aria-hidden','true');
+        old.style.opacity=String(transition.outgoing);old.style.transform=`translateY(${transition.outgoingY}px)`;
+        current.style.opacity=String(transition.incoming);current.style.transform=`translateY(${transition.incomingY}px)`;
+      }
+      return formula;
+    }
+    return { draw, reset() { active = '';container.classList.toggle('pe-formula-transition',false); }, destroy() { clear(); cache.clear(); } };
   }
   Object.assign(L, { createView, createFormulaView });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

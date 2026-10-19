@@ -11,7 +11,7 @@
   const notation = (node ? require('../shared/sim-band-formulas.js') : root.SIMBandFormulas).notation;
   // Acquisition, provisional separation, formal demixing, relocation and the
   // final audit belong to Motion. Only the estimation explanations are added.
-  const sceneIds = Object.freeze(Study.scenes.map(scene => scene.id));
+  const sceneIds = Object.freeze(Study.navigationScenes.map(scene => scene.id));
   const convention = Object.freeze({ orders: Object.freeze([0, 1, -1]), estimationOrder: 1,
     frequencyUnit: 'DFT bins', yAxis: 'down', forwardFFTExponent: -1,
     positiveBandFactor: 'm exp(+i phase)', negativeBandFactor: 'm exp(-i phase)' });
@@ -23,17 +23,18 @@
   const { sharedEntryDuration, sharedDuration, sharedEntryState, sharedEntryFormulaAt, temporaryBands } = (node ? require('../parameter-demo/scenes/shared/entry.js') : root.SIMSharedEntry)({ Story, Study, notation });
   const adopted = (node ? require('./scenes/adopted-weights/storyboard.js') : root.SIMAdoptedStory)(Story);
   const { adoptedState } = adopted;
+  const adoptedScenes=adopted.scenes;
   const bridges = [
     { ...provisionalFormulaAt({ progress: 1 }), id: 'provisional-split', label: '检查预设值', duration: provisionalDuration },
-    adopted.scene,
+    ...adopted.scenes,
   ];
 
   function plan(motionModel) {
     const { scenes, parameterSlot: slot } = motionModel;
     const after = scenes.findIndex(scene => scene.id === slot.after);
     if (after < 0 || scenes[after + 1]?.id !== slot.before) throw new Error('Motion 参数章节的前后锚点不匹配。');
-    const inserted = sceneIds.map(id => ({ ...Study.scene(id), ...(id === 'shared' ? { duration: sharedDuration } : {}), id: 'parameters.' + id,
-      owner: 'parameters', sceneId: id, chapter: '05 / 参数估计 · ' + (Study.scene(id).phase === 'position' ? '① 找位置' : '② 求幅相'), formulaDomain: '频域 · 参数估计',
+    const inserted = sceneIds.map(id => ({ ...Study.navigationScene(id), ...(id === 'shared' ? { duration: sharedDuration } : {}), id: 'parameters.' + id,
+      owner: 'parameters', sceneId: id, chapter: '05 / 参数估计 · ' + (Study.navigationScene(id).phase === 'position' ? '① 找位置' : '② 求幅相'), formulaDomain: '频域 · 参数估计',
     }));
     const existing = scenes.map((scene, legacyPosition) => ({ ...scene, owner: 'motion',
       sceneId: scene.id, legacyPosition,
@@ -47,14 +48,14 @@
     // them. The base model keeps its proof choreography for isolated algebra
     // checks, while this timeline omits the repeated verification stop.
     const continuation = existing.slice(after + 1).filter(scene => scene.id !== 'verify-demix');
-    const stops = [...existing.slice(0, after + 1), bridgeStops[0], ...inserted, bridgeStops[1], ...continuation];
+    const stops = [...existing.slice(0, after + 1), bridgeStops[0], ...inserted, ...bridgeStops.slice(1), ...continuation];
     const extra = inserted.length + bridgeStops.length, end = after + extra;
     const index = id => stops.findIndex(stop => stop.id === id);
     const legacyToFlow = new Map(stops.filter(s => s.owner === 'motion').map((s, i) => [s.legacyPosition, index(s.id)]));
     const baseTime = time => time <= after ? time : time <= end ? after : time <= end + 1
-      ? 10.28 + .72 * motionModel.clamp((time - end - .12) / .88) : time - extra + 1;
+      ? 10.28 + .72 * motionModel.clamp((scenes.find(s=>s.id==='separate-bands').applicationProgress(time-end)-.42)/.58) : time - extra + 1;
     const sceneIndex = time => time <= after ? motionModel.sceneIndex(time) : time <= end ? Math.ceil(time - 1e-9)
-      : time < end + 1 ? (time - end < .12 - 1e-9 ? end : end + 1)
+      : time < end + 1 ? end + 1
       : legacyToFlow.get(motionModel.sceneIndex(baseTime(time)));
     function frame(time) {
       time = motionModel.clamp(time, 0, stops.length - 1);
@@ -80,7 +81,7 @@
       lesson, sceneIds, convention,
       state(sceneId, progress) {
         if (!sceneIds.includes(sceneId)) throw new Error('该场景由 Motion 主线负责，不属于新增估计章节。');
-        return Study.stateForScene(sceneId, sceneId === 'shared' ? sharedEntryState(progress).lessonProgress : progress);
+        return Study.navigationState(sceneId, sceneId === 'shared' ? sharedEntryState(progress).lessonProgress : progress);
       },
       result() { return Story.getResult(lesson); },
       reconstructAll() {
@@ -97,6 +98,6 @@
     provisionalDuration, unknownWeightFactorTex, residualBandTex, createNominalFailure, nominalFailureState, nominalFailureStart, nominalFailureDuration,
     sharedEntryDuration, sharedDuration, sharedEntryState, sharedEntryFormulaAt, temporaryBands,
     notation, parameterColors, actualIlluminationTex, weightFactorColors, actualWeightCells, actualWeightState,
-    temporaryNotationState, temporaryIndexTex, observationExpansionState, observationTex, sampleVectorTex, temporaryResponseTex, adoptedState, plan, create };
+    temporaryNotationState, temporaryIndexTex, observationExpansionState, observationTex, sampleVectorTex, temporaryResponseTex, adoptedState, adoptedScenes, plan, create };
   if (node) module.exports = api; else root.SIMMotionParameterChapter = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

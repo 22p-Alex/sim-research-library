@@ -40,7 +40,7 @@ test('getPeak explains the ratio before division and the ideal product relation 
     near(peak.product.im[i],a.im*peak.energy[i],1e-10);
   }
   assert.ok(Math.sqrt(residual/energy)<1e-12);
-  assert.match(Peak.formulas.finalShift,/alpha u/);
+  assert.match(Peak.formulas.finalCompare,/alpha u/);
   assert.match(Peak.formulas.finalProduct,/underbrace/);
   assert.match(Peak.formulas.finalDivide,/Longrightarrow/);
   assert.doesNotMatch(Peak.entry.copy,/保持这些位置|比较公共点的相位/);
@@ -51,11 +51,12 @@ test('the first multiply and add finish separately, and the final sum keeps all 
   const first=lesson.records[0],mul=frame('sum-contributions','firstWeight',1),half=frame('sum-contributions','firstAdd',.47);
   const sum=frame('sum-contributions','basicResponse',.5);
   assert.equal(mul.completed,0);assert.equal(half.index,0);assert.equal(sum.completed,9);
+  near(half.cues.firstAdd,.5,1e-10);
   for(let i=0;i<first.after.re.length;i++){
     near(M.pixel(mul.views[1],i).re,first.band.matched.re[i]);
     near(M.pixel(mul.views[2],i).re,0);
-    near(M.pixel(half.views[2],i).re,first.after.re[i]/2);
-    near(M.pixel(half.views[2],i).im,first.after.im[i]/2);
+    near(M.pixel(half.views[2],i).re,first.after.re[i]*half.cues.firstAdd);
+    near(M.pixel(half.views[2],i).im,first.after.im[i]*half.cues.firstAdd);
     near(M.pixel(sum.views[2],i).re,lesson.pipeline.numerator.re[i]);
     near(M.pixel(sum.views[2],i).im,lesson.pipeline.numerator.im[i]);
   }
@@ -128,5 +129,63 @@ test('production headings, cached formulas and fusion frames follow the selected
   const values=Object.fromEntries(bars.map(b=>[b.attrs['data-transfer-step'],+b.attrs['data-transfer-value']]));
   near(values.wiener*values.window,values.final);
   assert.equal(h.nodes.find(n=>n.attrs['data-relocation-grid']!==undefined).attrs['data-grid-output'],'256');
+  assert.deepEqual(h.errors,[]);
+});
+
+test('the illumination illustration changes only the indicated physical quantity and keeps relative phase steps',()=>{
+  const cue=t=>Chapter.provisionalState(t/132).illumination;
+  const k0=cue(22),k1=cue(25),m0=cue(25.5),m1=cue(28.3),p0=cue(28.8),p1=cue(31.5);
+  near(cue(19.5).formula,0);near(cue(20.3).formula,1);
+  near(cue(20.9).body,0);near(cue(21.8).body,1);
+  assert.equal(cue(21.8).direction,0,'the parameter changes start after the body has entered');
+  assert.notEqual(k0.kx,k1.kx);assert.notEqual(k0.ky,k1.ky);
+  near(k0.m,k1.m);near(k0.phase,k1.phase);
+  for(const key of ['kx','ky','phase'])near(m0[key],m1[key]);
+  assert.ok(m1.m<m0.m);
+  for(const key of ['kx','ky','m'])near(p0[key],p1[key]);
+  near(p1.phase-p0.phase,Math.PI/2);
+  for(let j=0;j<3;j++)near((p1.relativePhases[j]+p1.phase)-(p0.relativePhases[j]+p0.phase),Math.PI/2);
+  for(let t=19.5;t<=32;t+=.1){const s=Chapter.provisionalState(t/132);assert.equal(s.kHop,0);assert.equal(s.amplitudeHop,0);}
+});
+
+test('the fusion explanation uses a nonzero overlap contribution and carries the previous product into the sum',()=>{
+  const weighted=frame('otf-weight','weightReady',1),next=frame('sum-contributions','firstWeight',.000001);
+  assert.deepEqual(weighted.focus,[6,0]);assert.deepEqual(next.focus,[6,0]);
+  const i=A.idx(6,0,256),empty=A.idx(14,0,256),first=lesson.pipeline.bands[0];
+  assert.ok(first.h[i]>0);assert.equal(first.h[empty],0);
+  const z=M.pixel(next.views[1],i),previous=M.pixel(weighted.views[2],i);
+  assert.ok(Math.hypot(z.re,z.im)>0);near(z.re,previous.re);near(z.im,previous.im);
+  assert.equal(next.completed,0);near(M.pixel(next.views[2],i).re,0);
+});
+
+test('compensation, the separated-band hold and the ending preserve their meanings on backward seeks',()=>{
+  const h=boot(),flow=h.context.SIMMotionParameterChapter.plan(h.context.SIMMotion),slider=h.byId.get('progress');
+  const get=key=>h.nodes.find(n=>n.attrs[key]!==undefined);
+  const seek=(id,p)=>{slider.value=flow.index(id)-1+p;slider.dispatch('input');};
+  assert.deepEqual(h.errors,[]);
+  seek('adopted-weights',1);
+  const out=get('data-compensated-band-vector'),target=lesson.probe.orders[1].value;
+  near(out.attrs['data-re'],target.re);near(out.attrs['data-im'],target.im);
+  assert.ok(+get('data-adopted-compensation').style.opacity>0);
+  assert.equal(h.nodes.filter(n=>n.attrs['data-adopted-parameter']!==undefined).length,3);
+  seek('separate-bands',.90);
+  near(flow.frame(flow.index('separate-bands')-1+.90).baseTime,11);
+  assert.equal(h.byId.get('equation').hidden,false);
+  assert.equal(h.byId.get('demix-equations').hidden,true);
+  assert.match(h.byId.get('scene-description').textContent,/检测频率.*H\(f\)/);
+  seek('separate-bands',.5);
+  assert.equal(h.byId.get('equation').hidden,true);assert.equal(h.byId.get('demix-equations').hidden,false);
+  const modes=[['image-comparison',.3,'structure'],['image-comparison',.8,'profile'],['frequency-audit',.3,'highFrequency'],['frequency-audit',.8,'globalError']];
+  const snapshots=new Map();
+  for(const [id,p,mode] of [...modes,...modes.toReversed()]){
+    seek(id,p);
+    assert.equal(h.byId.get('comparison-stage').attrs['data-comparison-mode'],mode);
+    const metrics=+get('data-comparison-global-error').style.opacity;
+    assert.equal(metrics,mode==='globalError'?1:0,'RMSE is presented only after high-frequency recovery');
+    const snapshot=[get('data-comparison-structure').style.opacity,get('data-comparison-high-frequency').style.opacity,metrics];
+    if(snapshots.has(mode))assert.deepEqual(snapshot,snapshots.get(mode));else snapshots.set(mode,snapshot);
+  }
+  for(const id of ['inverse-fft','image-comparison','frequency-audit'])assert.ok(scene(id).duration>=4000);
+  assert.equal(h.nodes.filter(n=>n.attrs['data-structure-detail']!==undefined).length,3);
   assert.deepEqual(h.errors,[]);
 });

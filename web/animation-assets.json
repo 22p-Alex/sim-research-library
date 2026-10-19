@@ -1,45 +1,118 @@
 {
-  "version": "post-lock-coherence-20261018",
+  "version": "phase-causality-20261019-v8",
   "sceneTemplates": [
     {
-      "scenes": ["sample", "widefield", "illumination", "frequency-encoding"],
-      "files": ["web/motion/scenes/sample/view.js"]
+      "scenes": [
+        "sample",
+        "widefield",
+        "illumination",
+        "frequency-encoding"
+      ],
+      "files": [
+        "web/motion/scenes/sample/view.js"
+      ]
     },
     {
-      "scenes": ["phase-acquisition", "frequency-probe"],
-      "files": ["web/motion/scenes/phase-acquisition/view.js"]
+      "scenes": [
+        "phase-acquisition",
+        "frequency-probe"
+      ],
+      "files": [
+        "web/motion/scenes/phase-acquisition/view.js"
+      ]
     },
     {
-      "scenes": ["mixed-sources", "inverse-demix", "separate-bands"],
-      "files": ["web/motion/scenes/mixed-sources/view.js"]
+      "scenes": [
+        "mixed-sources",
+        "inverse-demix",
+        "separate-bands"
+      ],
+      "files": [
+        "web/motion/scenes/mixed-sources/view.js"
+      ]
     },
     {
-      "scenes": ["relocate-bands", "recover-high-frequency"],
-      "files": ["web/motion/scenes/relocate-bands/view.js"]
+      "scenes": [
+        "relocate-bands",
+        "recover-high-frequency"
+      ],
+      "files": [
+        "web/motion/scenes/relocate-bands/view.js"
+      ]
     },
     {
-      "scenes": ["directions", "single-direction-support", "combined-support"],
-      "files": ["web/motion/scenes/directions/view.js"]
+      "scenes": [
+        "directions",
+        "single-direction-support",
+        "combined-support"
+      ],
+      "files": [
+        "web/motion/scenes/directions/view.js"
+      ]
     },
     {
-      "scenes": ["otf-weight", "sum-contributions", "wiener", "apodization", "inverse-fft"],
-      "files": ["web/motion/scenes/otf-weight/view.js"]
+      "scenes": [
+        "otf-weight",
+        "sum-contributions",
+        "wiener",
+        "apodization",
+        "inverse-fft"
+      ],
+      "files": [
+        "web/motion/scenes/otf-weight/view.js"
+      ]
     },
     {
-      "scenes": ["image-comparison", "frequency-audit"],
-      "files": ["web/motion/scenes/image-comparison/view.js"]
+      "scenes": [
+        "image-comparison",
+        "frequency-audit"
+      ],
+      "files": [
+        "web/motion/scenes/image-comparison/view.js"
+      ]
     },
     {
-      "scenes": ["provisional-split", "adopted-weights"],
-      "files": ["web/motion/sim-motion-parameter-view.js"]
+      "scenes": [
+        "provisional-split",
+        "adopted-weights",
+        "restore-weight",
+        "assemble-weights"
+      ],
+      "files": [
+        "web/motion/scenes/provisional-split/parameter-view.js",
+        "web/motion/sim-motion-parameter-view.js"
+      ]
     },
     {
-      "scenes": ["parameters.shared", "parameters.line-shift", "parameters.shift", "parameters.otf", "parameters.match", "parameters.coarse", "parameters.refine", "parameters.least-squares-fit"],
-      "files": ["web/parameter-demo/sim-parameter-two-stage-view.js"]
+      "scenes": [
+        "parameters.shared",
+        "parameters.line-shift",
+        "parameters.shift",
+        "parameters.otf",
+        "parameters.match",
+        "parameters.coarse",
+        "parameters.refine",
+        "parameters.least-squares-fit",
+        "parameters.get-peak-inverse",
+        "parameters.get-peak-point",
+        "parameters.get-peak-scan",
+        "parameters.get-peak-compare",
+        "parameters.get-peak-product",
+        "parameters.get-peak-sum",
+        "parameters.get-peak-divide",
+        "parameters.get-peak-read"
+      ],
+      "files": [
+        "web/parameter-demo/sim-parameter-two-stage-view.js"
+      ]
     },
     {
-      "scenes": ["parameters.shared"],
-      "files": ["web/parameter-demo/scenes/shared/entry.js"]
+      "scenes": [
+        "parameters.shared"
+      ],
+      "files": [
+        "web/parameter-demo/scenes/shared/entry.js"
+      ]
     }
   ],
   "pages": {
@@ -51,6 +124,7 @@
       "web/shared/sim-parameter-estimation.js",
       "web/parameter-demo/sim-parameter-model.js",
       "web/shared/animation/beat-clock.js",
+      "web/shared/animation/text-transition.js",
       "web/parameter-demo/scenes/get-peak/storyboard.js",
       "web/parameter-demo/scenes/get-peak/state.js",
       "web/parameter-demo/scenes/shared/storyboard.js",
@@ -79,6 +153,7 @@
       "web/motion/scenes/adopted-weights/storyboard.js",
       "web/parameter-demo/scenes/shared/entry.js",
       "web/motion/sim-motion-parameter-chapter.js",
+      "web/motion/scenes/provisional-split/parameter-view.js",
       "web/motion/sim-motion-parameter-view.js",
       "web/motion/scenes/sample/storyboard.js",
       "web/motion/scenes/widefield/storyboard.js",
@@ -142,6 +217,7 @@
       "web/shared/sim-parameter-estimation.js",
       "web/parameter-demo/sim-parameter-model.js",
       "web/shared/animation/beat-clock.js",
+      "web/shared/animation/text-transition.js",
       "web/parameter-demo/scenes/get-peak/storyboard.js",
       "web/parameter-demo/scenes/get-peak/state.js",
       "web/parameter-demo/scenes/shared/storyboard.js",

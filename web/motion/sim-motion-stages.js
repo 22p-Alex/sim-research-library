@@ -12,6 +12,9 @@
     function label(parent, x, y, text, className = 'svg-small', anchor = 'middle') {
       return create('text', { x, y, class: className, 'text-anchor': anchor }, parent, text);
     }
+    function note(...args) {
+      const node=label(...args);attr(node,'display','none');attr(node,'data-scene-note','');return node;
+    }
     function image(parent, url, size = 260) { return create('image', { x: -size / 2, y: -size / 2, width: size, height: size, href: url }, parent); }
     function panel(parent, x, y, name, url, size = 260) {
       const group = create('g', { transform: `translate(${x} ${y})` }, parent);
@@ -44,7 +47,7 @@
     const spectrumTruthURL = spectrumURL(truth.spectrum, sourceMax), spectrumWFURL = spectrumURL(A.spectrum(truth.widefield), sourceMax);
 
     const sumIndexes = Uint32Array.from({ length: 128 * 128 }, (_, i) => A.idx(Math.floor((i % 128 - 64) * viewRange / 128), Math.floor((Math.floor(i / 128) - 64) * viewRange / 128)));
-    const context = { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL };
+    const context = { sumIndexes, lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL };
     const views = Object.fromEntries(Object.entries(root.SIMMotionViewFactories).map(([key,create])=>[key,create(context)]));
     function draw(time, excitationPhase = 0) {
       const state = M.story(time);

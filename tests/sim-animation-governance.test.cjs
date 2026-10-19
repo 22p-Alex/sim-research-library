@@ -31,10 +31,10 @@ test('retiming any getPeak beat preserves its local action, formula, narration a
   assert.throws(()=>Peak.timeline.at(NaN));
 });
 
-test('all 33/13 scene units have valid handoffs, complete beats and reversible locators',()=>{
+test('all 43/21 scene units have valid handoffs, complete beats and reversible locators',()=>{
   for(const [kind,scenes] of [['motion',Chapter.plan(M).scenes],['parameter',Preview.scenes]]){
     const registry=Registry.create(scenes,{kind,getPeak:Peak,chapter:Chapter,motion:M});
-    assert.equal(registry.entries.length,kind==='motion'?33:13);
+    assert.equal(registry.entries.length,kind==='motion'?43:21);
     for(const entry of registry.entries){
       assert.ok(fs.existsSync(path.resolve(__dirname,'..',entry.unit)),entry.unit);
       assert.equal(entry.entry,scenes[entry.index-1]?.id||null);
@@ -52,6 +52,11 @@ test('all 33/13 scene units have valid handoffs, complete beats and reversible l
         }
       }
     }
+    const oldId=kind==='motion'?'parameters.least-squares-fit':'least-squares-fit';
+    for(const beat of Peak.timeline.beats){
+      const target=registry.parse(`scene=${oldId}&beat=${beat.key}&p=0.5`);
+      assert.equal(target.entry.getPeakBeat,beat.key);near(target.sceneProgress,.5);
+    }
     assert.throws(()=>registry.parse('scene=missing&beat=main&p=.5'));
     assert.throws(()=>registry.parse('scene=sample&beat=main&p=NaN'));
     assert.throws(()=>registry.resolve({scene:scenes[0].id,progress:2}));
@@ -65,7 +70,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   const find=name=>h.nodes.find(n=>n.attrs['data-rehearsal']===name),toggle=h.byId.get('rehearsal-toggle');
   assert.equal(h.byId.get('scene-rehearsal').hidden,true);
   toggle.dispatch('click');assert.equal(h.byId.get('scene-rehearsal').hidden,false);
-  const scene=main?'parameters.least-squares-fit':'least-squares-fit';
+  const scene=main?'parameters.get-peak-sum':'get-peak-sum';
   find('scene').value=scene;find('scene').dispatch('change');
   find('beat').value='finalSum';find('beat').dispatch('change');
   find('progress').value='.5';find('progress').dispatch('input');
@@ -75,7 +80,7 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   const first=stage.attrs['data-count'];
   find('copy').dispatch('click');await Promise.resolve();
   const locator=find('locator').value;assert.match(locator,/beat=finalSum&p=0.500000/);
-  find('beat').value='finalRead';find('beat').dispatch('change');
+  find('scene').value=main?'parameters.get-peak-read':'get-peak-read';find('scene').dispatch('change');
   find('locator').value=locator;find('jump').dispatch('click');assert.equal(stage.attrs['data-count'],first);
   find('locator').value='bad';find('jump').dispatch('click');assert.equal(stage.attrs['data-count'],first);
   assert.match(find('status').textContent,/定位码/);

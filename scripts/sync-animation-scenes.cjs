@@ -32,6 +32,7 @@ const M = require('../web/motion/sim-motion-model.js');
 const C = require('../web/motion/sim-motion-parameter-chapter.js');
 const Peak = require('../web/parameter-demo/scenes/get-peak/state.js');
 const Registry = require('../web/shared/animation/scene-registry.js');
+const Preview=require('../web/parameter-demo/sim-parameter-preview.js');
 const registry = Registry.create(C.plan(M).scenes, { kind: 'motion', getPeak: Peak, chapter: C, motion: M });
 const ids = new Set(registry.entries.map(entry => entry.id));
 const templates = manifest.sceneTemplates || [];
@@ -70,11 +71,11 @@ const catalog = `# 完整动画的分镜目录
 |---|---|---|---|---|---|
 ${rows.join('\n')}
 
-当前完整页 33 幕；独立参数页 13 幕。仅在独立测试保留的 verify-demix 不进入主线。简单过渡以一个完整分镜为单位；频率编码、临时分离、评分、FFT、细化、getPeak、归位、加权、累加与 Wiener 提供内部拍定位。
+当前完整页 ${registry.entries.length} 幕；独立参数页 ${Preview.scenes.length} 幕。仅在独立测试保留的 verify-demix 不进入主线。简单过渡以一个完整分镜为单位；频率编码、临时分离、评分、FFT、细化、getPeak、归位、加权、累加与 Wiener 提供内部拍定位。
 
 标注“共用”的链接来自 animation-assets.json 的 sceneTemplates；修改前查看该模板的全部使用者。模板共享画面对象，各幕单独拥有内容定义。参数前半段共用持续存在的频谱几何模板 sim-parameter-two-stage-view.js；各幕状态和公式定义已独立。getPeak、归位、加权、累加与 Wiener 已采用拍内时序，其余旧场景仍保留原有内部时序，详见治理约定。
 
 验证状态：数值、公式状态和可逆转场纳入自动检查；实际视觉与字体基线由用户验收，尚未登记通过。
 `;
 write('web/motion/SCENES.md', catalog);
-console.log(check ? '场景目录和本地模块清单一致。' : '已同步两个入口及 33 幕场景目录。');
+console.log(check ? '场景目录和本地模块清单一致。' : `已同步两个入口及 ${registry.entries.length} 幕场景目录。`);

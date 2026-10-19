@@ -3,9 +3,9 @@
   'use strict';
   const M=root.SIMMotion,A=root.SIMAtlas;
   (root.SIMMotionViewFactories ||= {}).coverage = function(context) {
-    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
+    const { lesson, create, attr, opacity, spatialURL, spectrumURL, imageURL, maximum, arrowPath, compact, $, r, mix, p, truth, gray, directionColors, viewRange, label, note, image, panel, frequencyOverlay, dot, intro, sumStage, detectionStage, coverage, fusion, comparison, sampleURL, wfURL, simURL, excitation, exposureImages, lightURL, emissionURL, sourceMax, spectrumTruthURL, spectrumWFURL } = context;
     // Nine acquired frames and the actual shifted OTF support for all directions.
-    const nineFrames = [], rowLabels = [], lobes = [];
+    const nineFrames = [], rowLabels = [], parameterLabels=[], lobes = [];
     // Phase headings belong to the columns, outside the scaled camera tiles.
     // Direction headings keep their own row above each compact camera strip.
     const phaseHeaders = M.phaseLabels.map((phase, j) => {
@@ -16,6 +16,10 @@
     for (let d = 0; d < 3; d++) {
       const rowTitle = label(coverage, 120, 95 + d * 157, `方向 ${d + 1} / 估计 ${lesson.pipeline.groups[d].angle.toFixed(1)}°`, 'svg-small', 'start');
       rowTitle.style.fill = directionColors[d]; rowLabels.push(rowTitle);
+      const estimated=p.groups[d];
+      const parameters=label(coverage,120,119+d*157,`m̂=${compact(estimated.m)} · φ̂Δ=${compact(estimated.phases[0])}`, 'svg-muted','start');
+      const vector=label(coverage,120,143+d*157,`k̂=(${compact(estimated.kx)}, ${compact(estimated.ky)})`, 'svg-muted','start');
+      parameterLabels.push(parameters,vector);
       for (let j = 0; j < 3; j++) {
         const frame = panel(coverage, 360 + j * 360, 124 + d * 157, '', spatialURL(lesson.capture.raw.groups[d].frames[j].pixels), 110);
         frame.caption.textContent = `D${d + 1},${j + 1}`;
@@ -44,9 +48,10 @@
     const overlapMarker = create('g', { color: directionColors[0] }, support);
     const overlapDot = dot(overlapMarker, directionColors[0]); attr(overlapDot, 'transform', `translate(${6 * supportUnit} 0)`);
     const overlapLabel = label(overlapMarker, 6 * supportUnit, 30, 'q', 'svg-muted'); overlapLabel.style.fill = directionColors[0];
-    const coverageFoot = label(coverage, 720, 524, '', 'svg-muted');
+    const coverageFoot = note(coverage, 720, 524, '', 'svg-muted');
 
     function drawCoverage(t, state) {
+      parameterLabels.forEach(node=>opacity(node,1-state.support));
       phaseHeaders.forEach((header, j) => {
         attr(header, 'x', mix(360 + j * 360, 139 + j * 92, state.support));
         attr(header, 'font-size', mix(22, 15, state.support));
