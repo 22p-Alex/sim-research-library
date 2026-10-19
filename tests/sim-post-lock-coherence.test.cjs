@@ -6,7 +6,7 @@ const Chapter=require('../web/motion/sim-motion-parameter-chapter.js');
 const Peak=require('../web/parameter-demo/scenes/get-peak/state.js');
 const Clock=require('../web/shared/animation/beat-clock.js');
 const katex=require('../vendor/katex/katex.min.js');
-const before=require('../web/motion/plans/revisions/2026-10-18-post-lock-before.json');
+const before=require('./fixtures/sim-motion/2026-10-18-post-lock-before.json');
 const boot=require('./helpers/motion-dom.cjs');
 const near=(a,b,tol=1e-9)=>assert.ok(Number.isFinite(+a)&&Math.abs(+a-b)<tol,`${a} != ${b}`);
 const capture=A.capture({sample:'star-points',directions:3,m:.8,noise:'none'});

@@ -2,7 +2,7 @@
 
 主线第 19—27 幕、独立参数页第 10—18 幕共用此单元。规范名称 `get-peak`；宿主兼容 ID 是 `least-squares-fit`。按本地 fairSIM 最终幅相路径，从锁定位置的临时频带得到一个共同复系数，先解释旁带补偿，再交给正式权重。
 
-第 18—24 幕入口改版已实施，时序、两页定位和检查记录见[第一版交付](../../../motion/plans/2026-10-19-alpha-entry-v1-delivery.md)。[α 教学设计](../../../motion/plans/2026-10-19-alpha-teaching-design.md)保留完整推导、两页示例差异和后续重讲建议。
+当前修改按[第 18 幕后连贯性修订计划](../../../motion/plans/2026-10-19-scene18-continuity.md)执行。旧设计与交付计划已清理，可从 Git 基线 `e7e412c` 恢复；现行动作、理论和数据约定集中维护在本目录。
 
 | 文件 | 职责 |
 |---|---|
@@ -86,6 +86,6 @@ $$
 \widehat\phi_\Delta=\arg\widehat\alpha.
 $$
 
-来源：[本地 Correlation.java](../../../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java) 的 `commonRegion/getPeak`，固定提交 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732`。完整符号约定、归一化与本地 Java 对照见[源码七拍说明](../../../motion/plans/2026-10-17-fairsim-getpeak-storyboard.md)。入口示例读取 `estimate.fit.points` 中已计算的原始值、各自 H 和校正值，并筛入最终可靠区；它不参与本幕最终计算或累计。
+来源：[本地 Correlation.java](../../../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/Correlation.java) 的 `commonRegion/getPeak`，固定提交 `711afd12cb8c4fd4207bbca7ee7610c5aed4f732`。`getPeak` 第 199—217 行依次复制、准备、逆变换、移频、共轭相乘并除以参考能量；`commonRegion` 第 242—297 行定义 OTF 筛选和径向排除。[Java 与独立 DFT 对照测试](../../../../tests/sim-fairsim-get-peak.test.cjs)核验掩膜、频带、复系数、归一化和小数位移。入口选点来自最终双路掩膜，在原始临时频带中读取数值；不参与最终计算或累计。
 
 修改后执行 `npm run check`；使用两页的“分镜排练”定位拍内状态。数值和公式状态通过不代表实际字体及布局已验收。通用规则见[治理约定](../../../motion/GOVERNANCE.md)。

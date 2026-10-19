@@ -1,6 +1,6 @@
 # 参数估计已接入完整重建演示
 
-[完整重建动画](../../sim_motion_demo.html) 现在包含 33 个停点。独立 [参数 Demo](../../sim_parameter_demo.html) 保留，主页面直接复用其八幕模型与视图；不嵌入 iframe，不打开新页，不加载独立页启动器。
+[完整重建动画](../../sim_motion_demo.html) 现在包含 43 个停点。独立 [参数 Demo](../../sim_parameter_demo.html) 保留，主页面直接复用其参数场景单元与视图；不嵌入 iframe，不打开新页，不加载独立页启动器。
 
 现行维护入口为[分镜目录](SCENES.md)和[治理约定](GOVERNANCE.md)。本文说明数据交接与理论；动作定义以各幕 `storyboard.js` 为准。
 
@@ -14,13 +14,13 @@
 | 12 | parameters.shared | 真实 k 的推导，频谱重叠、分开、框出公共区，浮现 P、Q、R |
 | 13 | parameters.line-shift | 一维移动与逐列乘积和 |
 | 14—18 | parameters.shift 至 parameters.refine | 二维频谱、OTF、可靠公共区、相关峰、局部细化 |
-| 19 | parameters.least-squares-fit | 最终工作频带、两路逆 FFT、空间位移斜坡、共轭乘积与能量、全场累计、相除、读取幅相 |
-| 20 | adopted-weights | 汇合三个方向的估计，回填 M 并计算实际 U |
-| 21 | separate-bands | 三行实际权重作用于同一组三帧，形成正式频带 |
-| 22—23 | relocate-bands、recover-high-frequency | 按估计波矢归位，回到高频点 |
-| 24—33 | directions 至 frequency-audit | 三方向覆盖、OTF 融合、逆 FFT、图像与频率评价 |
+| 19—27 | parameters.least-squares-fit 至 parameters.get-peak-read | 最终工作副本、两路逆 FFT、单点与全场校正、共同幅相、共轭乘积、累计、相除与参数读取 |
+| 28—30 | adopted-weights、restore-weight、assemble-weights | 解释旁带补偿，补全单个权重，再组成正式解混矩阵 |
+| 31 | separate-bands | 正式权重作用于同一组三帧，形成完整频带 |
+| 32—33 | relocate-bands、recover-high-frequency | 扩展频率网格，按估计波矢归位，回到高频点 |
+| 34—43 | directions 至 frequency-audit | 回看多方向观测、支撑覆盖、融合、逆 FFT、图像与频率评价 |
 
-第 19 幕现行定义位于 [getPeak 单元](../parameter-demo/scenes/get-peak/README.md)，源码依据见[七拍说明](plans/2026-10-17-fairsim-getpeak-storyboard.md)：80 秒七拍，按本地源码的最终幅相计算顺序推进。内部 ID 保持兼容；第 20 幕仍用 28 秒回填矩阵后直接正式分离，删除回看条纹。此前的最小二乘分镜作为历史记录保留，不再是当前主线。
+第 19—27 幕现行定义位于 [getPeak 单元](../parameter-demo/scenes/get-peak/README.md)，九幕均可独立定位。第 28—30 幕接住相同参数，再交给正式解混。早期七拍与 33 停点的设计记录已清理，可从 Git 基线 `e7e412c` 恢复。
 
 ## 数据连接
 
@@ -160,7 +160,7 @@ $$
 
 理论依据：[fairSIM 2016 Supplementary Note 1](https://doi.org/10.1038/ncomms10980)。源码顺序见 [SimAlgorithm.java](../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/SimAlgorithm.java) 181—190 行的临时分离、601—603 行的正式分离及后续归位；[BandSeparation.java](../../Wiener-SIM/fairSIM-src/fairSIM/src/main/java/org/fairsim/sim_algorithm/BandSeparation.java) 构建矩阵并累加加权观测。
 
-位置搜索仍采用教学实现：公共区自身 OTF 校正、FFT 批量归一化相关、整数峰定位和 5×5 局部细化。最终幅相则按本地 `commonRegion/getPeak` 实现，包括二维两束分支的 0.05 OTF 阈值、0.15 径向排除及整数旁带索引规则。页面沿用自己的圆形 OTF 和双精度 FFT；不能把整套估计器声称为原版逐行复刻。详见[源码分镜与数值核验](plans/2026-10-17-fairsim-getpeak-storyboard.md)。
+位置搜索仍采用教学实现：公共区自身 OTF 校正、FFT 批量归一化相关、整数峰定位和 5×5 局部细化。最终幅相则按本地 `commonRegion/getPeak` 实现，包括二维两束分支的 0.05 OTF 阈值、0.15 径向排除及整数旁带索引规则。页面沿用自己的圆形 OTF 和双精度 FFT；不能把整套估计器声称为原版逐行复刻。详见[getPeak 源码约定与数值核验](../parameter-demo/scenes/get-peak/README.md)。
 
 `npm run check` 包含生产 HTML 全部脚本的模拟 DOM 接线测试：33 步往返、完整估计动画、暂停与重播、减少动态效果、同一批原始像素及估计参数进入重建、相关分数与图坐标、连续比例箭头、实际逆矩阵权重、逐行高亮、系数与说明互斥、恢复与收拢、临时旁带的正负相位和符号跳动与说明互斥、标称值对照的真实重建、负值和误差主频、矩阵重现与单个权重抽出、系数分步展开及双色因子路径、同一权重归位、矩阵项飞入与观测配对、飞入节点保留、局部系数原位替换及临时输出同步、三行临时矩阵重组与向量收拢、主舞台与公式栏同步、中央公式的观测代入及对角响应、同一批 H/S/系数展开为频带、单一 132 秒分镜，以及独立 Demo 的既有测试。原 24 场景的详细几何测试通过测试替身隔离时间轴；生产时间轴直接跳过证明段，进入正式解混面板后再淡入，避免跳过的证明闪现。按项目约定不启动浏览器、不截图、不做视觉或布局验收。
 
