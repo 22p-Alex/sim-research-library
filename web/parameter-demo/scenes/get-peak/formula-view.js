@@ -51,6 +51,12 @@
   }
   function build({ group, compile, progress }) {
     const s = Story.presentation(progress), parts = {};
+    if(s.mode==='finalInverse'||(s.tail&&s.tail.seconds>=2)){
+      // The complete, retained equation is on the stage. Keep the existing
+      // formula host mounted for handoffs without displaying a second copy.
+      group.setAttribute('data-get-peak-formula-location','stage');
+      group.style.display='none';return {inverseOnStage:true};
+    }
     if(s.formula.motion)return buildAlpha(group,compile);
     group.setAttribute('class', 'pe-study-formula pe-two-formula pe-peak-formula');
     for (const part of s.formula.parts) {
@@ -68,6 +74,7 @@
     const s = Story.presentation(progress);
     group.style.opacity = String(s.formula.opacity);
     group.setAttribute('data-get-peak-formula-beat', s.formula.mode);
+    if(parts.inverseOnStage){group.style.display='none';return;}
     if(parts.alphaProduct){drawAlpha(parts.alphaProduct,s,reduced);return;}
     for (const [name, node] of Object.entries(parts)) node.setAttribute('data-emphasized', s.formula.emphasis.includes(name));
   }

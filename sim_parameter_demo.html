@@ -6,8 +6,8 @@
   <title>SIM · 参数估计衔接 Demo</title>
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter.css?v=desktop-spacing-20261018">
   <link rel="stylesheet" href="web/parameter-demo/sim-parameter-study.css?v=two-stage-1">
-  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=inverse-phase-20261019-v2">
-  <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=scene-governance-1">
+  <link rel="stylesheet" href="web/parameter-demo/sim-parameter-two-stage.css?v=inverse-address-expand-20261019-v4">
+  <link rel="stylesheet" href="web/shared/animation/rehearsal.css?v=ui-review-20261019">
 </head>
 <body>
 <div class="pe-app" id="pe-app" aria-busy="true">
@@ -39,46 +39,50 @@
 <div id="pe-error" class="pe-error" role="alert" hidden></div>
 <noscript>这个 Demo 需要启用 JavaScript；公式与方法可阅读 web/parameter-demo/README.md。</noscript>
 <script src="vendor/katex/katex.min.js"></script>
-<script src="web/shared/sim-core.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/sim-experiment.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/sim-band-formulas.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/atlas/sim-atlas-core.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/sim-parameter-estimation.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/sim-parameter-model.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/animation/beat-clock.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/animation/text-transition.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/shared/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/shift/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/otf/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/match/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/refine/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/comparison-data.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/shared/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/line-shift/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/shift/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/otf/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/match/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/coarse/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/refine/state.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/refine/view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/line-shift/view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/layout.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/motion/scenes/provisional-split/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/motion/scenes/adopted-weights/storyboard.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/scenes/shared/entry.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/motion/sim-motion-parameter-chapter.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/sim-parameter-preview.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/animation/scene-registry.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/shared/animation/rehearsal.js?v=inverse-phase-20261019-v2"></script>
-<script src="web/parameter-demo/sim-parameter-app.js?v=inverse-phase-20261019-v2"></script>
+<script src="web/shared/sim-core.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/sim-experiment.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/sim-band-formulas.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/atlas/sim-atlas-core.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/sim-parameter-estimation.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/sim-parameter-model.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/animation/beat-clock.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/animation/text-transition.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/animation/math-actors.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-story.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/shared/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/line-shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/shift/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/otf/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/match/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/coarse/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/refine/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/comparison-data.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/shared/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/line-shift/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/shift/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/otf/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/match/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/coarse/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/refine/state.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/refine/view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/line-shift/view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/layout.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/inverse-view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/tail-view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/get-peak/formula-view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/sim-parameter-two-stage-view.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/motion/scenes/provisional-split/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/motion/scenes/adopted-weights/teaching.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/motion/scenes/adopted-weights/storyboard.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/scenes/shared/entry.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/motion/sim-motion-parameter-chapter.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/sim-parameter-preview.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/animation/scene-registry.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/shared/animation/rehearsal.js?v=parameter-tail-20261019-v1"></script>
+<script src="web/parameter-demo/sim-parameter-app.js?v=parameter-tail-20261019-v1"></script>
 </body>
 </html>

@@ -558,11 +558,11 @@
 
     const group = lesson.group;
     const parameterCards=create('g',{'data-adopted-cards':''},adopted);
-    const cards=[['k',250,M.colors[0],[group.kx,group.ky]],['m',720,M.colors[2],group.m],['phase',1190,M.colors[1],group.phases[0]]].map(([key,x,color,value])=>{
+    const cards=[['k',250,'#7ad5cd',[group.kx,group.ky]],['m',720,'#efb879',group.m],['phase',1190,'#b7a5eb',group.phases[0]]].map(([key,x,color,value])=>{
       const g=create('g',{'data-adopted-parameter':key},parameterCards);
       create('rect',{x:-198,y:0,width:396,height:73,rx:6,fill:'#0c1b22',stroke:color},g);
-      label(g,0,26,key==='k'?'k̂ → 频带归位':key==='m'?'m̂ → 幅度补偿':'共同相位 φ̂Δ → 相位补偿',{fill:color});
-      label(g,0,55,key==='k'?`(${value.map(compact).join(', ')})`:compact(value)+(key==='phase'?' rad':''),{fill:color,class:'svg-small'});
+      label(g,0,26,key==='k'?'k̂ · 已锁定':key==='m'?'m̂ · 模长':'φ̂Δ · 相角',{fill:color});
+      label(g,0,55,key==='k'?`(${value.map(v=>v.toFixed(2)).join(', ')}) DFT 格`:(Math.abs(value)<1e-10?'0.000000':value.toFixed(6))+(key==='phase'?' rad':''),{fill:color,class:'svg-small'});
       return {g,x,key};
     });
     const pending=mathAt(adopted,720,245,1160,String.raw`\widetilde A_{+1}=\alpha A_{+1}\quad\Longrightarrow\quad\frac{\widetilde A_{+1}}{\widehat\alpha}\approx A_{+1}`,
@@ -613,7 +613,10 @@
       const product=mathAt(g,0,0,330,'u_{+1,'+j+'}'+String.raw`\cdot D_`+j+String.raw`(\mathbf f)`);
       return {g,number,product};
     });
+    const teachingView=root.SIMAdoptedTeaching.createView({...options,parent:adopted,
+      single,singleName,singleNumber,parameterCards,cards});
     function drawApplication(progress){
+      teachingView.draw(null,0);
       const p=M.clamp(progress),move=M.ramp(p,.04,.23),symbol=M.ramp(p,.25,.30);
       [parameterCards,pending,substitution,single,compensation].forEach(g=>opacity(g,0));
       const extract=M.ramp(p,0,.04);
@@ -668,6 +671,11 @@
       } else {
         const s = Chapter.adoptedState(progress,id);
         attr(adopted,'data-adopted-progress',s.progress);attr(adopted,'data-adopted-scene',id);
+        if(s.teaching){
+          [pending,substitution,single,compensation,matrix,applicationRow,next].forEach(g=>opacity(g,0));
+          teachingView.draw(id,progress);return s;
+        }
+        teachingView.draw(null,0);
         opacity(applicationRow,0);
         opacity(parameterCards,s.cards);
         cards.forEach(({g,x})=>attr(g,'transform',`translate(${x} ${M.lerp(425,130,s.cardMove)})`));

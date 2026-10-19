@@ -726,8 +726,8 @@ test('every meaningful intermediate state is reversible and formula terms use th
     const state=tracked.map(n=>Object.fromEntries(Object.entries(n.attrs).filter(([k])=>k==='d'||k==='opacity'||k==='transform'||k.startsWith('data-'))));
     if(snapshots.has(key))assert.deepEqual(state,snapshots.get(key));else snapshots.set(key,state);
   }
-  seek('get-peak-sum',.4);const formula=byId.get('equation').children[0], count=h.mathRenders;
-  seek('get-peak-sum',.7);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
-  assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-finalSum');
+  seek('get-peak-sum',.43);const formula=byId.get('equation').children[0], count=h.mathRenders;
+  seek('get-peak-sum',.5);assert.equal(byId.get('equation').children[0],formula);assert.equal(h.mathRenders,count);
+  assert.equal(byId.get('equation').attrs['data-formula-mode'],'least-squares-fit-finalSum-B3-stage');
   h.windowEvents.pagehide.forEach(f=>f());assert.equal(byId.get('parameter-stage').children.length,0);assert.equal(byId.get('frequency-handoff-stage').children.length,0);
 });

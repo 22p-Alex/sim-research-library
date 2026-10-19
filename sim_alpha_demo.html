@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>共同复比例 · 五次变形（独立演示）</title>
+<link rel="stylesheet" href="vendor/katex/katex.min.css">
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#091115;--panel:#101b21;--ink:#edf0e9;--muted:#8b9b9f;--line:#24343b;
+  --orange:#efb879;--cyan:#7ad5cd;--violet:#b7a5eb;
+  --ui:"Avenir Next","Segoe UI Variable Text","Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--ui);overflow:hidden;-webkit-font-smoothing:antialiased}
+.app{height:100dvh;min-width:1024px;display:grid;grid-template-rows:64px minmax(0,1fr) 104px;
+  background:radial-gradient(ellipse at 62% 36%,#13232b45,transparent 62%),var(--bg)}
+header{display:flex;align-items:center;justify-content:space-between;padding:0 40px;border-bottom:1px solid var(--line);gap:20px}
+.brand{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:2px}
+.brand-symbol{position:relative;width:26px;height:27px}
+.brand-symbol i{position:absolute;width:14px;height:14px;border:1px solid var(--cyan);border-radius:50%;left:0;top:1px}
+.brand-symbol i:nth-child(2){left:11px;border-color:var(--violet)}
+.brand-symbol i:nth-child(3){left:5.5px;top:11px;border-color:var(--orange)}
+.brand b{font-size:18px;letter-spacing:1px;font-weight:600}
+.brand em{font-style:normal;color:#6b838a}
+header .ctx{font-size:11px;letter-spacing:1px;color:var(--muted);margin-left:auto;margin-right:6px}
+header .ctx .dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--cyan);margin-right:8px;vertical-align:1px}
+.tag{font-size:10px;letter-spacing:1.5px;color:#7d949e;border:1px solid #2c4048;border-radius:99px;padding:4px 10px}
+
+main{min-height:0;display:grid;grid-template-rows:minmax(120px,auto) minmax(0,1fr) 178px}
+.heading{padding:20px 56px 10px;display:grid;grid-template-columns:120px minmax(0,1fr) 96px;gap:18px;align-items:start}
+.heading .idx{padding-top:5px;color:var(--orange);font-size:11px;letter-spacing:2px}
+.heading .idx::after{content:"";display:block;width:54px;height:1px;background:#85653f;margin-top:13px}
+.heading h1{margin:0 0 8px;font-size:clamp(23px,2.1vw,31px);font-weight:500;letter-spacing:.5px;line-height:1.28}
+.heading p{margin:0;font-size:clamp(12px,.95vw,14px);line-height:1.7;color:#a3b3b9;max-width:980px}
+.heading .counter{display:flex;align-items:baseline;gap:8px;justify-content:flex-end;font-family:Georgia,serif}
+.heading .counter b{font-size:29px;font-weight:400;color:#c5d0ce;line-height:1}
+.heading .counter span{font-size:13px;color:#8b9b9f}
+
+.stage{position:relative;min-height:0;margin:0 34px;border-top:1px solid #25353b77;border-bottom:1px solid #25353b77}
+.stage svg{width:100%;height:100%;display:block;overflow:hidden}
+svg text{font-family:var(--ui)}
+.t-small{fill:#9fb1b5;font-size:16px;letter-spacing:.3px}
+.t-muted{fill:#718992;font-size:14px;letter-spacing:.4px}
+.t-label{fill:#b7c7c9;font-size:17px;letter-spacing:.4px}
+.t-title{fill:#e0e7e4;font-size:20px;font-weight:500}
+.t-eyebrow{font-size:11px;letter-spacing:2.6px}
+.t-num{font-family:"SFMono-Regular",Consolas,monospace;font-variant-numeric:tabular-nums;font-size:15px;fill:#a4bbc2}
+.t-big{font-family:Georgia,serif;font-size:30px}
+.axis{stroke:#3d5a64;stroke-width:1;opacity:.6}
+.guide{stroke:#40565f;stroke-width:1;fill:none}
+
+.equation-rail{display:grid;grid-template-columns:120px minmax(0,1fr) 120px;gap:18px;align-items:center;margin:0 56px;padding:10px 0;min-height:0}
+.equation-rail .label{font-size:11px;letter-spacing:1px;color:#8aa2ab;line-height:1.7}
+.equation-body{position:relative;min-width:0;max-height:100%;overflow:auto;text-align:center;scrollbar-width:thin}
+.equation-body .fx{font-size:clamp(17px,1.6vw,23px);line-height:1.6;color:#e8dfd2}
+.equation-body .fx+.fx{margin-top:6px}
+.equation-body .note{font-size:11px;color:#7f969f;margin-top:8px;line-height:1.6}
+.equation-rail .badge{justify-self:end;font-size:10px;letter-spacing:1px;color:#6f888f;border:1px solid #2c4048;border-radius:99px;padding:4px 9px}
+
+footer{border-top:1px solid var(--line);padding:0 56px}
+.transport-top{display:flex;align-items:center;gap:22px;height:44px}
+.hint{font-size:11px;color:#a2b2b8}
+.hint kbd{font:12px inherit;color:#d1d9d5}
+.status{font-size:11px;color:#8aa2ab;letter-spacing:.8px;margin-left:auto}
+.tools{display:flex;align-items:center;gap:18px}
+.tools button{font:inherit;font-size:12px;color:#a3b6bd;background:none;border:0;padding:6px 0;cursor:pointer}
+.tools button:hover{color:var(--orange)}
+#play{font-size:13px;color:#b8c7c5;font-weight:500}
+#play span{color:var(--orange);margin-left:6px}
+
+.timeline{position:relative;height:52px}
+.timeline .track{position:absolute;top:7px;left:0;right:0;height:1px;background:#354850}
+.timeline .fill{position:absolute;top:7px;left:0;height:1px;background:var(--orange)}
+.timeline input{position:absolute;top:1px;left:0;width:100%;height:13px;margin:0;padding:0;border:0;appearance:none;background:transparent;cursor:pointer;z-index:2}
+.timeline input::-webkit-slider-runnable-track{height:1px;background:transparent}
+.timeline input::-webkit-slider-thumb{appearance:none;width:8px;height:8px;border:0;border-radius:50%;background:var(--orange);margin-top:-4px}
+.timeline input::-moz-range-track{height:1px;background:transparent}
+.timeline input::-moz-range-thumb{width:8px;height:8px;border:0;border-radius:50%;background:var(--orange)}
+.stops{position:absolute;top:19px;left:0;right:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+.stops button{position:relative;display:flex;align-items:center;justify-content:center;gap:7px;padding:4px 0;background:none;border:0;font:inherit;font-size:11px;color:#7f97a1;cursor:pointer;letter-spacing:.2px}
+.stops button::before{content:"";width:3px;height:3px;border-radius:50%;background:#516a74}
+.stops button[aria-current=true]{color:#e1c29d}
+.stops button[aria-current=true]::before{background:var(--orange)}
+.stops button:hover{color:#e8c59b}
+.stops .n{font-family:Georgia,serif;opacity:.78}
+
+@media (max-height:820px){
+  .app{grid-template-rows:56px minmax(0,1fr) 94px}
+  main{grid-template-rows:minmax(104px,auto) minmax(0,1fr) 164px}
+  .heading{padding-top:14px}
+  .heading h1{font-size:26px}
+  .equation-body .fx{font-size:19px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <span class="brand-symbol" aria-hidden="true"><i></i><i></i><i></i></span>
+      <b>SIM</b><span>／</span><span style="color:#8aa2ab">ALPHA STUDY</span>
+    </div>
+    <div class="ctx"><span class="dot"></span>共同复比例的五次变形</div>
+    <span class="tag">独立演示 · 合成数据</span>
+  </header>
+
+  <main>
+    <section class="heading">
+      <div class="idx" id="chapter">05 / 一个待求量</div>
+      <div>
+        <h1 id="title">两处记录，差的是同一个数。</h1>
+        <p id="copy">同一份样品信息被记在 q 与 q+k̂ 两个地址。先把这件事固定下来：两路之间的差别，是一个不随位置变化的复数。</p>
+      </div>
+      <div class="counter"><b id="num">01</b><span>/ 05</span></div>
+    </section>
+
+    <div class="stage">
+      <svg id="stage" viewBox="0 0 1440 560" role="img" aria-label="共同复比例的五幕讲解演示">
+        <defs>
+          <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+            <circle cx="1" cy="1" r=".7" fill="#76878b" opacity=".14"/>
+          </pattern>
+          <radialGradient id="glow"><stop stop-color="#16323a" stop-opacity=".38"/><stop offset="1" stop-color="#091115" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect x="-700" y="-500" width="2840" height="1560" fill="url(#grid)"/>
+        <ellipse cx="820" cy="250" rx="700" ry="330" fill="url(#glow)"/>
+        <g id="s25"></g>
+        <g id="s26"></g>
+        <g id="s27"></g>
+        <g id="s28"></g>
+        <g id="s29"></g>
+      </svg>
+    </div>
+
+    <section class="equation-rail">
+      <span class="label" id="domain">频域 → 空域</span>
+      <div class="equation-body" id="equation"></div>
+      <span class="badge" id="stage-tag">幕 25 / 05</span>
+    </section>
+  </main>
+
+  <footer>
+    <div class="transport-top">
+      <span class="hint"><kbd>←</kbd> 上一步　<kbd>→</kbd> 下一步　<kbd>空格</kbd> 播放</span>
+      <span class="status" id="status">停在第 1 幕</span>
+      <div class="tools">
+        <button id="restart" type="button">↺ 重来</button>
+        <button id="prev" type="button">← 上一步</button>
+        <button id="play" type="button">▶ 播放<span>→</span></button>
+        <button id="next" type="button">下一步 →</button>
+      </div>
+    </div>
+    <div class="timeline">
+      <div class="track"></div>
+      <div class="fill" id="fill"></div>
+      <input id="progress" type="range" min="0" max="4" step="0.001" value="0" aria-label="五幕进度">
+      <div class="stops" id="stops"></div>
+    </div>
+  </footer>
+</div>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script>
+(function(){
+'use strict';
+const NS='http://www.w3.org/2000/svg', TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const ramp=(v,a,b)=>Math.max(0,Math.min(1,(v-a)/(b-a)));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const ease=t=>t<.5?2*t*t:1-Math.pow(-2*t+2,2)/2;
+
+/* ---------------- synthetic data: v = alpha * u exactly ---------------- */
+const N=64;
+let seed=20261019;
+const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+const uRe=new Float64Array(N*N), uIm=new Float64Array(N*N);
+const comps=[];
+for(let c=0;c<7;c++)comps.push({kx:Math.round((rnd()*2-1)*9),ky:Math.round((rnd()*2-1)*9),a:.30+rnd()*.85,p:rnd()*TAU});
+for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+  let re=0,im=0;
+  for(const c of comps){const t=TAU*(c.kx*x+c.ky*y)/N+c.p;re+=c.a*Math.cos(t);im+=c.a*Math.sin(t);}
+  const dx=(x-29)/23, dy=(y-35)/21, env=.22+.78*Math.exp(-(dx*dx+dy*dy));
+  uRe[y*N+x]=re*env; uIm[y*N+x]=im*env;
+}
+let umax=0;
+for(let i=0;i<N*N;i++)umax=Math.max(umax,Math.hypot(uRe[i],uIm[i]));
+for(let i=0;i<N*N;i++){uRe[i]/=umax;uIm[i]/=umax;}
+
+const M0=0.62, PHD=0.42;
+const AL={re:M0*Math.cos(PHD),im:M0*Math.sin(PHD)};
+const vRe=new Float64Array(N*N),vIm=new Float64Array(N*N),
+      zRe=new Float64Array(N*N),zIm=new Float64Array(N*N),en=new Float64Array(N*N);
+for(let i=0;i<N*N;i++){
+  vRe[i]=AL.re*uRe[i]-AL.im*uIm[i];
+  vIm[i]=AL.re*uIm[i]+AL.im*uRe[i];
+  zRe[i]=uRe[i]*vRe[i]+uIm[i]*vIm[i];
+  zIm[i]=uRe[i]*vIm[i]-uIm[i]*vRe[i];
+  en[i]=uRe[i]*uRe[i]+uIm[i]*uIm[i];
+}
+let zmax=0,emax=0,Cre=0,Cim=0,Ru=0;
+for(let i=0;i<N*N;i++){zmax=Math.max(zmax,Math.hypot(zRe[i],zIm[i]));emax=Math.max(emax,en[i]);Cre+=zRe[i];Cim+=zIm[i];Ru+=en[i];}
+const C={re:Cre,im:Cim}, Ahat={re:Cre/Ru,im:Cim/Ru};
+const MA=Math.hypot(Ahat.re,Ahat.im), PA=Math.atan2(Ahat.im,Ahat.re);
+const CC=Math.hypot(C.re,C.im);
+
+/* display colors: brightness = log modulus, hue = argument */
+function hsv(h,s,v){
+  h=((h%1)+1)%1;
+  const i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+  const m=[[v,t,p],[q,v,p],[p,v,t],[p,q,v],[t,p,v],[v,p,q]][i%6];
+  return [Math.round(m[0]*255),Math.round(m[1]*255),Math.round(m[2]*255)];
+}
+function fieldColor(re,im,scale,phase){
+  const mag=Math.hypot(re,im)/scale;
+  const L=Math.min(1,Math.log1p(1000*Math.max(0,mag))/Math.log1p(1000));
+  if(!phase)return hsv(.55,.05,.04+.9*L);
+  return hsv(Math.atan2(im,re)/TAU,.70,.05+.92*L);
+}
+function raster(fn){
+  const c=document.createElement('canvas');c.width=N;c.height=N;
+  const ctx=c.getContext('2d'), img=ctx.createImageData(N,N);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const rgb=fn(y*N+x), o=(y*N+x)*4;
+    img.data[o]=rgb[0];img.data[o+1]=rgb[1];img.data[o+2]=rgb[2];img.data[o+3]=255;
+  }
+  ctx.putImageData(img,0,0);return c.toDataURL();
+}
+const IMG={
+  u:raster(i=>fieldColor(uRe[i],uIm[i],1,true)),
+  v:raster(i=>fieldColor(vRe[i],vIm[i],M0,true)),
+  z:raster(i=>fieldColor(zRe[i],zIm[i],zmax,true)),
+  e:raster(i=>fieldColor(en[i],0,emax,false))
+};
+
+/* ---------------- samples used by the narration ---------------- */
+const mags=Array.from({length:N*N},(_,i)=>Math.hypot(uRe[i],uIm[i]));
+const i0=mags.indexOf(Math.max(...mags));
+let i1=-1,i2=-1,b1=1e9,b2=-1e9;
+for(let i=0;i<N*N;i++){
+  if(i===i0)continue;
+  const d=Math.hypot((i%N)-(i0%N),Math.floor(i/N)-Math.floor(i0/N));
+  if(d<20)continue;
+  const s1=Math.abs(mags[i]-0.42*mags[i0]);       // a clearly weaker sample
+  if(s1<b1){b1=s1;i1=i;}
+  const dp=1-Math.cos(Math.atan2(uIm[i],uRe[i])-Math.atan2(uIm[i0],uRe[i0]));
+  if(dp>b2){b2=dp;i2=i;}                           // 2 = opposite phase
+}
+const SAMPLES=[i0,i1<0?i0:i1,i2<0?i0:i2];
+
+/* ---------------- svg helpers ---------------- */
+function el(tag,attrs,parent,text){
+  const n=document.createElementNS(NS,tag);
+  if(attrs)for(const k in attrs)n.setAttribute(k,attrs[k]);
+  if(text!=null)n.textContent=text;
+  if(parent)parent.appendChild(n);
+  return n;
+}
+function txt(parent,x,y,str,cls,fill){
+  const n=el('text',{x,y,class:cls||'t-small'},parent,str);
+  if(fill)n.setAttribute('fill',fill);
+  return n;
+}
+function op(n,v){n.setAttribute('opacity',v.toFixed(3));n.style.display=v<=0.002?'none':'';}
+function arrowPath(cx,cy,x1,y1,head){
+  const a=Math.atan2(y1-cy,x1-cx), h=head==null?9:head;
+  const bx=x1-h*Math.cos(a-.42), by=y1-h*Math.sin(a-.42);
+  const cxx=x1-h*Math.cos(a+.42), cyy=y1-h*Math.sin(a+.42);
+  return `M ${cx} ${cy} L ${x1} ${y1} M ${bx} ${by} L ${x1} ${y1} L ${cxx} ${cyy}`;
+}
+function arcPath(cx,cy,r,a0,a1){
+  const p0=[cx+r*Math.cos(a0),cy-r*Math.sin(a0)],p1=[cx+r*Math.cos(a1),cy-r*Math.sin(a1)];
+  const large=Math.abs(a1-a0)>Math.PI?1:0, sweep=a1>a0?0:1;
+  return `M ${p0[0]} ${p0[1]} A ${r} ${r} 0 ${large} ${sweep} ${p1[0]} ${p1[1]}`;
+}
+function fmt(v,d){return (Math.abs(v)<1e-12?0:v).toFixed(d==null?3:d);}
+function cx2(z){return `${fmt(z.re)} ${z.im<0?'−':'+'} ${fmt(Math.abs(z.im))}i`;}
+
+/* ---------------- scene builders ---------------- */
+const S=[];
+let root=$('stage');
+
+/* ===== 25 ===== */
+(function(){
+  const g=el('g',{'data-scene':25},root);
+  const P={u:[264,238,200],v:[512,238,200]};
+  function panel(cx,cy,size,href,title,sub,color){
+    const grp=el('g',{},g);
+    el('rect',{x:cx-size/2-8,y:cy-size/2-8,width:size+16,height:size+16,rx:5,fill:'#0b171d',stroke:color,'stroke-opacity':.45},grp);
+    el('image',{x:cx-size/2,y:cy-size/2,width:size,height:size,href,style:'image-rendering:pixelated'},grp);
+    txt(grp,cx,cy-size/2-24,title,'t-label',color);
+    txt(grp,cx,cy+size/2+28,sub,'t-muted');
+    return grp;
+  }
+  const pu=panel(...P.u,IMG.u,'u(r) · 参考场','复数 · 亮度=模长，色相=相角','#7ad5cd');
+  const pv=panel(...P.v,IMG.v,'v k̂(r) · 旁带场','同一样品，另一次记录','#b7a5eb');
+  const cu=el('rect',{width:P.u[2]/N,height:P.u[2]/N,fill:'none',stroke:'#fff','stroke-width':1.6},pu);
+  const cv=el('rect',{width:P.v[2]/N,height:P.v[2]/N,fill:'none',stroke:'#fff','stroke-width':1.6},pv);
+  const ru=txt(g,P.u[0],P.u[1]+170,'','t-num');
+  const rv=txt(g,P.v[0],P.v[1]+170,'','t-num');
+
+  const px=968,py=232,pr=138;
+  el('circle',{cx:px,cy:py,r:pr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:px-pr-18,y1:py,x2:px+pr+18,y2:py,class:'axis'},g);
+  el('line',{x1:px,y1:py-pr-18,x2:px,y2:py+pr+18,class:'axis'},g);
+  txt(g,px+pr+24,py+5,'Re','t-muted'); txt(g,px+8,py-pr-22,'Im','t-muted');
+  const aU=el('path',{fill:'none',stroke:'#7ad5cd','stroke-width':2.6,'stroke-linecap':'round'},g);
+  const aV=el('path',{fill:'none',stroke:'#b7a5eb','stroke-width':2.6,'stroke-linecap':'round'},g);
+  const arc=el('path',{fill:'none',stroke:'#efb879','stroke-width':1.8},g);
+  const arcHead=el('path',{fill:'none',stroke:'#efb879','stroke-width':1.8},g);
+  const radial=el('line',{stroke:'#efb879','stroke-width':1,'stroke-dasharray':'4 4'},g);
+  const lU=txt(g,0,0,'u','t-muted','#7ad5cd');
+  const lV=txt(g,0,0,'v','t-muted','#b7a5eb');
+  const lM=txt(g,0,0,'× m̂','t-small','#efb879');
+  const lA=txt(g,0,0,'∠ φ̂Δ','t-small','#efb879');
+  const concl=txt(g,720,492,'同一根变换弧：换三个位置，伸缩与转角不变','t-muted');
+
+  const scale=118;
+  function draw(p){
+    const sel=p<.5?0:p<.786?1:2;
+    const idx=SAMPLES[sel];
+    const x=idx%N,y=Math.floor(idx/N);
+    const step=P.u[2]/N;
+    cu.setAttribute('x',P.u[0]-P.u[2]/2+x*step);cu.setAttribute('y',P.u[1]-P.u[2]/2+y*step);
+    cv.setAttribute('x',P.v[0]-P.v[2]/2+x*step);cv.setAttribute('y',P.v[1]-P.v[2]/2+y*step);
+    ru.textContent='u = '+cx2({re:uRe[idx],im:uIm[idx]});
+    rv.textContent='v = '+cx2({re:vRe[idx],im:vIm[idx]});
+    const uz={re:uRe[idx]*scale,im:uIm[idx]*scale}, vz={re:vRe[idx]*scale,im:vIm[idx]*scale};
+    aU.setAttribute('d',arrowPath(px,py,px+uz.re,py-uz.im));
+    aV.setAttribute('d',arrowPath(px,py,px+vz.re,py-vz.im));
+    const a0=Math.atan2(uIm[idx],uRe[idx]), a1=a0+PA;
+    const rr=Math.hypot(uz.re,uz.im)*0.62;
+    op(arc,ramp(p,.22,.34));
+    arc.setAttribute('d',arcPath(px,py,rr,a0,a1));
+    const ex=px+rr*Math.cos(a1), ey=py-rr*Math.sin(a1), ta=a1+Math.PI/2;
+    arcHead.setAttribute('d',arrowPath(px+rr*Math.cos(a1-.06),py-rr*Math.sin(a1-.06),ex,ey,7));
+    op(arcHead,ramp(p,.3,.4));
+    op(radial,ramp(p,.26,.36));
+    radial.setAttribute('x1',px+rr*Math.cos(a1));radial.setAttribute('y1',py-rr*Math.sin(a1));
+    radial.setAttribute('x2',px+Math.hypot(vz.re,vz.im)*Math.cos(a1));radial.setAttribute('y2',py-Math.hypot(vz.re,vz.im)*Math.sin(a1));
+    const am=(a0+a1)/2;
+    lA.setAttribute('x',px+(rr+22)*Math.cos(am));lA.setAttribute('y',py-(rr+22)*Math.sin(am)+5);
+    op(lA,ramp(p,.32,.44));
+    lM.setAttribute('x',px+Math.hypot(vz.re,vz.im)*Math.cos(a1)+6);
+    lM.setAttribute('y',py-Math.hypot(vz.re,vz.im)*Math.sin(a1)-8);
+    op(lM,ramp(p,.32,.44));
+    lU.setAttribute('x',px+uz.re+8);lU.setAttribute('y',py-uz.im-6);op(lU,ramp(p,.12,.2));
+    lV.setAttribute('x',px+vz.re+8);lV.setAttribute('y',py-vz.im-6);op(lV,ramp(p,.16,.24));
+    op(concl,ramp(p,.80,.92));
+  }
+  S.push({g,draw,dur:14000,id:25,
+    chapter:'05 / 一个待求量',
+    title:'两处记录，差的是同一个数。',
+    copy:'同一份样品信息被记在 q 与 q+k̂ 两个地址。先把这件事固定下来：两路之间的差别，是一个不随位置变化的复数。',
+    domain:'空域 · 同一变换',
+    formulas:[
+      {t0:0,t1:.5,tex:String.raw`v_{\hat{\mathbf k}}(\mathbf r)=\alpha\,u(\mathbf r)`,note:'两根箭头共用线性标尺；同一原点，同一次记录。'},
+      {t0:.5,t1:1,tex:String.raw`v_{\hat{\mathbf k}}(\mathbf r)=\alpha\,u(\mathbf r),\qquad \alpha=m\,e^{i\phi_\Delta}`,note:'换位置只换两端箭头，弧的转角与伸缩刻度不动——这正是 α 与 r 无关的意思。'}
+    ]});
+})();
+
+/* ===== 26 ===== */
+(function(){
+  const g=el('g',{'data-scene':26},root);
+  const Z=[238,222,190],E=[478,222,190];
+  function panel(cx,cy,size,href,title,sub,color){
+    const grp=el('g',{},g);
+    el('rect',{x:cx-size/2-8,y:cy-size/2-8,width:size+16,height:size+16,rx:5,fill:'#0b171d',stroke:color,'stroke-opacity':.45},grp);
+    el('image',{x:cx-size/2,y:cy-size/2,width:size,height:size,href,style:'image-rendering:pixelated'},grp);
+    txt(grp,cx,cy-size/2-24,title,'t-label',color);
+    txt(grp,cx,cy+size/2+26,sub,'t-muted');
+    return grp;
+  }
+  const pz=panel(...Z,IMG.z,'z(r) = u*·v k̂','复数 · 亮度=模长，色相=相角','#efb879');
+  const pe=panel(...E,IMG.e,'e(r) = |u(r)|²','实数 · 只有亮度，没有相角','#7ad5cd');
+  const cz=el('rect',{width:Z[2]/N,height:Z[2]/N,fill:'none',stroke:'#fff','stroke-width':1.6},pz);
+  const ce=el('rect',{width:E[2]/N,height:E[2]/N,fill:'none',stroke:'#fff','stroke-width':1.6},pe);
+
+  const px=812,py=210,pr=92;
+  el('circle',{cx:px,cy:py,r:pr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:px-pr-14,y1:py,x2:px+pr+14,y2:py,class:'axis'},g);
+  el('line',{x1:px,y1:py-pr-14,x2:px,y2:py+pr+14,class:'axis'},g);
+  txt(g,px,py-pr-24,'C 的累计','t-muted');
+  const cArrow=el('path',{fill:'none',stroke:'#efb879','stroke-width':2.4},g);
+
+  const bx=1000,by=210,bw=36,bh=170;
+  el('rect',{x:bx,y:by-bh/2,width:bw,height:bh,fill:'none',stroke:'#36525d'},g);
+  const eFill=el('rect',{x:bx+2,width:bw-4,y:by+bh/2-2,height:0,fill:'#7ad5cd','fill-opacity':.65},g);
+  txt(g,bx+bw/2,by-bh/2-24,'Rᵤ','t-label','#7ad5cd');
+  txt(g,bx+bw/2,by+bh/2+26,'参考场能量','t-muted');
+
+  const qx=1236,qy=210,qr=96;
+  el('circle',{cx:qx,cy:qy,r:qr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:qx-qr-14,y1:qy,x2:qx+qr+14,y2:qy,class:'axis'},g);
+  el('line',{x1:qx,y1:qy-qr-14,x2:qx,y2:qy+qr+14,class:'axis'},g);
+  txt(g,qx,qy-qr-24,'C / Rᵤ 几乎不动','t-muted');
+  const rArrow=el('path',{fill:'none',stroke:'#b7a5eb','stroke-width':2.6},g);
+
+  const countTxt=txt(g,600,384,'','t-num');
+  const ratioTxt=txt(g,1236,340,'','t-num','#b7a5eb');
+
+  const algebra=el('g',{},g);
+  const tA=txt(algebra,720,466,'','t-title');
+  tA.setAttribute('text-anchor','middle');tA.setAttribute('font-family','Georgia, serif');
+  tA.textContent='C  =  Σ z  =  Σ α·e  =  α Σ e';
+  const names=txt(algebra,720,504,'','t-muted');names.setAttribute('text-anchor','middle');
+
+  const chips=SAMPLES.map(()=>{
+    const grp=el('g',{},g);
+    el('rect',{x:-17,y:-14,width:34,height:28,rx:5,fill:'#1b2b26',stroke:'#efb879'},grp);
+    txt(grp,0,6,'α','t-small','#efb879').setAttribute('text-anchor','middle');
+    return grp;
+  });
+  const merged=el('g',{},g);
+  el('rect',{x:-19,y:-16,width:38,height:32,rx:5,fill:'#1b2b26',stroke:'#efb879'},merged);
+  const mergedTxt=txt(merged,0,7,'α','t-small','#efb879');
+  mergedTxt.setAttribute('text-anchor','middle');
+
+  const scale=125;
+  function draw(p){
+    const sweep=ramp(p,.50,.84);
+    const count=Math.max(0,Math.floor(sweep*(N*N-1)));
+    const idx=count;
+    const x=idx%N,y=Math.floor(idx/N);
+    cz.setAttribute('x',Z[0]-Z[2]/2+x*(Z[2]/N));cz.setAttribute('y',Z[1]-Z[2]/2+y*(Z[2]/N));
+    ce.setAttribute('x',E[0]-E[2]/2+x*(E[2]/N));ce.setAttribute('y',E[1]-E[2]/2+y*(E[2]/N));
+    op(cz,sweep>0?1:0);op(ce,sweep>0?1:0);
+
+    let cre=0,cim=0,ere=0;
+    for(let i=0;i<=count;i++){cre+=zRe[i];cim+=zIm[i];ere+=en[i];}
+    cArrow.setAttribute('d',arrowPath(px,py,px+cre/CC*pr*0.94,py-cim/CC*pr*0.94));
+    eFill.setAttribute('height',Math.max(0,ere/Ru*(bh-4)));
+    eFill.setAttribute('y',by+bh/2-2-Math.max(0,ere/Ru*(bh-4)));
+    rArrow.setAttribute('d',arrowPath(qx,qy,qx+Math.cos(PA)*MA*qr*0.9,qy-Math.sin(PA)*MA*qr*0.9));
+    countTxt.textContent=`已累计 ${count} / ${N*N} 个空域位置`;
+    ratioTxt.textContent=`C / Rᵤ = ${fmt(MA)} ∠ ${fmt(PA)}`;
+
+    // three alpha chips lift out of the field, merge, then slide to the front of the sum
+    const lift=ramp(p,.26,.44), land=ramp(p,.44,.60);
+    chips.forEach((chip,k)=>{
+      const i=SAMPLES[k], sx=Z[0]-Z[2]/2+(i%N)*(Z[2]/N), sy=Z[1]-Z[2]/2+Math.floor(i/N)*(Z[2]/N);
+      const mx=600+ k*60, my=330;
+      const X=lerp(sx, mx, lift), Y=lerp(sy, my, lift);
+      chip.setAttribute('transform',`translate(${X} ${Y}) scale(${1-0.35*lift})`);
+      op(chip,lift);
+    });
+    const mX=lerp(660,458,land), mY=lerp(330,364,land), mS=lerp(.65,1,land);
+    merged.setAttribute('transform',`translate(${mX} ${mY}) scale(${mS})`);
+    op(merged,ramp(p,.42,.52));
+    op(tA,ramp(p,.30,.44));
+    names.textContent=ratioTxt.textContent?`C ≈ α Rᵤ 是恒等式，不是近似 · 本页 α 与 r 无关`:'';
+    op(names,ramp(p,.62,.74));
+  }
+  S.push({g,draw,dur:16000,id:26,
+    chapter:'06 / 提出求和号',
+    title:'既然每处都是同一个 α，就把它提出求和号。',
+    copy:'把上一幕的结论代进每个位置的贡献：z(r) = u*(αu) = α|u|²。因子对所有位置都一样，所以可以从 Σ 里整体提到前面。',
+    domain:'空域 · 线性叠加',
+    formulas:[
+      {t0:0,t1:.5,tex:String.raw`z(\mathbf r)=u^*v_{\hat{\mathbf k}}=\alpha\,|u(\mathbf r)|^2=\alpha\,e(\mathbf r)`,note:'e 是实数、非负，所以只有亮度、没有相角；z 仍是复数。'},
+      {t0:.5,t1:1,tex:String.raw`C=\sum_{\mathbf r}z(\mathbf r)=\alpha\sum_{\mathbf r}e(\mathbf r)=\alpha R_u`,note:'先有含义，后起名字：C 与 Rᵤ 到这里才被定义。'}
+    ]});
+})();
+
+/* ===== 27 ===== */
+(function(){
+  const g=el('g',{'data-scene':27},root);
+  const X0=140,X1=660,W=X1-X0;
+  function bar(y,h,color,label,val,frac,track){
+    const grp=el('g',{},g);
+    if(track)el('rect',{x:X0,y:y-h/2,width:W,height:h,rx:h/2,fill:'#16242b'},grp);
+    const r=el('rect',{x:X0,y:y-h/2,width:W*frac,height:h,rx:h/2,fill:color,'fill-opacity':.75},grp);
+    const t=txt(grp,X0-14,y+6,label,'t-label',color);t.setAttribute('text-anchor','end');
+    const v=txt(grp,X0+W*frac+14,y+6,val,'t-num',color);
+    return {grp,r,v};
+  }
+  const bC=bar(150,26,'#efb879','|C|','',0);
+  const bR=bar(212,26,'#7ad5cd','Rᵤ','',0);
+  const bA=bar(340,30,'#b7a5eb','|α̂| = m̂','',0,true);
+  const oneGrp=el('g',{},g);
+  el('line',{x1:X0+W,y1:340-24,x2:X0+W,y2:340+24,stroke:'#6f8f98','stroke-dasharray':'4 4'},oneGrp);
+  txt(oneGrp,X0+W,340-32,'1','t-muted').setAttribute('text-anchor','middle');
+  const scaleNote=txt(g,X0,392,'同一长度标尺：|C| 与 Rᵤ 可直接比较，而 |α̂| 是两者之比','t-muted');
+  scaleNote.setAttribute('text-anchor','start');
+
+  const dx=690,dy=180;
+  el('circle',{cx:dx,cy:dy,r:26,fill:'#102128',stroke:'#efb879'},g);
+  txt(g,dx,dy+11,'÷','t-big','#efb879').setAttribute('text-anchor','middle');
+
+  const px=1050,py=250,pr=124;
+  el('circle',{cx:px,cy:py,r:pr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:px-pr-16,y1:py,x2:px+pr+16,y2:py,class:'axis'},g);
+  el('line',{x1:px,y1:py-pr-16,x2:px,y2:py+pr+16,class:'axis'},g);
+  const aC=el('path',{fill:'none',stroke:'#efb879','stroke-width':2.2,'stroke-dasharray':'5 4'},g);
+  const aRes=el('path',{fill:'none',stroke:'#b7a5eb','stroke-width':3},g);
+  const angArc=el('path',{fill:'none',stroke:'#7ad5cd','stroke-width':1.8},g);
+  const lC=txt(g,0,0,'C','t-small','#efb879');
+  const lRes=txt(g,0,0,'α̂','t-small','#b7a5eb');
+  const angLbl=txt(g,0,0,'arg α̂ = arg C − 0','t-muted');
+
+  const ax0=200,ax1=1240,ay=478;
+  el('line',{x1:ax0,y1:ay,x2:ax1,y2:ay,class:'axis'},g);
+  el('line',{x1:ax0,y1:ay-8,x2:ax0,y2:ay+8,stroke:'#5c7880'},g);
+  el('line',{x1:ax1,y1:ay-8,x2:ax1,y2:ay+8,stroke:'#5c7880'},g);
+  txt(g,ax0,ay+26,'0','t-muted');txt(g,ax1,ay+26,'2π','t-muted');
+  const phaseGroups=[0,1,2].map(j=>{
+    const grp=el('g',{},g);
+    const known=el('circle',{r:5,fill:'none',stroke:'#7ad5cd','stroke-width':1.5},grp);
+    const got=el('circle',{r:5,fill:'#efb879'},grp);
+    const link=el('line',{stroke:'#efb879','stroke-width':1,'stroke-dasharray':'3 3'},grp);
+    const lab=txt(grp,0,0,'','t-muted','#efb879');
+    return {grp,known,got,link,lab};
+  });
+  const phaseNote=txt(g,720,536,'','t-muted');phaseNote.setAttribute('text-anchor','middle');
+
+  const cLen=CC, rLen=Ru, aLen=MA;
+  function draw(p){
+    const f1=ramp(p,.10,.28), f2=ramp(p,.20,.36), f3=ramp(p,.46,.62);
+    bC.r.setAttribute('width',W*f1*(cLen/rLen));
+    bC.v.setAttribute('x',X0+W*f1*(cLen/rLen)+14);
+    bC.v.textContent=f1>.5?fmt(cLen):'';
+    op(bC.v,f1);
+    bR.r.setAttribute('width',W*f2);
+    bR.v.setAttribute('x',X0+W*f2+14);
+    bR.v.textContent=f2>.5?fmt(Ru):'';
+    op(bR.v,f2);
+    op(bA.grp,f3);
+    op(oneGrp,ramp(p,.46,.6));
+    op(scaleNote,ramp(p,.5,.62));
+    bA.r.setAttribute('width',W*MA*ramp(p,.52,.68));
+    bA.v.textContent=f3>.5?fmt(MA):'';
+    op(bA.v,ramp(p,.6,.7));
+    bA.v.setAttribute('x',X0+W*MA+14);
+
+    op(aC,ramp(p,.42,.55));
+    const ca=Math.atan2(C.im,C.re), rC=pr*0.92;
+    aC.setAttribute('d',arrowPath(px,py,px+rC*Math.cos(ca),py-rC*Math.sin(ca)));
+    op(aRes,ramp(p,.5,.66));
+    const rA=pr*0.92*MA;
+    aRes.setAttribute('d',arrowPath(px,py,px+rA*Math.cos(PA),py-rA*Math.sin(PA)));
+    op(angArc,ramp(p,.56,.72));
+    angArc.setAttribute('d',arcPath(px,py,pr*0.45,0,PA));
+    lC.setAttribute('x',px+rC*Math.cos(ca)+8);lC.setAttribute('y',py-rC*Math.sin(ca)-6);op(lC,ramp(p,.46,.56));
+    lRes.setAttribute('x',px+rA*Math.cos(PA)+9);lRes.setAttribute('y',py-rA*Math.sin(PA)-7);op(lRes,ramp(p,.54,.66));
+    angLbl.setAttribute('x',px);angLbl.setAttribute('y',py+pr+34);angLbl.setAttribute('text-anchor','middle');op(angLbl,ramp(p,.6,.72));
+
+    const gp=ramp(p,.72,.92);
+    op(phaseNote,gp);
+    phaseNote.textContent='同一个共同偏移，同时落在三帧各自的相位上';
+    phaseGroups.forEach((ph,j)=>{
+      const base=j*TAU/3, got=base+PHD;
+      const xk=lerp(ax0,ax1,base/TAU), xg=lerp(ax0,ax1,got/TAU);
+      ph.grp.setAttribute('transform','translate(0 0)');
+      ph.known.setAttribute('cx',xk);ph.known.setAttribute('cy',ay);
+      ph.got.setAttribute('cx',lerp(xk,xg,gp));ph.got.setAttribute('cy',lerp(ay-14,ay,gp));
+      ph.link.setAttribute('x1',xk);ph.link.setAttribute('y1',ay);
+      ph.link.setAttribute('x2',lerp(xk,xg,gp));ph.link.setAttribute('y2',lerp(ay-14,ay,gp));
+      ph.link.setAttribute('stroke-opacity',.5*gp);
+      ph.lab.setAttribute('x',lerp(xk,xg,gp));ph.lab.setAttribute('y',ay-16);
+      ph.lab.setAttribute('text-anchor','middle');
+      ph.lab.textContent=gp>.6?`φ̂${'₀₁₂'[j]}`:'';
+      op(ph.grp,gp);
+    });
+  }
+  S.push({g,draw,dur:14000,id:27,
+    chapter:'07 / 除出来',
+    title:'相除，就是模长相除、辐角相减。',
+    copy:'分母 Rᵤ 是实数，落在实轴上，所以角度原样保留。先除长度，再看角度，最后把同一个共同偏移加到三帧各自的已知相位上。',
+    domain:'复系数 · 参数读出',
+    formulas:[
+      {t0:0,t1:.46,tex:String.raw`\hat\alpha=\frac{C}{R_u},\qquad |\hat\alpha|=\frac{|C|}{R_u},\qquad \arg\hat\alpha=\arg C-\underbrace{\arg R_u}_{0}`,note:'Rᵤ 是实数，所以这一步不需要处理分母的转角。'},
+      {t0:.46,t1:1,tex:String.raw`\hat m=|\hat\alpha|,\qquad \hat\phi_\Delta=\arg\hat\alpha,\qquad \hat\phi_j=\phi'_j+\hat\phi_\Delta`,note:'一个复数读出两个实数；共同偏移同时作用在三帧上，已知的相对步进不变。'}
+    ]});
+})();
+
+/* ===== 28 ===== */
+(function(){
+  const g=el('g',{'data-scene':28},root);
+  const card=(x,y,label,val,color)=>{
+    const grp=el('g',{},g);
+    el('rect',{x:-150,y:-34,width:300,height:68,rx:6,fill:'#0c1b22',stroke:color},grp);
+    txt(grp,0,-6,label,'t-small',color).setAttribute('text-anchor','middle');
+    const v=txt(grp,0,22,val,'t-muted');v.setAttribute('text-anchor','middle');
+    return grp;
+  };
+  const cM=card(0,0,'m̂ · 长度','', '#efb879');
+  const cP=card(0,0,'φ̂Δ · 角度','', '#b7a5eb');
+  const px=372,py=310,pr=126;
+  el('circle',{cx:px,cy:py,r:pr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:px-pr-18,y1:py,x2:px+pr+18,y2:py,class:'axis'},g);
+  el('line',{x1:px,y1:py-pr-18,x2:px,y2:py+pr+18,class:'axis'},g);
+  txt(g,px,py+pr+32,'输入：临时旁带 Ã = αA','t-muted','#b7a5eb').setAttribute('text-anchor','middle');
+  const aIn=el('path',{fill:'none',stroke:'#b7a5eb','stroke-width':2.8},g);
+  const arc=el('path',{fill:'none',stroke:'#efb879','stroke-width':1.8,'stroke-dasharray':'5 4'},g);
+  const lM2=txt(g,0,0,'','t-small','#efb879');
+  const lA2=txt(g,0,0,'','t-small','#efb879');
+
+  const qx=1076,qy=310,qr=126;
+  el('circle',{cx:qx,cy:qy,r:qr,fill:'none',stroke:'#36525d'},g);
+  el('line',{x1:qx-qr-18,y1:qy,x2:qx+qr+18,y2:qy,class:'axis'},g);
+  el('line',{x1:qx,y1:qy-qr-18,x2:qx,y2:qy+qr+18,class:'axis'},g);
+  txt(g,qx,qy+qr+32,'输出：补偿后 A','t-muted','#efb879').setAttribute('text-anchor','middle');
+  const aOut=el('path',{fill:'none',stroke:'#efb879','stroke-width':2.8},g);
+
+  const big=txt(g,724,316,'÷','t-big','#efb879');big.setAttribute('text-anchor','middle');big.setAttribute('font-size','44');
+  const big2=txt(g,724,358,'α̂','t-label','#efb879');big2.setAttribute('text-anchor','middle');
+  const readout=txt(g,724,514,'','t-muted');readout.setAttribute('text-anchor','middle');
+
+  const A={re:AL.re,im:AL.im};
+  function draw(p){
+    const move=ease(ramp(p,.22,.46));
+    cM.setAttribute('transform',`translate(512 ${lerp(56,126,move)})`);
+    cP.setAttribute('transform',`translate(928 ${lerp(56,126,move)})`);
+    const t1=cM.lastChild, t2=cP.lastChild;
+    t1.textContent=`${fmt(M0)}`;
+    t2.textContent=`${fmt(PHD)} rad`;
+    op(cM,1);op(cP,1);
+    op(big,ramp(p,.36,.5));op(big2,ramp(p,.42,.56));
+
+    const g1=ramp(p,.40,.78);
+    const inScale=150;
+    const len=Math.hypot(A.re,A.im);
+    aIn.setAttribute('d',arrowPath(px,py,px+A.re*inScale,py-A.im*inScale));
+    const ang0=Math.atan2(A.im,A.re);
+    // the same arc, now reversed and with a reciprocal radial tick
+    arc.setAttribute('d',arcPath(px,py,len*inScale*0.66,ang0,ang0-PHD*g1));
+    op(arc,g1);
+    lM2.setAttribute('x',px+len*inScale*0.72*Math.cos(ang0)+8);
+    lM2.setAttribute('y',py-len*inScale*0.72*Math.sin(ang0)-8);
+    lM2.textContent='÷ m̂';
+    op(lM2,ramp(p,.44,.56));
+    const am=ang0-PHD*g1/2;
+    lA2.setAttribute('x',px+(len*inScale*0.66+24)*Math.cos(am));
+    lA2.setAttribute('y',py-(len*inScale*0.66+24)*Math.sin(am)+4);
+    lA2.textContent='−φ̂Δ';
+    op(lA2,ramp(p,.5,.62));
+
+    const g2=ramp(p,.55,.86);
+    const outLen=len/M0, outAng=ang0-PHD;
+    const rOut=lerp(len,outLen,g2)*inScale*0.72;
+    aOut.setAttribute('d',arrowPath(qx,qy,qx+rOut*Math.cos(lerp(ang0,outAng,g2)),qy-rOut*Math.sin(lerp(ang0,outAng,g2))));
+    readout.textContent=`长度 ×1/m̂ = ${fmt(1/M0)} · 角度 −${fmt(PHD)} rad · 波矢留到归位`;
+    op(readout,ramp(p,.78,.9));
+  }
+  S.push({g,draw,dur:12000,id:28,
+    chapter:'08 / 倒过来用',
+    title:'把 α̂ 倒过来：长度取倒数，角度取反。',
+    copy:'两张参数卡从上一幕的读数位置直接移下来，成为 ÷α̂ 的两个分量。同一根弧反向旋转，径向刻度从 ×m̂ 换成 ÷m̂。',
+    domain:'频域 · 补偿',
+    formulas:[
+      {t0:0,t1:1,tex:String.raw`\widetilde A_{+1}=\alpha A_{+1}\quad\Longrightarrow\quad\frac{\widetilde A_{+1}}{\hat\alpha}\approx A_{+1},\qquad \frac{1}{\hat\alpha}=\frac{1}{\hat m}e^{-i\hat\phi_\Delta}`,note:'波浪号仍是第 11 步那个临时旁带：它带着 α 的伸缩与转角。'}
+    ]});
+})();
+
+/* ===== 29 ===== */
+(function(){
+  const g=el('g',{'data-scene':29},root);
+  const cells=[0,1,2].map(j=>{
+    const x=386+j*316;
+    const grp=el('g',{},g);
+    el('rect',{x:x-118,y:150,width:236,height:74,rx:6,fill:'#0c1b22',stroke:'#b7a5eb','stroke-opacity':.55},grp);
+    const name=txt(grp,x,178,'','t-small','#b7a5eb');name.setAttribute('text-anchor','middle');
+    const val=txt(grp,x,206,'','t-num');val.setAttribute('text-anchor','middle');
+    const badge=el('g',{},grp);
+    el('rect',{x:-58,y:-15,width:116,height:30,rx:15,fill:'#1b2b26',stroke:'#efb879'},badge);
+    txt(badge,0,6,'× 1/α̂','t-small','#efb879').setAttribute('text-anchor','middle');
+    return {grp,name,val,badge,x};
+  });
+  const frames=[0,1,2].map(j=>{
+    const x=386+j*316;
+    const n=txt(g,x,300,'','t-label');n.setAttribute('text-anchor','middle');
+    return n;
+  });
+  const merged=el('g',{},g);
+  el('rect',{x:-64,y:-17,width:128,height:34,rx:17,fill:'#1b2b26',stroke:'#efb879'},merged);
+  txt(merged,0,7,'1/α̂','t-small','#efb879').setAttribute('text-anchor','middle');
+
+  const line1=txt(g,720,420,'','t-title');line1.setAttribute('text-anchor','middle');line1.setAttribute('font-family','Georgia, serif');
+  const line2=txt(g,720,462,'','t-muted');line2.setAttribute('text-anchor','middle');
+  const num=txt(g,720,512,'','t-num');num.setAttribute('text-anchor','middle');
+
+  const phiP=[0,TAU/3,2*TAU/3];
+  const uTil=phiP.map(p=>({re:(2/3)*Math.cos(-p),im:(2/3)*Math.sin(-p)}));
+  const uReal=uTil.map(w=>({
+    re:(w.re*Math.cos(-PHD)-w.im*Math.sin(-PHD))/M0,
+    im:(w.re*Math.sin(-PHD)+w.im*Math.cos(-PHD))/M0
+  }));
+  function draw(p){
+    cells.forEach((c,j)=>{
+      const t=ramp(p,.02+j*.06,.18+j*.06);
+      op(c.grp,t);
+      c.name.textContent=`u₊₁,${j}`;
+      c.val.textContent=cx2(uTil[j]);
+      const lift=ramp(p,.40,.62);
+      c.badge.setAttribute('transform',`translate(${c.x} ${lerp(232,150,lift)})`);
+      op(c.badge,ramp(p,.20+j*.05,.32+j*.05)*(1-ramp(p,.58,.66)));
+      frames[j].textContent='D'+'₀₁₂'[j];
+      op(frames[j],ramp(p,.05,.15));
+    });
+    const land=ease(ramp(p,.40,.62));
+    merged.setAttribute('transform',`translate(${lerp(720,720,land)} ${lerp(300,96,land)}) scale(${lerp(.5,1,land)})`);
+    op(merged,ramp(p,.36,.46));
+    op(line1,ramp(p,.52,.64));
+    line1.textContent='A₊₁ = Σ uⱼ Dⱼ = (1/α̂) Σ ũⱼ Dⱼ = Ã₊₁ / α̂';
+    op(line2,ramp(p,.62,.72));
+    line2.textContent='因子在三项里完全相同，所以可以先提到 Σ 外面——与第 26 幕是同一个动作';
+    op(num,ramp(p,.76,.86));
+    const w=uReal[1];
+    num.textContent=`u₊₁,₁ = ${fmt(Math.hypot(w.re,w.im))} ∠ ${fmt(Math.atan2(w.im,w.re))} rad  =  (${fmt(w.re)} ${w.im<0?'−':'+'} ${fmt(Math.abs(w.im))}i)`;
+  }
+  S.push({g,draw,dur:16000,id:29,
+    chapter:'09 / 分回三项',
+    title:'三项同乘，等于整体补偿。',
+    copy:'补偿因子对三帧都一样，所以乘进每个权重、或提到求和外面，结果相同。这一步与第 26 幕的提公因子是同一件事。',
+    domain:'频域 · 正式权重',
+    formulas:[
+      {t0:0,t1:.6,tex:String.raw`u_{+1,j}=\frac{1}{\hat\alpha}\,\widetilde u_{+1,j},\qquad j=0,1,2`,note:'三格同时乘同一个因子，不是只改中间那一格。'},
+      {t0:.6,t1:1,tex:String.raw`A_{+1}=\sum_j u_{+1,j}D_j=\frac{1}{\hat\alpha}\sum_j\widetilde u_{+1,j}D_j=\frac{\widetilde A_{+1}}{\hat\alpha}\approx A_{+1}`,note:'右端与第 28 幕的终点是同一个式子，闭环。'}
+    ]});
+})();
+
+/* ---------------- formula rail ---------------- */
+const rail=$('equation'), domainEl=$('domain');
+const formulaNodes=[];
+S.forEach((s,si)=>{
+  s.formulas.forEach(f=>{
+    const d=document.createElement('div');
+    d.className='fx';
+    try{katex.render(f.tex,d,{displayMode:true,throwOnError:false,strict:false});}
+    catch(e){d.textContent=f.tex;}
+    rail.appendChild(d);
+    const n=document.createElement('div');
+    n.className='note';n.textContent=f.note||'';
+    rail.appendChild(n);
+    formulaNodes.push({scene:si,f,d,n});
+  });
+});
+
+/* ---------------- player ---------------- */
+const MAXP=S.length;                       // 0..5 ; scene k occupies [k, k+1]
+const stopsEl=$('stops');
+const stopNames=['每处相同','提出求和','除出来','倒过来用','分回三项'];
+const prog=$('progress'), fill=$('fill'), status=$('status');
+prog.setAttribute('max',String(MAXP));
+
+let progress=0, playing=false, last=0, animTarget=null, animStart=0, animFrom=0;
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* At an exact integer we are resting on the END of the previous scene,
+   which is the stop the reader just watched. */
+function locate(p){
+  const near=Math.round(p);
+  if(near>0 && Math.abs(p-near)<1e-9)return {i:Math.min(S.length-1,near-1),local:1};
+  const i=Math.min(S.length-1,Math.max(0,Math.floor(p)));
+  return {i,local:Math.min(1,Math.max(0,p-i))};
+}
+S.forEach((s,i)=>{
+  const b=document.createElement('button');
+  b.type='button';
+  b.innerHTML=`<span class="n">${25+i}</span><span>${stopNames[i]}</span>`;
+  b.addEventListener('click',()=>goTo(i+1));
+  stopsEl.appendChild(b);
+});
+
+function render(){
+  const {i,local}=locate(progress);
+  S.forEach((s,k)=>{
+    const vis=k===i;
+    s.g.style.display=vis?'':'none';
+    if(vis)s.draw(reduced?1:local);
+  });
+  const s=S[i];
+  $('chapter').textContent=s.chapter;
+  $('title').textContent=s.title;
+  $('copy').textContent=s.copy;
+  $('num').textContent=String(25+i).padStart(2,'0');
+  domainEl.textContent=s.domain;
+  $('stage-tag').textContent=`幕 ${25+i} / 05`;
+  formulaNodes.forEach(o=>{
+    const on=o.scene===i && local>=o.f.t0-1e-9 && (local<o.f.t1+1e-9 || o.f.t1>=1-1e-9);
+    o.d.style.display=on?'':'none';
+    o.n.style.display=on&&o.f.note?'':'none';
+  });
+  prog.value=String(progress);
+  fill.style.width=`${(progress/MAXP)*100}%`;
+  status.textContent=local>=0.999?`停在第 ${i+1} 幕终点`
+    :local<0.001?`第 ${i+1} 幕起点`
+    :`第 ${i+1} 幕 · ${Math.round(local*100)}%`;
+  [...stopsEl.children].forEach((b,k)=>b.setAttribute('aria-current',k===i?'true':'false'));
+  $('play').innerHTML=playing?'Ⅱ 暂停<span></span>':'▶ 播放<span>→</span>';
+}
+
+function tick(t){
+  if(!last)last=t;
+  const dt=Math.min(80,t-last);last=t;
+  if(animTarget!=null){
+    const k=Math.min(1,(t-animStart)/520);
+    progress=lerp(animFrom,animTarget,ease(k));
+    if(k>=1){progress=animTarget;animTarget=null;}
+    render();
+  }else if(playing){
+    const {i,local}=locate(progress);
+    if(local>=0.999){
+      if(i<S.length-1)progress=i+1+1e-6;   // start the next scene
+      else playing=false;
+    }else{
+      let p=progress+dt/S[i].dur;
+      if(p>=i+1){p=i+1;playing=false;}
+      progress=p;
+    }
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+function goTo(target){
+  animTarget=Math.max(0,Math.min(MAXP,target));
+  animFrom=progress;animStart=performance.now();playing=false;
+}
+function stepNext(){
+  const {i,local}=locate(progress);
+  goTo(local>=0.999?i+2:i+1);
+}
+function stepPrev(){
+  const {i}=locate(progress);
+  goTo(i);
+}
+
+$('next').addEventListener('click',stepNext);
+$('prev').addEventListener('click',stepPrev);
+$('play').addEventListener('click',()=>{
+  if(!playing){
+    const {i,local}=locate(progress);
+    if(local>=0.999){
+      if(i<S.length-1)progress=i+1+1e-6;
+      else {progress=0;}
+    }
+  }
+  playing=!playing;animTarget=null;last=0;render();
+});
+$('restart').addEventListener('click',()=>{playing=false;progress=0;animTarget=null;render();});
+prog.addEventListener('input',()=>{playing=false;animTarget=null;progress=Number(prog.value);render();});
+addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'){e.preventDefault();stepNext();}
+  else if(e.key==='ArrowLeft'){e.preventDefault();stepPrev();}
+  else if(e.code==='Space'){e.preventDefault();$('play').click();}
+  else if(e.key==='Home'){goTo(0);}
+  else if(e.key==='End'){goTo(MAXP);}
+});
+
+render();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

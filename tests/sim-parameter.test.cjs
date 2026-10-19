@@ -454,8 +454,8 @@ test('standalone production renderer and controls run through all twenty-one sto
   const ratio = nodes.find(n => n.attrs['data-study-ratio'] !== undefined);
   player.seek(P.index('get-peak-read') + .9); const endpoint = ratio.attrs.d;
   player.seek(P.index('get-peak-read') + 1); assert.equal(ratio.attrs.d, endpoint);
-  player.seek(P.index('get-peak-sum') + .4); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
-  player.seek(P.index('get-peak-sum') + .7); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
+  player.seek(P.index('get-peak-sum') + .43); const formula = byId.get('pe-equation').children[0], renders = h.mathRenders;
+  player.seek(P.index('get-peak-sum') + .5); assert.equal(byId.get('pe-equation').children[0], formula); assert.equal(h.mathRenders, renders);
   player.seek(P.index('refill') + 1); byId.get('pe-replay').dispatch('click'); assert.equal(player.state().playing, true);
   player.pause(); player.seek(0);
   doc.dispatch('click', { target: byId.get('pe-stage'), clientX: 1100, button: 0 }); assert.equal(player.state().playing, true);

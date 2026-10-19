@@ -17,6 +17,54 @@
     productM:'m',productPhase:String.raw`e^{i\phi_\Delta}`,productZ:'z',coefficient:String.raw`\alpha`,
     magnitude:String.raw`|mz|=m|z|`,phase:String.raw`\arg(\alpha z)=\arg z+\phi_\Delta\pmod{2\pi}`,relation:alignedRelation
   };
+  // The retained stage formula and its accessible equation share these exact
+  // groups. Native MathML lays out the active groups as one mathematical row.
+  const inverseDefinitions = [
+    String.raw`u(\mathbf r)=\frac1{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i\mathbf q\cdot\mathbf r/N}`,
+    String.raw`v(\mathbf r)=\frac1{N^2}\sum_{\mathbf f}B_1(\mathbf f)e^{2\pi i\mathbf f\cdot\mathbf r/N}`
+  ];
+  const inverseTokens = {
+    lhs:String.raw`v(\mathbf r)`,equal:'=',approx:String.raw`\approx`,alpha:String.raw`\alpha`,
+    extraOutside:String.raw`e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`,
+    kernelDelta:String.raw`e^{i\delta(\mathbf r)}`,
+    norm:String.raw`\frac1{N^2}`,sumF:String.raw`\sum_{\mathbf f}`,sumQ:String.raw`\sum_{\mathbf q}`,
+    alphaInside:String.raw`\alpha`,bandF:String.raw`B_1(\mathbf f)`,
+    bandShifted:String.raw`B_1(\mathbf q+\widehat{\mathbf k})`,bandZero:String.raw`B_0(\mathbf q)`,
+    kernelF:String.raw`e^{2\pi i\mathbf f\cdot\mathbf r/N}`,
+    kernelCombined:String.raw`e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}`,
+    kernelReference:String.raw`e^{2\pi i\mathbf q\cdot\mathbf r/N}`,
+    kernelExtra:String.raw`e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`,
+    matchedU:String.raw`\underbrace{\frac1{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i\mathbf q\cdot\mathbf r/N}}_{u(\mathbf r)}`,
+    u:String.raw`u(\mathbf r)`
+  };
+  const inverseStages = [
+    {key:'definition',tokens:['lhs','equal','norm','sumF','bandF','kernelF']},
+    {key:'address',cue:'addressSubstitution',tokens:['lhs','equal','norm','sumQ','bandShifted','kernelCombined'],
+      fade:['sumF','sumQ','bandF','bandShifted','kernelF','kernelCombined']},
+    {key:'band',cue:'bandSubstitution',tokens:['lhs','approx','norm','sumQ','alphaInside','bandZero','kernelCombined'],
+      fade:['equal','approx','bandShifted','alphaInside','bandZero','kernelCombined']},
+    {key:'alpha',cue:'alphaOutside',tokens:['lhs','approx','alpha','norm','sumQ','bandZero','kernelCombined'],
+      fade:['alphaInside','alpha','norm','sumQ','bandZero','kernelCombined']},
+    {key:'split',cue:'kernelSplit',tokens:['lhs','approx','alpha','norm','sumQ','bandZero','kernelReference','kernelExtra'],
+      fade:['kernelCombined','kernelReference','kernelExtra']},
+    {key:'factor',cue:'factorOutside',tokens:['lhs','approx','alpha','extraOutside','norm','sumQ','bandZero','kernelReference'],
+      fade:['norm','sumQ','bandZero','kernelReference','kernelExtra','extraOutside']},
+    {key:'recognize',cue:'recognizeU',tokens:['lhs','approx','alpha','extraOutside','u'],fade:['norm','sumQ','bandZero','kernelReference','u']},
+    {key:'named',cue:'deltaReveal',tokens:['lhs','approx','alpha','kernelDelta','u'],fade:['extraOutside','kernelDelta','u']}
+  ];
+  const inverseRules = {
+    address:String.raw`\mathbf f=\mathbf q+\widehat{\mathbf k}`,
+    band:relation,
+    split:String.raw`e^{i(a+b)}=e^{ia}e^{ib}`,
+    factor:String.raw`\widehat{\mathbf k},\ \mathbf r\ \text{固定}\qquad\mathbf q\ \text{遍历频谱}`
+  };
+  // Retained subexpressions expand the address inside its original brackets
+  // and superscript, without replacing either complete surrounding factor.
+  const inverseAddressParts={bandPrefix:String.raw`B_1(`,bandClose:')',f:String.raw`\mathbf f`,q:String.raw`\mathbf q`,plusK:String.raw`+\widehat{\mathbf k}`,
+    baseE:'e',phasePrefix:String.raw`{}^{2\pi i}`,supF:String.raw`{}^{\mathbf f}`,supQ:String.raw`{}^{\mathbf q}`,
+    supPlus:String.raw`{}^{+\widehat{\mathbf k}}`,supOpen:String.raw`{}^{(}`,supClose:String.raw`{}^{)}`,phaseTail:String.raw`{}^{\cdot\mathbf r/N}`};
+  const inverseFormula = index => ({...formula(inverseStages[index].tokens.map(key=>part(key,inverseTokens[key]))),join:' '});
+  const inverseSeconds=60, invAt=seconds=>seconds/inverseSeconds;
   const prepareSeconds=21, at=seconds=>seconds/prepareSeconds;
   const prepareSteps = [
     {key:'locked',at:0,title:'位移已确定，两份公共信息还差什么？',
@@ -66,47 +114,61 @@
         colorPaint:[at(18),at(19)],colorExit:[at(19.5),at(20.3)]}
     },
     {
-      key:'finalInverse',duration:36000,label:'两路逆变换',action:'从两张图到原位公式，再推出额外转角',
-      title:'为什么换到空域？用逐点旋转处理已知频移。',
-      copy:'保留这两路工作频谱，分别逆变换为 u、v。接着把对应地址代进定义，看清频率位置差怎样变成复数转角。',
-      note:'只更换计算表示；对齐后，两域内积的相同归一化因子在共同复比例的比值中抵消。',
+      key:'finalInverse',duration:inverseSeconds*1000,label:'两路逆变换',action:'一条主等式解释频率地址差与额外转角',
+      title:'频率地址的差，怎样变成额外转角？',
+      copy:'同一份信息记在 q 与 q+k̂ 两个地址。分别逆变换后，沿着一条等式看清这个地址差怎样进入空域。',
+      note:'先按整数 DFT 波矢推导；实际比例保留近似号。α 的数值稍后由全场数据估计。',
       footer:'图 → u、v → 换地址 → 拆指数 → 额外转角',domain:'频域 → 空域',layout:'pair',
       formula:formula([part('relation',relation)]),
       steps:[
         {key:'purpose',at:0},
-        {key:'transform',at:3/36,title:'两张频谱，各自合成一个空域复数场。',
-          copy:'原图分别变成 u、v；随后把逆变换写成求和式，保留在各自的位置。',
+        {key:'transform',at:invAt(3),
+          copy:'分别对整张频谱做逆变换，得到 u、v。两条变换公式向左归位：u 用青色，v 用紫色。',
           note:'每个空域位置由整张频谱合成；逆变换不会把一个频点直接变成一个像素。',
           formula:formula([part('inverse',String.raw`u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\}`)])},
-        {key:'definitions',at:7/36,title:'保留 u、v 的定义，接下来只展开 v。',
-          copy:'上方两条定义始终保留。左边用 q 求和，右边暂时用 f；它们都是遍历整张频谱的地址。',
-          formula:formula([part('inverse',String.raw`u=\mathcal F_N^{-1}\{B_0\},\qquad v=\mathcal F_N^{-1}\{B_1\}`)])},
-        {key:'substituteAddress',at:10/36,title:'令 f=q+k̂：频谱和指数，都换成同一个地址。',
-          copy:'从右上方的 v 定义展开一行。把 f 改写为 q+k̂，B₁ 的读取地址与指数中的频率必须一起替换。',
+        {key:'definitions',at:invAt(8),
+          copy:'左侧保留青色 u、紫色 v 的定义。把 v 的公式移到中央放大，接下来只展开这一条。',
+          formula:inverseFormula(0)},
+        {key:'substituteAddress',at:invAt(12),
+          copy:'下方给出 f=q+k̂。先框住 f，再让它在原括号与指数中展开为 q+k̂；周围符号同步让位，求和指标改为 q。',
           note:'先按整数 DFT 波矢重编号，地址按 N 周期取模；小数频移的有限傅里叶延拓见原理区。',
-          formula:formula([part('sum',String.raw`v(\mathbf r)=\frac1{N^2}\sum_{\mathbf q}B_1(\mathbf q+\widehat{\mathbf k})e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}`)])},
-        {key:'substituteBand',at:14/36,title:'再用同源关系，把 B₁(q+k̂) 换成 αB₀(q)。',
-          copy:'替换频谱值，不改刚才的读取地址。共同系数 α 与 q 无关，移到求和号外面；指数里仍然保留 q+k̂。',
+          formula:inverseFormula(1)},
+        {key:'substituteBand',at:invAt(19),
+          copy:'用上一幕的同源关系，替换频谱值这一块；指数里的 q+k̂ 保留。',
           note:'理想成对掩膜与正确波矢下为等式；实际估计和掩膜误差保留为近似关系。',
-          formula:formula([part('sum',String.raw`v(\mathbf r)\approx\frac\alpha{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}`)])},
-        {key:'splitKernel',at:18/36,title:'指数里的加法，变成两个旋转因子的乘法。',
-          copy:'同一个指数拆为两项：青色只含 q，橙色只含 k̂。频率地址多了 k̂，因此每项都多乘同一个橙色因子。',
-          formula:formula([part('split',String.raw`e^{2\pi i(\mathbf q+\widehat{\mathbf k})\cdot\mathbf r/N}=e^{2\pi i\mathbf q\cdot\mathbf r/N}e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}`)])},
-        {key:'factorOut',at:22/36,title:'固定 r 后，橙色因子与 q 无关，可以提出求和。',
-          copy:'橙色因子沿弧线移出求和。留下的青色部分与左上方 u 的定义逐项相同。',
-          formula:formula([part('factor',String.raw`v(\mathbf r)\approx\alpha e^{2\pi i\widehat{\mathbf k}\cdot\mathbf r/N}\underbrace{\frac1{N^2}\sum_{\mathbf q}B_0(\mathbf q)e^{2\pi i\mathbf q\cdot\mathbf r/N}}_{u(\mathbf r)}`)])},
-        {key:'recognizeU',at:26/36,title:'这整个青色求和，就是一直保留的 u(r)。',
-          copy:'把青色求和收成 u(r)，橙色因子仍留在式中。至此，额外相位的来源完整地保留在原公式里。',
-          formula:formula([part('extra',String.raw`v(\mathbf r)\approx\alpha e^{i\delta(\mathbf r)}u(\mathbf r)`),part('delta',String.raw`,\quad\delta(\mathbf r)=\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r`)],['delta'])},
-        {key:'extraAngle',at:29/36,title:'乘上这个单位复数，长度不变，多转 δ(r)。',
-          copy:'固定一个 r，让同一根示意箭头绕原点转过 δ。上方公式保持原位：橙色因子对应橙色圆弧；下一步才反向撤掉它。',
+          formula:inverseFormula(2)},
+        {key:'factorAlpha',at:invAt(24),
+          copy:'α 对所有求和项都一样，可以先提出去。接下来只看频率地址带来的额外因子。',
+          formula:inverseFormula(3)},
+        {key:'splitKernel',at:invAt(27),
+          copy:'指数里的点积拆成两项；再用“指数相加，因子相乘”，得到原频率因子和橙色额外因子。',
+          formula:inverseFormula(4)},
+        {key:'factorOut',at:invAt(34),
+          copy:'现在计算一个固定的 r，求和遍历的是 q。橙色因子没有 q，每一项都乘着它，所以可以整体提出。',
+          note:'与 q 无关，才可以提出对 q 的求和；这个因子仍然可以随空间位置 r 改变。',
+          formula:inverseFormula(5)},
+        {key:'recognizeU',at:invAt(40),
+          copy:'把剩余整块求和与左侧青色 u 的定义对照：逐项相同，因此这一整块可以写回 u(r)。',
+          formula:inverseFormula(6)},
+        {key:'nameAngle',at:invAt(45),
+          copy:'把橙色指数里的已知角度记为 δ(r)。它由锁定波矢和当前空间位置决定。',
+          formula:inverseFormula(7)},
+        {key:'extraAngle',at:invAt(49),
+          copy:'这个额外因子的模长是 1。保留原箭头，让同长副本绕原点多转 δ；中央等式保持原位。',
           note:'箭头是复乘几何示意，不是估计出的 α。转角由本组锁定波矢与显示坐标计算；相角按模 2π 比较，δ 与未知共同相位 φΔ 不同。',
-          formula:formula([part('extra',String.raw`v(\mathbf r)\approx\alpha e^{i\delta(\mathbf r)}u(\mathbf r)`),part('delta',String.raw`,\quad\delta(\mathbf r)=\frac{2\pi}{N}\widehat{\mathbf k}\cdot\mathbf r`)],['delta'])}
+          formula:inverseFormula(7)},
+        {key:'holdAngle',at:invAt(57),
+          copy:'频率地址相差 k̂，使这个位置的复数多转 δ(r)。下一步，用相反角度把它转回去。',
+          formula:inverseFormula(7)}
       ],
-      visibility:{enter:[0,.04]},cues:{inverse:[3.5/36,6.5/36],derivationEnter:[7/36,9/36],
-        derivationRow:[10/36,10.7/36],addressSubstitution:[11/36,13/36],bandSubstitution:[14.5/36,17/36],
-        kernelSplit:[18.5/36,21/36],factorOutside:[22.5/36,25/36],recognizeU:[26.5/36,28.5/36],
-        deltaReveal:[27.5/36,29/36],positivePlane:[29/36,30/36],positiveTurn:[30.5/36,34/36]}
+      visibility:{enter:[0,.025]},cues:{inverse:[invAt(3.5),invAt(4.7)],definitionReveal:[invAt(5),invAt(6.1)],derivationEnter:[invAt(6),invAt(9.5)],
+        derivationRow:[invAt(10),invAt(11.5)],addressWalk:[invAt(12.3),invAt(14.8)],
+        addressRule:[invAt(12),invAt(12.8)],addressFocus:[invAt(13),invAt(14)],
+        addressSubstitution:[invAt(15.5),invAt(18.2)],bandSubstitution:[invAt(19.6),invAt(22.5)],
+        alphaOutside:[invAt(24.2),invAt(26.7)],kernelSplit:[invAt(28),invAt(32.5)],
+        factorOutside:[invAt(35),invAt(39.2)],recognizeU:[invAt(40.8),invAt(44.3)],
+        deltaDefinition:[invAt(45.5),invAt(46.2)],deltaReveal:[invAt(46.6),invAt(48.7)],
+        positivePlane:[invAt(49.3),invAt(50)],positiveTurn:[invAt(51),invAt(55.5)]}
     },
     {
       key:'finalShift',duration:7000,label:'反向旋转',action:'撤掉已知额外转角',
@@ -237,6 +299,8 @@
       cues: {"readReady":[0,0],"readEnter":[0.03,0.13],"phaseRead":[0.1,0.4],"lengthRead":[0.4,0.7],"cards":[0.65,0.95]}
     }
   ];
+  const Tail = node ? require('./tail-story.js') : root.SIMParameterTail;
+  Tail.apply(definitions);
   const timeline = Clock.define(definitions);
   const entry = Clock.freeze({
   "id": "locked-spectrum",
@@ -267,7 +331,7 @@
     unit:'web/parameter-demo/scenes/get-peak/storyboard.js',
     label:b.label, title:b.title, copy:b.copy, note:b.note, equation:formulas[b.key], duration:b.duration,
     inputs:[i ? ids[i-1] : entry.id], outputs:[ids[i+1] || scene.exit],
-    beats:[{key:b.key,action:b.action,start:0,end:1}]
+    beats:[{key:b.key,action:b.action,start:0,end:1}], teachingBeats:b.tailShots
   })));
   function stopProgress(stop, progress) {
     const b=timeline.beats.find(b=>b.key===stop.getPeakBeat);
@@ -275,6 +339,8 @@
     // assigns exact internal boundaries to the next beat.
     return timeline.progressFor(b.key, Math.min(progress, b.index===timeline.beats.length-1 ? 1 : 1-1e-9));
   }
-  const api = { timeline, scene, stops, stopProgress, entry, formulas: Clock.freeze(formulas),alphaTokens:Clock.freeze(alphaTokens) };
+  const api = { timeline, scene, stops, stopProgress, entry, formulas: Clock.freeze(formulas),alphaTokens:Clock.freeze(alphaTokens),
+    inverseDefinitions:Clock.freeze(inverseDefinitions),inverseTokens:Clock.freeze(inverseTokens),
+    inverseStages:Clock.freeze(inverseStages),inverseRules:Clock.freeze(inverseRules),inverseAddressParts:Clock.freeze(inverseAddressParts) };
   if (node) module.exports = api; else root.SIMGetPeak = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

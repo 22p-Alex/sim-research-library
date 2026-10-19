@@ -1,4 +1,4 @@
-:root{--numeric-font:"Avenir Next","SF Pro Text","PingFang SC","Helvetica Neue",sans-serif}
+:root{--numeric-font:"Avenir Next","SF Pro Text","Segoe UI Variable Text","Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
 .copy-handoff{position:relative}
 .copy-handoff-previous{position:absolute;inset:0;pointer-events:none}
 #equation-note-slot .copy-handoff-previous p{font-size:11px;color:#7f969f;margin:9px 0 0;line-height:1.6}
@@ -100,3 +100,28 @@
 [data-get-peak-address-rule] .pe-peak-math{font-size:22px}
 [data-get-peak-delta-definition] .pe-peak-math{font-size:28px}
 [data-get-peak-unit-rotation] .pe-peak-math{font-size:20px}
+
+/* Inverse-transform lesson: one baseline, compact references, moving math
+   actors. Progress and transforms are owned by the reversible scene clock. */
+[data-inverse-style-scope="formula-teaching"]{
+  --sim-inverse-main-size:36px;
+  --sim-inverse-reference-size:21px;
+  --sim-inverse-rule-size:23px;
+  --sim-inverse-angle-size:28px;
+  --sim-inverse-unit-size:23px;
+  --sim-inverse-ink:var(--ink,#edf0e9);
+  --sim-inverse-accent:var(--orange,#efb879);
+  --sim-inverse-reference:var(--cyan,#7ad5cd);
+  --sim-inverse-side:var(--violet,#b7a5eb);
+}
+[data-inverse-style-scope="formula-teaching"] foreignObject{overflow:visible;pointer-events:none}
+.pe-inverse-math{line-height:1;letter-spacing:0;font-weight:400}
+.pe-inverse-math math{margin:0;white-space:nowrap;font-family:"STIX Two Math","STIXGeneral","Cambria Math",serif}
+[data-inverse-token-actor]{pointer-events:none;transform-box:view-box}
+[data-get-peak-recognize-u]{stroke-linecap:round;stroke-linejoin:round}
+.pe-inverse-address-focus{fill:var(--sim-inverse-accent,#efb879);fill-opacity:.055;stroke:var(--sim-inverse-accent,#efb879);stroke-width:1.7;pointer-events:none}
+/* Product-to-weight derivation: retained MathML groups own their baseline. */
+.sim-retained-math { display:inline-flex; align-items:flex-start; white-space:nowrap; line-height:1; }
+.sim-retained-math math { margin:0; }
+[data-math-actors] [data-emphasized="true"] { filter:drop-shadow(0 0 4px #efb87955); }
+[data-style-scope="parameter-tail"] .pe-two-small { font-size:18px; }

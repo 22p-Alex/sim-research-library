@@ -301,9 +301,17 @@
       }
       else {
         motionAlpha=0; adoptedAlpha=1;
+        const teaching=Chapter.adoptedState(frame.progress,frame.id).teaching;
+        $('equation').hidden=!!teaching;
+        if(teaching){
+          setText($('scene-title'),teaching.title);setText($('scene-description'),teaching.copy);
+          setText($('equation-note'),teaching.note);setText($('scene-svg-description'),teaching.copy+' '+teaching.note);
+          setText($('stage-caption'),teaching.shot+' · '+teaching.title);
+        }
         if(frame.id==='adopted-weights'){
-          parameterAlpha=1-enter;adoptedAlpha=enter;
-          parameterView.drawScene('least-squares-fit',1);pairAlpha=1-enter;
+          const transfer=M.ramp(frame.progress,0,2/28);
+          parameterAlpha=1-transfer;adoptedAlpha=transfer;
+          parameterView.drawScene('least-squares-fit',1);pairAlpha=1-transfer;
         }
       }
     } else if (frame.owner === 'parameters') {

@@ -276,6 +276,7 @@
       'data-parameter-source': key === 'k' ? 'locked-wavevector' : 'complex-coefficient', 'stroke-width': 1, 'stroke-dasharray': '3 4',
       d: i === 0 ? 'M 250 383 V 425' : `M 1070 383 Q ${250 + i * 470} 402 ${250 + i * 470} 425`,
     }));
+    const tailView=root.SIMParameterTail.createView({parent:stage,lesson,images,el,label,path,line,vector,set,text,opacity,plane,prefix,defs,uid});
     function draw(progress) {
       const active = progress !== null, s = Story.state(lesson, active ? progress : 0);
       opacity(stage, active ? 1 : 0);
@@ -439,6 +440,13 @@
         set(g, 'data-value', shown ? raw : '');
         text(v, shown ? i === 0 ? `(${s.k.map(x => number(x, 2)).join(', ')}) DFT 格` : number(raw, 4) + (i === 2 ? ' rad' : '') : '');
       });
+      if(s.tail){
+        const keep=1-s.tail.enter;
+        groups.forEach(g=>opacity(g,Number(g.style.opacity||g.getAttribute('opacity')||0)*keep));
+        opacity(result,Number(result.style.opacity||result.getAttribute('opacity')||0)*keep);
+        opacity(legend,0);
+      }
+      tailView.draw(s);
       return s;
     }
     draw(null); return { root: stage, draw };

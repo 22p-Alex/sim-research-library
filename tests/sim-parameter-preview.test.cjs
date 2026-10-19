@@ -46,7 +46,7 @@ test('the scan writes actual valid candidate scores and ends at the coarse peak,
     if (f.divide > 0) assert.equal(f.count, lesson.estimate.finalPeak.count, 'the ratio never uses unfinished sums');
   }
   const Peak=require('../web/parameter-demo/scenes/get-peak/state.js');
-  const from = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',.3)), to = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',.4));
+  const from = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',19.3/36)), to = P.leastSquaresState(lesson, Peak.timeline.progressFor('finalDivide',20.3/36));
   assert.equal(from.count, to.count); assert.ok(to.divide > from.divide);
   assert.equal(from.alpha,null); assert.equal(to.alpha,null);
   const p = .73;

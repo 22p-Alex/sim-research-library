@@ -9,7 +9,7 @@ const near=(a,b,tol=1e-9)=>assert.ok(Number.isFinite(+a)&&Math.abs(+a-b)<tol,`${
 const visible=n=>{let a=1;for(;n;n=n.parent){if(n.hidden||n.attrs.display==='none')return 0;a*=Number(n.attrs.opacity??n.style.opacity??1);}return a;};
 
 test('the alpha entry uses paired observed frequencies and retains the fully locked result for 1.5 seconds',()=>{
-  assert.equal(Peak.timeline.beats.slice(0,5).reduce((s,b)=>s+b.duration,0),84000);
+  assert.equal(Peak.timeline.beats.slice(0,5).reduce((s,b)=>s+b.duration,0),108000);
   for(const phase of [0,.35,-.72]) {
     const cap=E.capture({m:.67,offsets:[phase,.55,-.4]}),lesson=Story.createLesson({raw:cap.raw,config:cap.config});
     const data=Peak.dataFor(lesson),p=data.peak,q=data.frequencyPoint.q,i=A.idx(...q,p.n),j=A.idx(q[0]+p.kx,q[1]+p.ky,p.n);
@@ -39,14 +39,14 @@ test('working spectra are defined before their ratio, and the purpose of changin
   const definitions=at('finalPrepare',10/21),relation=at('finalPrepare',11.6/21);
   assert.equal(definitions.substep,'workingBands');assert.match(definitions.formula.equation,/B_0.*coloneqq.*B_1.*coloneqq/);
   assert.equal(relation.substep,'commonAlpha');assert.match(relation.formula.equation,/approx.*alpha/);
-  for(const local of [0,1/36,2.999/36,1/36,0]){
+  for(const local of [0,1/60,2.999/60,1/60,0]){
     const s=at('finalInverse',local);
     assert.equal(s.substep,'purpose');near(s.cues.inverse,0);near(s.cues.derivationEnter,0);near(s.cues.shift,0);
     assert.doesNotMatch(s.formula.equation,/mathcal F|delta|e\^\{-/);
     near(s.cues.divide,0);
   }
-  assert.equal(at('finalInverse',3/36).substep,'transform');
-  near(at('finalInverse',3.4/36).cues.inverse,0);near(at('finalInverse',6.6/36).cues.inverse,1);
+  assert.equal(at('finalInverse',3/60).substep,'transform');
+  near(at('finalInverse',3.4/60).cues.inverse,0);near(at('finalInverse',6.1/60).cues.inverse,1);
 });
 
 for(const main of [true,false])test(`${main?'motion':'standalone'} preserves source identity, sample and scale through alpha entry and conjugation`,()=>{
@@ -72,37 +72,106 @@ for(const main of [true,false])test(`${main?'motion':'standalone'} preserves sou
     assert.equal(marker.attrs['data-address'],[q[0]+b*p.kx,q[1]+b*p.ky].join(','));
   }
   beat('finalInverse',1);near(visible(get('data-get-peak-frequency-point',0)),0);
-  // The complete definitions remain mounted and fixed as only the copied
-  // sideband factors change. Check playback and reverse seeking in both hosts.
+  // Retained mathematical actors move through the algebra. The original
+  // definitions and the completed main-row entrance stay fixed afterward.
   const definitions=[0,1].map(b=>get('data-get-peak-definition',b));
   const proofToken=name=>get('data-get-peak-inverse-token',name);
-  beat('finalInverse',9.5/36);
-  const definitionPoses=definitions.map(n=>n.attrs.transform);
+  const mainRow=get('data-get-peak-inverse-row');
+  const pose=n=>[n.attrs.x,n.attrs.y,n.attrs.transform];
+  beat('finalInverse',5.2/60);
+  const sourceCard=pose(get('data-get-peak-field','inverse-0'));
+  beat('finalInverse',.111);
+  const emerging=definitions.map(pose);
+  beat('finalInverse',9.5/60);
+  assert.notDeepEqual(definitions.map(pose),emerging,'image-to-definition handoff moves before settling');
+  assert.notDeepEqual(pose(get('data-get-peak-field','inverse-0')),sourceCard,'images shrink in place before the formulas dock');
+  beat('finalInverse',10.4/60);const copiedRow=pose(mainRow);
+  beat('finalInverse',12/60);
+  assert.notDeepEqual(pose(mainRow),copiedRow,'the working equation travels from the retained v definition');
+  const definitionPoses=definitions.map(pose),mainPose=pose(mainRow);
   const definitionChildren=definitions.map(n=>n.children[0]);
-  const proofStates=new Map(),proofCheckpoints=[9.5,10.8,12,13.5,15,17.5,19,21.5,23,25.5,27,29,31.5,34.5,35.9];
+  const proofStates=new Map(),proofCheckpoints=[12,13.3,14.7,15.8,16.8,18.5,20.2,21.3,23,24.7,25.6,27,28.6,30.2,33,35.8,37.5,40,41.5,43.2,45,46.4,47.5,49,51.5,54,56.5,59.9];
+  const proofRenders=h.mathRenders;
+  const measurements=h.work.measurements;
   for(const seconds of [...proofCheckpoints,...proofCheckpoints.toReversed()]) {
-    beat('finalInverse',seconds/36);
-    const shown=Peak.presentation(Peak.timeline.progressFor('finalInverse',seconds/36));
+    beat('finalInverse',seconds/60);
+    const shown=Peak.presentation(Peak.timeline.progressFor('finalInverse',seconds/60));
     assert.doesNotMatch(shown.formula.equation,/e\^\{-/);
     near(visible(get('data-get-peak-alpha-illustration')),0);
-    definitions.forEach((n,b)=>{near(visible(n),1);assert.equal(n.attrs.transform,definitionPoses[b]);assert.equal(n.children[0],definitionChildren[b]);});
-    for(const [old,next] of [['sumF','sumQ'],['bandF','bandShifted'],['bandShifted','bandZero'],['kernelF','kernelCombined'],['kernelCombined','kernelReference'],['kernelExtra','kernelDelta'],['norm','u']])
+    definitions.forEach((n,b)=>{near(visible(n),1);assert.deepEqual(pose(n),definitionPoses[b]);assert.equal(n.children[0],definitionChildren[b]);});
+    assert.deepEqual(pose(mainRow),mainPose);assert.equal(proofToken('lhs').tagName,'g');
+    assert.equal(get('data-inverse-fragment','equal').attrs.width,get('data-inverse-fragment','approx').attrs.width);
+    for(const [old,next] of [['sumF','sumQ'],['bandF','bandShifted'],['bandShifted','bandZero'],['kernelF','kernelCombined'],['kernelCombined','kernelReference'],['kernelExtra','extraOutside'],['extraOutside','kernelDelta'],['norm','matchedU'],['matchedU','u']])
       assert.ok(visible(proofToken(old))===0||visible(proofToken(next))===0,old+' / '+next);
-    const snapshot=h.nodes.filter(n=>n.attrs['data-get-peak-inverse-token']!==undefined||n.attrs['data-get-peak-extra-vector']!==undefined).map(n=>({...n.attrs}));
+    const displayed=proofToken('lhs').parent.children.filter(n=>n.attrs['data-stage-active']==='true');
+    assert.deepEqual(displayed.map(n=>n.attrs['data-get-peak-inverse-token']),Array.from(shown.proof.active));
+    assert.equal(displayed.map(n=>Peak.inverseTokens[n.attrs['data-get-peak-inverse-token']]).join(' '),shown.formula.equation.slice(2,-2));
+    assert.equal(mainRow.attrs['data-equation'],shown.proof.equation);
+    const formula=h.byId.get(main?'equation':'pe-equation');
+    assert.ok(formula.children.every(n=>n.style.display==='none'),'no duplicate complete equation in the footer');
+    assert.ok(h.nodes.filter(n=>n.attrs['data-get-peak-inverse-rule']!==undefined&&visible(n)>0).length<=1);
+    const snapshot=h.nodes.filter(n=>n.attrs['data-get-peak-inverse-token']!==undefined||n.attrs['data-get-peak-extra-vector']!==undefined).map(n=>({...n.attrs,style:{...n.style}}));
     if(proofStates.has(seconds))assert.deepEqual(snapshot,proofStates.get(seconds));else proofStates.set(seconds,snapshot);
-    if(seconds===13.5){near(visible(proofToken('bandShifted')),1);near(visible(proofToken('kernelCombined')),1);near(visible(proofToken('alpha')),0);}
-    if(seconds===17.5){near(visible(proofToken('alpha')),1);near(visible(proofToken('bandZero')),1);near(visible(proofToken('kernelCombined')),1);}
-    if(seconds===21.5){near(visible(proofToken('kernelReference')),1);near(visible(proofToken('kernelExtra')),1);}
-    if(seconds===25.5){
-      const x=n=>+proofToken(n).attrs.transform.match(/translate\(([-\d.]+)/)[1];
-      assert.ok(x('alpha')<x('kernelExtra')&&x('kernelExtra')<x('norm')&&x('norm')<x('sumQ'));
-    }
-    if(seconds>=29){near(visible(proofToken('u')),1);near(visible(proofToken('kernelDelta')),1);near(visible(proofToken('norm')),0);}
-    if(seconds<29)near(visible(get('data-get-peak-extra-rotation')),0);
-    if(seconds>=34.5){
+    if(seconds===18.5){near(visible(proofToken('bandShifted')),1);near(visible(proofToken('kernelCombined')),1);near(visible(proofToken('alpha')),0);}
+    if(seconds===23){near(visible(proofToken('alphaInside')),1);near(visible(proofToken('alpha')),0);near(visible(proofToken('bandZero')),1);}
+    if(seconds===27){near(visible(proofToken('alphaInside')),0);near(visible(proofToken('alpha')),1);near(visible(proofToken('kernelCombined')),1);}
+    if(seconds===33){near(visible(proofToken('kernelReference')),1);near(visible(proofToken('kernelExtra')),1);}
+    if(seconds===40){near(visible(proofToken('extraOutside')),1);near(visible(get('data-get-peak-recognize-u')),1);near(visible(proofToken('norm')),1);}
+    if(seconds===45){near(visible(proofToken('u')),1);near(visible(proofToken('extraOutside')),1);near(visible(proofToken('kernelDelta')),0);}
+    if(seconds===46.4){near(visible(get('data-get-peak-delta-definition')),1);near(visible(proofToken('kernelDelta')),0);}
+    if(seconds>=49){near(visible(proofToken('u')),1);near(visible(proofToken('kernelDelta')),1);near(visible(proofToken('norm')),0);}
+    if(seconds<49)near(visible(get('data-get-peak-extra-rotation')),0);
+    if(seconds>=56.5){
       const v=get('data-get-peak-extra-vector');near(Math.hypot(+v.attrs['data-re'],+v.attrs['data-im']),1);
       near(+v.attrs['data-applied-angle'],Math.atan2(Math.sin(+v.attrs['data-delta']),Math.cos(+v.attrs['data-delta'])));
     }
+  }
+  assert.equal(h.mathRenders,proofRenders,'all inverse steps reuse the same compiled mathematical groups');
+  assert.equal(h.work.measurements,measurements,'continuous motion uses cached widths, not per-frame layout reads');
+  beat('finalInverse',.108);
+  for(const node of definitions)near(visible(node),1);
+  for(const i of [0,1])near(visible(get('data-get-peak-field','inverse-'+i)),0);
+  const translatedX=n=>+n.attrs.x+ +n.attrs.transform.match(/translate\(([-\d.]+)/)[1];
+  const enteringX=definitions.map(translatedX);
+  for(const [i,x] of [370,1070].entries())assert.match(get('data-get-peak-field','inverse-'+i).attrs.transform,new RegExp('^translate\\('+x+' 270\\)'));
+  beat('finalInverse',12/60);
+  assert.ok(definitions.every((node,i)=>translatedX(node)<enteringX[i]),'the formulas move left, while the images keep their original centers');
+  assert.equal(definitions[0].attrs['data-identity-color'],'reference');assert.equal(definitions[1].attrs['data-identity-color'],'side');
+  assert.notEqual(definitions[0].children[0].style.color,definitions[1].children[0].style.color);
+  near(mainRow.attrs['data-definition-center-x'],720);near(mainRow.attrs['data-row-scale'],1);
+  beat('finalInverse',13/60);near(visible(get('data-get-peak-inverse-rule','address')),1);near(visible(get('data-get-peak-address-focus','band')),0);
+  beat('finalInverse',14.8/60);near(visible(get('data-get-peak-address-focus','band')),1);
+  const addressFrames=[];
+  for(const seconds of [16.4,17.1,17.8]){
+    beat('finalInverse',seconds/60);
+    const band=get('data-get-peak-address-expansion','band'),box=get('data-get-peak-address-focus','band');
+    const prefix=get('data-get-peak-address-fragment','bandPrefix'),plus=get('data-get-peak-address-fragment','plusK');
+    near(visible(band),1);near(visible(prefix),1);assert.ok(visible(plus)>0);
+    addressFrames.push({width:+box.attrs.width,x:+prefix.attrs['data-motion-x'],sx:+plus.attrs['data-motion-sx']});
+  }
+  for(let i=1;i<addressFrames.length;i++){
+    assert.ok(addressFrames[i].width>addressFrames[i-1].width,'the box grows with the address');
+    assert.ok(addressFrames[i].sx>addressFrames[i-1].sx,'+k unfolds horizontally');
+    near(addressFrames[i].x,addressFrames[0].x,1e-7);
+  }
+  beat('finalInverse',1);
+  const formulaClip=get('data-get-peak-formula-clip'),graphClip=get('data-get-peak-geometry-clip');
+  assert.ok(+formulaClip.attrs.y+ +formulaClip.attrs.height<+graphClip.attrs.y,'formula and complex-plane ownership have a positive vertical gap');
+  assert.match(get('data-get-peak-formula-zone').attrs['clip-path'],/sim-inverse-formula-zone/);
+  const slots=h.context.SIMGetPeak.layout.derivation;
+  assert.ok(slots.deltaY+2.2*slots.sizes.angle<+graphClip.attrs.y,'the complete delta definition fits above the graph');
+  assert.ok(slots.mainY+3.25*slots.sizes.main<+graphClip.attrs.y,'the padded main equation fits above the graph');
+  // A changing opacity is insufficient: inspect actual intermediate positions
+  // in both production hosts across extraction, splitting and contraction.
+  const motionPose=(seconds,name)=>{
+    beat('finalInverse',seconds/60);const node=proofToken(name);
+    return {x:+node.attrs['data-motion-x'],y:+node.attrs['data-motion-y'],scale:+node.attrs['data-motion-scale'],opacity:visible(node)};
+  };
+  for(const [a,b,name] of [[24.8,26.1,'alpha'],[29.7,31.5,'kernelExtra'],[35.8,38.3,'extraOutside'],[41.5,43.2,'norm'],[47.0,48.2,'u']]){
+    const first=motionPose(a,name),last=motionPose(b,name);
+    assert.ok(Math.hypot(first.x-last.x,first.y-last.y)>3,'visible geometric motion: '+name);
+    assert.ok(first.opacity>0||last.opacity>0);
+    if(name==='norm')assert.ok(first.scale>last.scale,'the original sum shrinks as one block');
   }
   beat('finalShift',.8);
   const p=lesson.estimate.finalPeak,i=Peak.dataFor(lesson).sampleIndex,ramp=get('data-get-peak-ramp-vector');
@@ -135,8 +204,9 @@ for(const main of [true,false])test(`${main?'motion':'standalone'} preserves sou
   const snapshot=()=>[plane.attrs.transform,plane.attrs['data-sample'],u.attrs.d,v.attrs.d,u.attrs['data-scale'],v.attrs['data-scale']];
   const carried=snapshot();
   beat('finalProduct',0);assert.deepEqual(snapshot(),carried,'same vectors and sample enter the conjugation scene');
-  beat('finalProduct',.17);near(visible(lock)>0,1);near(Peak.state(lesson,Peak.timeline.progressFor('finalProduct',.17)).conjugate,0);
-  beat('finalProduct',.55);near(visible(lock),0);near(u.attrs['data-im'],-p.spatial[0].im[i]);
+  const originalProductScale=12800/Peak.timeline.beats.find(b=>b.key==='finalProduct').duration;
+  beat('finalProduct',.17*originalProductScale);near(visible(lock)>0,1);near(Peak.state(lesson,Peak.timeline.progressFor('finalProduct',.17*originalProductScale)).conjugate,0);
+  beat('finalProduct',.55*originalProductScale);near(visible(lock),0);near(u.attrs['data-im'],-p.spatial[0].im[i]);
   beat('finalCompare',1);assert.deepEqual(snapshot(),carried,'backward seeking restores the original two observations');
   const endpoints=[...[3,8,10.7,11.6,12.8,15.8,18.6,20.5].map(seconds=>['finalPrepare',seconds/21]),['finalInverse',.5],['finalShiftScan',.5],['finalCompare',.5],['finalProduct',.4],['finalSum',.3]];
   const states=new Map();
@@ -301,6 +371,117 @@ test('a displaced Fourier component creates the positive extra angle and is canc
     const ar=alpha.re*u.re[r]-alpha.im*u.im[r],ai=alpha.re*u.im[r]+alpha.im*u.re[r];
     near(v.re[r],ar*c-ai*s);near(v.im[r],ar*s+ai*c);
     near(v.re[r]*c+v.im[r]*s,ar);near(v.im[r]*c-v.re[r]*s,ai);
+  }
+});
+
+test('reindexing and extracting the same phase reproduces a full complex Fourier sum for signed shifts',()=>{
+  const n=8,alpha={re:.67,im:-.21};
+  const mul=(a,b)=>({re:a.re*b.re-a.im*b.im,im:a.re*b.im+a.im*b.re});
+  const add=(a,b)=>({re:a.re+b.re,im:a.im+b.im});
+  const exponential=angle=>({re:Math.cos(angle),im:Math.sin(angle)});
+  const zero=()=>({re:0,im:0});
+  const B0=Array.from({length:n*n},(_,i)=>({re:Math.sin(.7*i)+.2*Math.cos(i),im:Math.cos(.3*i)-.1*Math.sin(i)}));
+  for(const k of [[2,1],[-2,1],[1,-3]]){
+    const B1=Array.from({length:n*n},zero);
+    for(let y=0;y<n;y++)for(let x=0;x<n;x++)B1[A.idx(x+k[0],y+k[1],n)]=mul(alpha,B0[y*n+x]);
+    for(let ry=0;ry<n;ry++)for(let rx=0;rx<n;rx++){
+      let source=zero(),reindexed=zero(),substituted=zero(),split=zero(),u=zero();
+      const extra=exponential(2*Math.PI*(k[0]*rx+k[1]*ry)/n);
+      for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+        const base=exponential(2*Math.PI*(x*rx+y*ry)/n);
+        const shifted=exponential(2*Math.PI*((x+k[0])*rx+(y+k[1])*ry)/n);
+        source=add(source,mul(B1[y*n+x],base));
+        reindexed=add(reindexed,mul(B1[A.idx(x+k[0],y+k[1],n)],shifted));
+        substituted=add(substituted,mul(mul(alpha,B0[y*n+x]),shifted));
+        split=add(split,mul(mul(mul(alpha,B0[y*n+x]),base),extra));
+        u=add(u,mul(B0[y*n+x],base));
+      }
+      const factored=mul(mul(alpha,extra),u);
+      for(const value of [reindexed,substituted,split,factored]){
+        near(value.re/(n*n),source.re/(n*n));near(value.im/(n*n),source.im/(n*n));
+      }
+    }
+  }
+});
+
+test('the proof keeps exact reindexing, approximate observations and a definition before the delta abbreviation',()=>{
+  const at=seconds=>Peak.presentation(Peak.timeline.progressFor('finalInverse',seconds/60));
+  for(const seconds of [9.5,17.5])assert.match(at(seconds).formula.equation,/=/);
+  for(const seconds of [21.5,26.5,31,38.2,44,48.3,59])assert.match(at(seconds).formula.equation,/\\approx/);
+  const inside=at(23),outside=at(27),matched=at(40);
+  assert.match(inside.formula.equation,/\\sum_\{\\mathbf q\} \\alpha B_0/);
+  assert.match(outside.formula.equation,/\\alpha \\frac1\{N\^2\} \\sum/);
+  assert.match(matched.formula.equation,/\\alpha e\^\{2\\pi.*\\frac1\{N\^2\}.*B_0/);
+  assert.doesNotMatch(at(46.4).formula.equation,/\\delta/);
+  near(at(46.4).cues.deltaDefinition,1);
+  assert.match(at(49).formula.equation,/e\^\{i\\delta/);
+  const Clock=require('../web/shared/animation/beat-clock.js');
+  const retimed=Clock.define(Peak.timeline.beats.map(b=>({...b,duration:b.key==='finalInverse'?93000:b.duration})));
+  const widths=Object.fromEntries(Object.keys(Peak.inverseTokens).map((key,i)=>[key,35+(i%4)*20]));
+  for(let local=.001;local<1;local+=.007){
+    const original=Peak.presentation(Peak.timeline.progressFor('finalInverse',local));
+    const other=Peak.presentation(retimed.progressFor('finalInverse',local),retimed);
+    assert.equal(other.proof.stage,original.proof.stage);assert.equal(other.formula.equation,original.formula.equation);
+    assert.deepEqual(other.proof.emphasis,original.proof.emphasis);
+    for(const key of Object.keys(original.proof.tokenAlpha))near(other.proof.tokenAlpha[key],original.proof.tokenAlpha[key],1e-7);
+    const first=Peak.inverseMotion(original.proof,widths).actors,last=Peak.inverseMotion(other.proof,widths).actors;
+    for(const key of Object.keys(first))for(const attr of ['x','y','scale','opacity'])near(first[key][attr],last[key][attr],1e-5);
+  }
+});
+
+test('formula motion is geometric, endpoint-continuous and follows the cue after retiming',()=>{
+  // Deliberately unequal glyph widths exercise layout without a browser font.
+  const widths=Object.fromEntries(Object.keys(Peak.inverseTokens).map((key,i)=>[key,28+(i%5)*17]));
+  const beat=Peak.timeline.beats.find(b=>b.key==='finalInverse');
+  const at=local=>{
+    const p=Peak.presentation(Peak.timeline.progressFor('finalInverse',local));
+    return {p,m:Peak.inverseMotion(p.proof,widths,34)};
+  };
+  for(const stage of Peak.inverseStages.slice(1)){
+    const [a,b]=beat.cues[stage.cue],before=at(a-1e-5),after=at(b+1e-5);
+    for(const [boundary,stable,side] of [[a,before,1],[b,after,-1]]){
+      const moving=at(boundary+side*1e-7);
+      for(const [key,pose] of Object.entries(stable.m.actors))if(pose.opacity===1&&moving.m.actors[key].opacity>.999){
+        near(moving.m.actors[key].x,pose.x,.02);near(moving.m.actors[key].y,pose.y,.02);
+        near(moving.m.actors[key].scale,pose.scale,.001);
+      }
+    }
+    const frames=[.25,.5,.75].map(t=>at(a+(b-a)*t));
+    for(const frame of frames)for(const pose of Object.values(frame.m.actors)){
+      assert.ok([pose.x,pose.y,pose.scale,pose.opacity].every(Number.isFinite));
+      near(frame.m.actors.lhs.x,before.m.actors.lhs.x);near(frame.m.actors.lhs.y,0);
+    }
+    const first=frames[0].m.actors,last=frames[2].m.actors;
+    assert.ok(Object.keys(first).some(key=>(first[key].opacity>0||last[key].opacity>0)
+      && Math.hypot(first[key].x-last[key].x,first[key].y-last[key].y)>1),stage.key+' moves visible glyphs');
+    if(stage.key==='factor')for(const frame of frames){near(frame.m.actors.extraOutside.opacity,1);assert.ok(frame.m.actors.extraOutside.y<0);}
+    if(stage.key==='recognize')assert.ok(first.norm.scale>last.norm.scale);
+  }
+});
+
+test('the f slot expands in its original brackets and superscript with continuous bounds',()=>{
+  const parts={bandPrefix:49,bandClose:13,f:19,q:20,plusK:60,baseE:17,phasePrefix:45,supF:14,supQ:15,supPlus:43,supOpen:10,supClose:10,phaseTail:60};
+  const widths={bandF:81,bandShifted:142,kernelF:136,kernelCombined:200};
+  let lastBand=0,lastKernel=0;
+  for(let t=0;t<=1.00001;t+=.01){
+    const s=Peak.inverseAddressExpansion(Math.min(t,1),parts,widths);
+    assert.ok(s.band.width>=lastBand);assert.ok(s.kernel.width>=lastKernel);
+    lastBand=s.band.width;lastKernel=s.kernel.width;
+    for(const group of [s.band,s.kernel]){
+      assert.ok(group.box.width>0);assert.ok(group.box.height>0);
+      for(const p of Object.values(group.parts)){near(p.y,0);assert.ok([p.x,p.sx,p.opacity].every(Number.isFinite));}
+    }
+    near(s.band.parts.bandPrefix.x,0);near(s.kernel.parts.baseE.x,0);
+  }
+  const first=Peak.inverseAddressExpansion(0,parts,widths),last=Peak.inverseAddressExpansion(1,parts,widths);
+  near(first.band.parts.f.opacity,1);near(last.band.parts.f.opacity,0);near(last.band.parts.q.opacity,1);
+  near(first.band.parts.plusK.sx,0);assert.ok(last.band.parts.plusK.sx>0);
+  near(first.kernel.parts.supPlus.sx,0);assert.ok(last.kernel.parts.supPlus.sx>0);
+  near(first.band.width,widths.bandF);near(last.band.width,widths.bandShifted);
+  near(first.kernel.width,widths.kernelF);near(last.kernel.width,widths.kernelCombined);
+  for(const key of ['band','kernel']){
+    const middle=Peak.inverseAddressExpansion(.6,parts,widths)[key];
+    assert.ok(middle.box.width>first[key].box.width&&middle.box.width<last[key].box.width);
   }
 });
 

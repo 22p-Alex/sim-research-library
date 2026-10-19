@@ -1,5 +1,5 @@
 {
-  "version": "inverse-phase-20261019-v2",
+  "version": "parameter-tail-20261019-v1",
   "sceneTemplates": [
     {
       "scenes": [
@@ -121,6 +121,28 @@
       "files": [
         "web/parameter-demo/scenes/get-peak/inverse-view.js"
       ]
+    },
+    {
+      "scenes": [
+        "parameters.get-peak-product",
+        "parameters.get-peak-sum",
+        "parameters.get-peak-divide",
+        "parameters.get-peak-read"
+      ],
+      "files": [
+        "web/parameter-demo/scenes/get-peak/tail-view.js",
+        "web/shared/animation/math-actors.js"
+      ]
+    },
+    {
+      "scenes": [
+        "adopted-weights",
+        "restore-weight"
+      ],
+      "files": [
+        "web/motion/scenes/adopted-weights/teaching.js",
+        "web/shared/animation/math-actors.js"
+      ]
     }
   ],
   "pages": {
@@ -133,6 +155,8 @@
       "web/parameter-demo/sim-parameter-model.js",
       "web/shared/animation/beat-clock.js",
       "web/shared/animation/text-transition.js",
+      "web/shared/animation/math-actors.js",
+      "web/parameter-demo/scenes/get-peak/tail-story.js",
       "web/parameter-demo/scenes/get-peak/storyboard.js",
       "web/parameter-demo/scenes/get-peak/state.js",
       "web/parameter-demo/scenes/shared/storyboard.js",
@@ -155,10 +179,12 @@
       "web/parameter-demo/scenes/line-shift/view.js",
       "web/parameter-demo/scenes/get-peak/layout.js",
       "web/parameter-demo/scenes/get-peak/inverse-view.js",
+      "web/parameter-demo/scenes/get-peak/tail-view.js",
       "web/parameter-demo/scenes/get-peak/view.js",
       "web/parameter-demo/scenes/get-peak/formula-view.js",
       "web/parameter-demo/sim-parameter-two-stage-view.js",
       "web/motion/scenes/provisional-split/storyboard.js",
+      "web/motion/scenes/adopted-weights/teaching.js",
       "web/motion/scenes/adopted-weights/storyboard.js",
       "web/parameter-demo/scenes/shared/entry.js",
       "web/motion/sim-motion-parameter-chapter.js",
@@ -227,6 +253,8 @@
       "web/parameter-demo/sim-parameter-model.js",
       "web/shared/animation/beat-clock.js",
       "web/shared/animation/text-transition.js",
+      "web/shared/animation/math-actors.js",
+      "web/parameter-demo/scenes/get-peak/tail-story.js",
       "web/parameter-demo/scenes/get-peak/storyboard.js",
       "web/parameter-demo/scenes/get-peak/state.js",
       "web/parameter-demo/scenes/shared/storyboard.js",
@@ -249,10 +277,12 @@
       "web/parameter-demo/scenes/line-shift/view.js",
       "web/parameter-demo/scenes/get-peak/layout.js",
       "web/parameter-demo/scenes/get-peak/inverse-view.js",
+      "web/parameter-demo/scenes/get-peak/tail-view.js",
       "web/parameter-demo/scenes/get-peak/view.js",
       "web/parameter-demo/scenes/get-peak/formula-view.js",
       "web/parameter-demo/sim-parameter-two-stage-view.js",
       "web/motion/scenes/provisional-split/storyboard.js",
+      "web/motion/scenes/adopted-weights/teaching.js",
       "web/motion/scenes/adopted-weights/storyboard.js",
       "web/parameter-demo/scenes/shared/entry.js",
       "web/motion/sim-motion-parameter-chapter.js",

@@ -72,14 +72,14 @@ for(const page of ['sim_motion_demo.html','sim_parameter_demo.html'])test(`${pag
   toggle.dispatch('click');assert.equal(h.byId.get('scene-rehearsal').hidden,false);
   const scene=main?'parameters.get-peak-sum':'get-peak-sum';
   find('scene').value=scene;find('scene').dispatch('change');
-  find('beat').value='finalSum';find('beat').dispatch('change');
+  find('beat').value='B5';find('beat').dispatch('change');
   find('progress').value='.5';find('progress').dispatch('input');
   const stage=h.nodes.find(n=>n.attrs['data-get-peak']!==undefined);
   assert.equal(stage.attrs['data-mode'],'finalSum');
   assert.ok(+stage.attrs['data-count']>0 && +stage.attrs['data-count']<+stage.attrs['data-total']);
   const first=stage.attrs['data-count'];
   find('copy').dispatch('click');await Promise.resolve();
-  const locator=find('locator').value;assert.match(locator,/beat=finalSum&p=0.500000/);
+  const locator=find('locator').value;assert.match(locator,/beat=B5&p=0.500000/);
   find('scene').value=main?'parameters.get-peak-read':'get-peak-read';find('scene').dispatch('change');
   find('locator').value=locator;find('jump').dispatch('click');assert.equal(stage.attrs['data-count'],first);
   find('locator').value='bad';find('jump').dispatch('click');assert.equal(stage.attrs['data-count'],first);

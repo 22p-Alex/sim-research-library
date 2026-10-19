@@ -10,6 +10,10 @@
       const folder = parameter ? 'web/parameter-demo/scenes/' : 'web/motion/scenes/';
       const path = scene.unit || (scene.owner === 'connection' ? 'web/parameter-demo/sim-parameter-preview.js' : folder + canonical + '/storyboard.js');
       let beats = scene.beats || [{ key: 'main', action: scene.label, start: 0, end: 1 }];
+      const aliases=scene.teachingBeats?beats:[];
+      if(scene.teachingBeats){
+        beats=[...(scene.teachingBeats[0].start>0?[{key:'product-operation',action:'共轭乘积 · 原有操作',start:0,end:scene.teachingBeats[0].start}]:[]),...scene.teachingBeats];
+      }
       if (canonical === 'get-peak' && !scene.getPeakBeat) beats = getPeak.timeline.beats;
       if (localId === 'frequency-encoding' && motion) {
         const source = motion.encodingDerivationStages;
@@ -24,7 +28,7 @@
       }
       const start = kind === 'motion' ? Math.max(0, index - 1) : index;
       return { id:scene.id, canonical, index, label:scene.label, title:scene.title, objective:scene.title,
-        unit:path, getPeakBeat:scene.getPeakBeat, beats, duration:scene.duration || 0, start, initial:kind === 'motion' && index === 0,
+        unit:path, getPeakBeat:scene.getPeakBeat, beats, aliases, duration:scene.duration || 0, start, initial:kind === 'motion' && index === 0,
         entry:index ? scenes[index-1].id : null, exit:scenes[index+1]?.id || null,
         review:{ numerical:'automated', formula:'automated', transition:'automated', visual:'pending-user' } };
     });
@@ -33,12 +37,12 @@
     function resolve({ scene, beat='main', progress=0 }) {
       let entry=find(scene);
       // Legacy composite locators select the new stop that owns this beat.
-      if(entry?.canonical==='get-peak' && !entry.beats.some(b=>b.key===beat)) {
+      if(entry?.canonical==='get-peak' && ![...entry.beats,...entry.aliases].some(b=>b.key===beat)) {
         entry=entries.find(e=>e.canonical==='get-peak' && e.getPeakBeat===beat);
       }
       const local=Number(progress);
       if(!entry || !Number.isFinite(local) || local<0 || local>1) throw new Error('场景定位无效。');
-      const b=entry.beats.find(b=>b.key===beat);
+      const b=entry.beats.find(b=>b.key===beat)||entry.aliases.find(b=>b.key===beat);
       if(!b) throw new Error('该幕没有此分镜：'+beat);
       const p=b.start+(b.end-b.start)*local;
       // Existing hosts attribute exact integer boundaries to the preceding

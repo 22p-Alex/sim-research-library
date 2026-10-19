@@ -1,10 +1,13 @@
 .scene-rehearsal[hidden] { display: none; }
-.scene-rehearsal { margin: 12px 5%; padding: 14px 18px; border: 1px solid #36525d; background: #102128; color: #dce8e6; display: flex; align-items: end; flex-wrap: wrap; gap: 12px; max-height: 34dvh; overflow: auto; font: 13px/1.5 system-ui, sans-serif; }
+.scene-rehearsal { margin: 10px 35px 0; padding: 12px 16px; border: 1px solid #2c4149; border-radius: 4px; background: #0d1a20; color: #c9d8d7; display: flex; align-items: end; flex-wrap: wrap; gap: 10px 14px; max-height: 34dvh; overflow: auto; font: 12px/1.5 "Avenir Next", "Segoe UI Variable Text", "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif; }
 .scene-rehearsal label { display: flex; flex-direction: column; gap: 5px; min-width: 120px; }
 .scene-rehearsal label:has([data-rehearsal="locator"]) { flex: 1 1 350px; }
+.scene-rehearsal label > span { font-size: 11px; letter-spacing: .4px; color: #8aa2ab; }
 .scene-rehearsal select { max-width: 330px; }
-.scene-rehearsal select, .scene-rehearsal input[type="text"], .scene-rehearsal button { color: inherit; background: #091115; border: 1px solid #55737c; border-radius: 4px; padding: 7px 9px; font: inherit; }
-.scene-rehearsal button { cursor: pointer; }
+.scene-rehearsal select, .scene-rehearsal input[type="text"], .scene-rehearsal button { color: #dce8e6; background: #0a151a; border: 1px solid #526d79; border-radius: 4px; padding: 7px 9px; font: inherit; }
+.scene-rehearsal select:hover, .scene-rehearsal input[type="text"]:hover { border-color: #6d8b96; }
+.scene-rehearsal button { cursor: pointer; padding: 7px 12px; }
+.scene-rehearsal button:hover { border-color: #efb879; color: #efb879; }
 .scene-rehearsal input[type="range"] { min-width: 150px; accent-color: #efb879; }
-.scene-rehearsal output { flex-basis: 100%; color: #a8c4ca; overflow-wrap: anywhere; }
+.scene-rehearsal output { flex-basis: 100%; font-size: 11px; color: #8aa2ab; overflow-wrap: anywhere; }
 .scene-rehearsal :focus-visible { outline: 2px solid #efb879; outline-offset: 3px; }
